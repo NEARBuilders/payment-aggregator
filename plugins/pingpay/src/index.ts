@@ -1,9 +1,9 @@
 import { createPlugin } from 'every-plugin';
 import { Effect } from 'every-plugin/effect';
 import { z } from 'every-plugin/zod';
-import { PaymentContract } from '../contract';
+import { PaymentContract } from './contract';
 import { PingPayService, PingPayServiceLive } from './service';
-import type { FeeConfig } from '../../../schema';
+import type { FeeConfig } from './schema';
 
 export default createPlugin({
   variables: z.object({
@@ -27,16 +27,10 @@ export default createPlugin({
         apiKey: config.secrets.PING_API_KEY,
       });
 
-      console.log('[Ping Payment Plugin] Initialized successfully');
       if (config.secrets.PING_API_KEY) {
-        console.log('[Ping Payment Plugin] API key configured');
+        console.log('[PingPay Plugin] API key configured');
       } else {
-        console.warn('[Ping Payment Plugin] No API key configured - requests may fail');
-      }
-      if (config.secrets.PING_WEBHOOK_SECRET) {
-        console.log('[Ping Payment Plugin] Webhook secret configured');
-      } else {
-        console.warn('[Ping Payment Plugin] No webhook secret configured - webhook verification will be skipped');
+        console.warn('[PingPay Plugin] No API key configured - requests may use test mode');
       }
 
       return { serviceLayer };

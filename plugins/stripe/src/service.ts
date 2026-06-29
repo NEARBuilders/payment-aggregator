@@ -1,13 +1,13 @@
 import { Effect } from 'every-plugin/effect';
 import Stripe from 'stripe';
-import type { CheckoutSessionInput, CheckoutSessionOutput } from '../schema';
+import type { CheckoutSessionInput, CheckoutSessionOutput } from './schema';
 
 export class StripePaymentService {
-  private stripe: Stripe;
+  private stripe: any;
   private webhookSecret: string;
 
   constructor(secretKey: string, webhookSecret: string) {
-    this.stripe = new Stripe(secretKey, {
+    this.stripe = new (Stripe as any)(secretKey, {
       apiVersion: '2026-02-25.clover',
     });
     this.webhookSecret = webhookSecret;
@@ -18,7 +18,7 @@ export class StripePaymentService {
       try: async () => {
         const session = await this.stripe.checkout.sessions.create({
           payment_method_types: ['card'],
-          line_items: input.items.map(item => ({
+          line_items: input.items.map((item: any) => ({
             price_data: {
               currency: input.currency.toLowerCase(),
               product_data: {
@@ -57,11 +57,11 @@ export class StripePaymentService {
           body,
           signature,
           this.webhookSecret
-        );
-        
+        ) as any;
+
         let orderId: string | undefined;
         if (event.type === 'checkout.session.completed') {
-          const session = event.data.object as Stripe.Checkout.Session;
+          const session = event.data.object as { metadata?: Record<string, string> };
           orderId = session.metadata?.orderId;
         }
 
@@ -78,7 +78,7 @@ export class StripePaymentService {
   getSession(sessionId: string) {
     return Effect.tryPromise({
       try: async () => {
-        const session = await this.stripe.checkout.sessions.retrieve(sessionId);
+        const session = await this.stripe.checkout.sessions.retrieve(sessionId) as any;
         return session;
       },
       catch: (error: unknown) =>

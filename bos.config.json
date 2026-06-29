@@ -24,5 +24,12 @@
       ]
     }
   },
-  "plugins": {}
+  "plugins": {
+    "pingpay": {
+      "development": "local:plugins/pingpay"
+    },
+    "stripe": {
+      "development": "local:plugins/stripe"
+    }
+  }
 }

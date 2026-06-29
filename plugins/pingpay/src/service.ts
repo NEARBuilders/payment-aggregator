@@ -1,7 +1,6 @@
 import * as crypto from 'crypto';
 import { Context, Effect, Layer } from 'every-plugin/effect';
-import type { CheckoutSessionInput, CheckoutSessionOutput } from '../schema';
-import type { FeeConfig } from '../../../schema';
+import type { CheckoutSessionInput, CheckoutSessionOutput, FeeConfig } from './schema';
 import { PingWebhookPayloadSchema, type PingWebhookResult } from './schema';
 import { WebhookSignatureError, WebhookParseError, PingApiError } from './errors';
 import { PingPayClient } from './client';
@@ -134,8 +133,6 @@ export const PingPayServiceLive = (config: PingPayConfig) =>
           const payload = parseResult.data;
           const sessionId = payload.sessionId ?? payload.data?.sessionId;
           const orderId = payload.metadata?.orderId ?? (payload.data?.metadata?.orderId as string | undefined);
-
-          console.log(`[PingPay Webhook] Received event: ${payload.type}, sessionId: ${sessionId}`);
 
           return { eventType: payload.type, orderId, sessionId };
         }),

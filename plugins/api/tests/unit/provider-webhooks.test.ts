@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { Effect, Layer } from 'every-plugin/effect';
-import { processPaymentSuccessEffect } from '../../src/services/payment/payment-success';
+import { processPaymentSuccessEffect } from '../../src/services/payments/payment-success';
 import { processManualWebhookEffect } from '../../src/services/webhooks/manual';
 import { processLuluWebhookEffect, processPrintfulWebhookEffect } from '../../src/services/fulfillment/webhook';
 import { LuluService } from '../../src/services/fulfillment/lulu/service';

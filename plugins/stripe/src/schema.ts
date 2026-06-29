@@ -60,6 +60,7 @@ export const GetSessionOutputSchema = z.object({
   }),
 });
 
+export type FeeConfig = z.infer<typeof FeeConfigSchema>;
 export type PaymentLineItem = z.infer<typeof PaymentLineItemSchema>;
 export type CheckoutSessionInput = z.infer<typeof CheckoutSessionInputSchema>;
 export type CheckoutSessionOutput = z.infer<typeof CheckoutSessionOutputSchema>;

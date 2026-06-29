@@ -19,7 +19,7 @@ import { EmailService } from './email';
 import { parsePrintfulWebhook } from './fulfillment/printful/webhook';
 import { LuluService } from './fulfillment/lulu/service';
 import { processLuluWebhookEffect, processPrintfulWebhookEffect } from './fulfillment/webhook';
-import { processPaymentSuccessEffect } from './payment/payment-success';
+import { processPaymentSuccessEffect } from './payments/payment-success';
 import { OrderStore, ProductStore, ProviderConfigStore, ProviderTestStateStore } from '../store';
 import { processManualWebhookEffect } from './webhooks/manual';
 

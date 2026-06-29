@@ -6,9 +6,9 @@ import type { ProductWithImages, Product } from './schema';
 import PrintfulPlugin from './services/fulfillment/printful';
 import LuluPlugin from './services/fulfillment/lulu';
 import ManualPlugin from './services/fulfillment/manual';
-import { PaymentContract } from './services/payment';
-import PingPayPlugin from './services/payment/pingpay';
-import StripePlugin from './services/payment/stripe';
+import { PaymentContract } from '../../pingpay/src/contract';
+import PingPayPlugin from '../../pingpay/src/index';
+import StripePlugin from '../../stripe/src/index';
 import {
 	ExclusiveCheckContract,
 	LegionHolderPlugin,

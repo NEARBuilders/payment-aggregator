@@ -1,7 +1,7 @@
 import { createPlugin } from 'every-plugin';
 import { Effect } from 'every-plugin/effect';
 import { z } from 'every-plugin/zod';
-import { PaymentContract } from '../contract';
+import { PaymentContract } from './contract';
 import { StripePaymentService } from './service';
 
 export default createPlugin({
@@ -23,11 +23,9 @@ export default createPlugin({
         config.secrets.STRIPE_WEBHOOK_SECRET
       );
 
-      console.log('[Stripe Payment Plugin] Initialized successfully');
+      console.log('[Stripe Plugin] Initialized successfully');
 
-      return {
-        service,
-      };
+      return { service };
     }),
 
   shutdown: () => Effect.void,
@@ -43,13 +41,13 @@ export default createPlugin({
       })),
 
       createCheckout: builder.createCheckout.handler(async ({ input }) => {
-        return await Effect.runPromise(service.createCheckout(input));
+        return await Effect.runPromise(service.createCheckout(input)) as any;
       }),
 
       verifyWebhook: builder.verifyWebhook.handler(async ({ input }) => {
         const result = await Effect.runPromise(
           service.verifyWebhook(input.body, input.signature)
-        );
+        ) as any;
 
         return {
           received: true,
@@ -59,7 +57,7 @@ export default createPlugin({
       }),
 
       getSession: builder.getSession.handler(async ({ input }) => {
-        const session = await Effect.runPromise(service.getSession(input.sessionId));
+        const session = await Effect.runPromise(service.getSession(input.sessionId)) as any;
 
         return {
           session: {

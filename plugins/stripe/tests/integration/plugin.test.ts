@@ -1,0 +1,32 @@
+import { describe, expect, it, afterAll } from "vitest";
+import { getPluginClient, teardown } from "../setup";
+
+describe("Stripe Plugin Integration Tests", () => {
+  afterAll(async () => {
+    await teardown();
+  });
+
+  describe("ping procedure", () => {
+    it("should return healthy status with provider name", async () => {
+      const client = await getPluginClient();
+
+      const result = await client.ping();
+
+      expect(result).toEqual({
+        provider: "stripe",
+        status: "ok",
+        timestamp: expect.any(String),
+      });
+    });
+  });
+
+  describe("getSession procedure", () => {
+    it("should return an error for non-existent session", async () => {
+      const client = await getPluginClient();
+
+      await expect(
+        client.getSession({ sessionId: "cs_nonexistent" })
+      ).rejects.toThrow();
+    });
+  });
+});

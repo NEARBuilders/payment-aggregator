@@ -33,9 +33,9 @@ import { DatabaseLive, OrderStore, OrderStoreLive, ProductStore, ProductStoreLiv
 import { NewsletterStoreLive } from './store/newsletter';
 import { ProviderConfigStore, ProviderConfigStoreLive } from './store/providers';
 import { parsePrintfulWebhook, verifyPrintfulWebhookSignature } from './services/fulfillment/printful/webhook';
-import { verifyPingPayWebhookSignature } from './services/payment/pingpay/service';
-import { handlePingPayWebhookEffect } from './services/payment/pingpay/webhook';
-import { processPaymentSuccessEffect } from './services/payment/payment-success';
+import { verifyPingPayWebhookSignature } from '../../pingpay/src/service';
+import { handlePingPayWebhookEffect } from './services/payments/pingpay-webhook';
+import { processPaymentSuccessEffect } from './services/payments/payment-success';
 import { processManualWebhookEffect } from './services/webhooks/manual';
 import { logWebhookProcessingError, readWebhookBody } from './services/webhooks/common/route';
 import { runProviderTestStepEffect, saveProviderTestScenarioEffect } from './services/provider-tests';

@@ -41,19 +41,65 @@ export default createPlugin.withPlugins<PluginsClient>()({
         yield* Effect.promise(() => migrate(db, migrations));
 
         const { auth, ...restPlugins } = plugins;
-        return { auth, plugins: restPlugins, db };
+
+        const stripeClient = (restPlugins as any).stripe;
+        const pingpayClient = (restPlugins as any).pingpay;
+
+        return { auth, plugins: restPlugins, db, stripeClient, pingpayClient };
       }),
       DatabaseLive(config.secrets.API_DATABASE_URL),
     ),
 
   createRouter: (services, builder) => {
     const { requireAuth } = createAuthMiddleware(builder);
+    const stripe = (services as any).stripeClient;
+    const pingpay = (services as any).pingpayClient;
 
     return {
       ping: builder.ping.handler(async () => ({
         status: "ok",
         timestamp: new Date().toISOString(),
       })),
+
+      stripePing: builder.stripePing.handler(async () => {
+        const client = stripe();
+        return await client.ping();
+      }),
+
+      stripeCreateCheckout: builder.stripeCreateCheckout.handler(async ({ input }) => {
+        const client = stripe();
+        return await client.createCheckout(input) as any;
+      }),
+
+      stripeVerifyWebhook: builder.stripeVerifyWebhook.handler(async ({ input, context }) => {
+        const client = stripe({ headers: context.reqHeaders });
+        return await client.verifyWebhook(input) as any;
+      }),
+
+      stripeGetSession: builder.stripeGetSession.handler(async ({ input }) => {
+        const client = stripe();
+        return await client.getSession(input) as any;
+      }),
+
+      pingpayPing: builder.pingpayPing.handler(async () => {
+        const client = pingpay();
+        return await client.ping();
+      }),
+
+      pingpayCreateCheckout: builder.pingpayCreateCheckout.handler(async ({ input }) => {
+        const client = pingpay();
+        return await client.createCheckout(input) as any;
+      }),
+
+      pingpayVerifyWebhook: builder.pingpayVerifyWebhook.handler(async ({ input, context }) => {
+        const client = pingpay({ headers: context.reqHeaders });
+        return await client.verifyWebhook(input) as any;
+      }),
+
+      pingpayGetSession: builder.pingpayGetSession.handler(async ({ input }) => {
+        const client = pingpay();
+        return await client.getSession(input) as any;
+      }),
     };
   },
 });
