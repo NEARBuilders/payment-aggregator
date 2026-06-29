@@ -327,6 +327,7 @@ node_modules/.federation
 *.md
 !AGENTS.md
 !CONTRIBUTING.md
+!docs/**/*.md
 !**/README.md
 !**/CHANGELOG.md
 !.changeset/**/*.md
