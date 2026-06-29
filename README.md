@@ -148,6 +148,8 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed contribution guidelines in
 - **[UI README](./ui/README.md)** - Frontend documentation
 - **[Host README](./host/README.md)** - Server host documentation
 - **[Auth Plugin README](./plugins/auth/README.md)** - Auth plugin documentation
+- **[PingPay Plugin README](./plugins/pingpay/README.md)** - NEAR USDC payment plugin
+- **[Stripe Plugin README](./plugins/stripe/README.md)** - Card payment plugin
 
 **Documentation Purpose:**
 - `README.md` (this file) - Human quick start and overview
@@ -170,13 +172,20 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed contribution guidelines in
 │  └────────┬─────────┘      └────────┬─────────┘         │
 │           ↓                         ↓                   │
 │  Loads UI Runtime          Loads API + Auth Plugins     │
+│                            Loads Payment Plugins        │
+│                            (Stripe, PingPay)            │
 └───────────┬─────────────────────────┬───────────────────┘
             ↓                         ↓
 ┌───────────────────────┐ ┌───────────────────────┐
 │    ui/ (Runtime)      │ │   api/ + plugins/     │
 │  React + TanStack     │ │  oRPC + Effect        │
 │  ui/src/app.ts        │ │  remoteEntry.js       │
-└───────────────────────┘ └───────────────────────┘
+└───────────────────────┘ │                       │
+                          │  ┌─────────────────┐  │
+                          │  │ plugins/stripe/  │  │
+                          │  │ plugins/pingpay/ │  │
+                          │  └─────────────────┘  │
+                          └───────────────────────┘
 ```
 
 **Key Features:**
@@ -185,6 +194,38 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed contribution guidelines in
 - ✅ **Type Safety** - End-to-end with oRPC contracts
 - ✅ **UI Runtime Boundary** - `everything-dev/ui/client` and `/server` own router/runtime glue
 - ✅ **CDN-Ready** - Module Federation with [Zephyr Cloud](https://zephyr-cloud.io/)
+
+## Payment Aggregator
+
+The project ships with two standalone payment plugins that implement a shared `PaymentContract`:
+
+| Plugin | Provider | Path | Description |
+|--------|----------|------|-------------|
+| `stripe` | Stripe | `plugins/stripe/` | Card payments via Stripe Checkout Sessions |
+| `pingpay` | PingPay | `plugins/pingpay/` | NEAR USDC payments with optional fee support |
+
+Both plugins expose the same contract:
+- `ping` — Health check (returns provider name)
+- `createCheckout` — Create a payment checkout session
+- `verifyWebhook` — Verify and parse incoming webhook events
+- `getSession` — Retrieve session status and details
+
+The API layer (`api/src/index.ts`) aggregates these via `PluginsClient`, routing requests to the correct provider based on path:
+- `POST /api/payments/stripe/checkout` → Stripe plugin
+- `POST /api/payments/pingpay/checkout` → PingPay plugin
+- `POST /api/payments/{provider}/webhook` → Provider-specific webhook verification
+
+Plugin config registered in `bos.config.json`:
+```json
+{
+  "plugins": {
+    "stripe": { "development": "local:plugins/stripe" },
+    "pingpay": { "development": "local:plugins/pingpay" }
+  }
+}
+```
+
+See [docs/epics/001-payment-plugin-extraction.md](./docs/epics/001-payment-plugin-extraction.md) for the full extraction plan.
 
 ## Multi-Tenant Status
 
