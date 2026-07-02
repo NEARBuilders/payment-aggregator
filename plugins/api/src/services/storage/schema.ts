@@ -1,8 +1,8 @@
-import { z } from 'every-plugin/zod';
+import { z } from "every-plugin/zod";
 
 export const UploadRequestInputSchema = z.object({
   filename: z.string().min(1),
-  contentType: z.string().default('image/png'),
+  contentType: z.string().default("image/png"),
   prefix: z.string().optional(),
 });
 

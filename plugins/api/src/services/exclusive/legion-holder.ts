@@ -1,12 +1,9 @@
-import { createPlugin } from 'every-plugin';
-import { Effect } from 'every-plugin/effect';
-import { z } from 'every-plugin/zod';
-import { ExclusiveCheckContract } from './contract';
+import { createPlugin } from "every-plugin";
+import { Effect } from "every-plugin/effect";
+import { z } from "every-plugin/zod";
+import { ExclusiveCheckContract } from "./contract";
 
-const LEGION_CONTRACT_IDS = [
-  'initiate.nearlegion.near',
-  'ascendant.nearlegion.near',
-] as const;
+const LEGION_CONTRACT_IDS = ["initiate.nearlegion.near", "ascendant.nearlegion.near"] as const;
 
 const CACHE_TTL_MS = 60_000;
 
@@ -19,20 +16,20 @@ async function viewNear(
   args: Record<string, unknown>,
 ): Promise<unknown> {
   const response = await fetch(nodeUrl, {
-    method: 'POST',
+    method: "POST",
     headers: {
-      'content-type': 'application/json',
+      "content-type": "application/json",
     },
     body: JSON.stringify({
-      jsonrpc: '2.0',
-      id: 'near-merch-store',
-      method: 'query',
+      jsonrpc: "2.0",
+      id: "near-merch-store",
+      method: "query",
       params: {
-        request_type: 'call_function',
-        finality: 'optimistic',
+        request_type: "call_function",
+        finality: "optimistic",
         account_id: contractId,
         method_name: methodName,
-        args_base64: Buffer.from(JSON.stringify(args)).toString('base64'),
+        args_base64: Buffer.from(JSON.stringify(args)).toString("base64"),
       },
     }),
   });
@@ -47,7 +44,7 @@ async function viewNear(
   };
 
   if (payload.error) {
-    throw new Error(payload.error.message || 'NEAR RPC request failed');
+    throw new Error(payload.error.message || "NEAR RPC request failed");
   }
 
   const rawResult = payload.result?.result;
@@ -55,7 +52,7 @@ async function viewNear(
     return null;
   }
 
-  const text = Buffer.from(rawResult).toString('utf8');
+  const text = Buffer.from(rawResult).toString("utf8");
   return text ? JSON.parse(text) : null;
 }
 
@@ -65,7 +62,7 @@ async function checkContract(
   contractId: string,
 ): Promise<boolean> {
   try {
-    const supply = await viewNear(nodeUrl, contractId, 'nft_supply_for_owner', {
+    const supply = await viewNear(nodeUrl, contractId, "nft_supply_for_owner", {
       account_id: accountId,
     });
 
@@ -74,9 +71,9 @@ async function checkContract(
     }
   } catch {
     try {
-      const tokens = await viewNear(nodeUrl, contractId, 'nft_tokens_for_owner', {
+      const tokens = await viewNear(nodeUrl, contractId, "nft_tokens_for_owner", {
         account_id: accountId,
-        from_index: '0',
+        from_index: "0",
         limit: 1,
       });
 
@@ -101,8 +98,8 @@ const LegionHolderPlugin = createPlugin({
   contract: ExclusiveCheckContract,
 
   initialize: (config) =>
-    Effect.gen(function* () {
-      console.log('[Legion Holder Plugin] Initialized successfully');
+    Effect.sync(() => {
+      console.log("[Legion Holder Plugin] Initialized successfully");
       return {
         nodeUrl: config.variables.nodeUrl,
       };

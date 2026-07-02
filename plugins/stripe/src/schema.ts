@@ -1,4 +1,4 @@
-import { z } from 'every-plugin/zod';
+import { z } from "every-plugin/zod";
 
 export const FeeConfigSchema = z.object({
   type: z.string(),
@@ -18,7 +18,7 @@ export const PaymentLineItemSchema = z.object({
 export const CheckoutSessionInputSchema = z.object({
   orderId: z.string(),
   amount: z.number().positive(),
-  currency: z.string().default('USD'),
+  currency: z.string().default("USD"),
   items: z.array(PaymentLineItemSchema),
   customerEmail: z.string().email().optional(),
   successUrl: z.string().url(),

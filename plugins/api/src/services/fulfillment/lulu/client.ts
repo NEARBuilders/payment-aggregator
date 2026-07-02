@@ -1,18 +1,18 @@
-import {
-  type LuluCostCalculationRequest,
-  type LuluCostCalculationResponse,
-  type LuluPrintJobRequest,
-  type LuluPrintJobResponse,
-  type LuluShippingOption,
-  type LuluShippingOptionsRequest,
-  type LuluTokenResponse,
-} from './types';
+import type {
+  LuluCostCalculationRequest,
+  LuluCostCalculationResponse,
+  LuluPrintJobRequest,
+  LuluPrintJobResponse,
+  LuluShippingOption,
+  LuluShippingOptionsRequest,
+  LuluTokenResponse,
+} from "./types";
 
 interface LuluClientConfig {
   clientKey: string;
   clientSecret: string;
   baseUrl?: string;
-  environment?: 'sandbox' | 'production';
+  environment?: "sandbox" | "production";
 }
 
 interface LuluWebhook {
@@ -29,10 +29,10 @@ export class LuluClient {
   private tokenExpiresAt = 0;
 
   constructor(private readonly config: LuluClientConfig) {
-    const environment = config.environment || 'sandbox';
+    const environment = config.environment || "sandbox";
     this.baseUrl =
       config.baseUrl ||
-      (environment === 'production' ? 'https://api.lulu.com' : 'https://api.sandbox.lulu.com');
+      (environment === "production" ? "https://api.lulu.com" : "https://api.sandbox.lulu.com");
     this.authUrl = `${this.baseUrl}/auth/realms/glasstree/protocol/openid-connect/token`;
   }
 
@@ -42,12 +42,12 @@ export class LuluClient {
     }
 
     const response = await fetch(this.authUrl, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        Authorization: `Basic ${Buffer.from(`${this.config.clientKey}:${this.config.clientSecret}`).toString('base64')}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+        Authorization: `Basic ${Buffer.from(`${this.config.clientKey}:${this.config.clientSecret}`).toString("base64")}`,
       },
-      body: 'grant_type=client_credentials',
+      body: "grant_type=client_credentials",
     });
 
     if (!response.ok) {
@@ -62,12 +62,12 @@ export class LuluClient {
 
   async request(path: string, init: RequestInit = {}, authenticated = true): Promise<Response> {
     const headers = new Headers(init.headers || {});
-    if (!headers.has('Content-Type') && init.body) {
-      headers.set('Content-Type', 'application/json');
+    if (!headers.has("Content-Type") && init.body) {
+      headers.set("Content-Type", "application/json");
     }
 
     if (authenticated) {
-      headers.set('Authorization', `Bearer ${await this.getAccessToken()}`);
+      headers.set("Authorization", `Bearer ${await this.getAccessToken()}`);
     }
 
     return fetch(`${this.baseUrl}${path}`, {
@@ -90,25 +90,27 @@ export class LuluClient {
 
   async getShippingOptions(input: LuluShippingOptionsRequest): Promise<LuluShippingOption[]> {
     return this.requestJson<LuluShippingOption[]>(
-      '/shipping-options/',
+      "/shipping-options/",
       {
-        method: 'POST',
+        method: "POST",
         body: JSON.stringify(input),
       },
-      false
+      false,
     );
   }
 
-  async calculatePrintJobCost(input: LuluCostCalculationRequest): Promise<LuluCostCalculationResponse> {
-    return this.requestJson<LuluCostCalculationResponse>('/print-job-cost-calculations/', {
-      method: 'POST',
+  async calculatePrintJobCost(
+    input: LuluCostCalculationRequest,
+  ): Promise<LuluCostCalculationResponse> {
+    return this.requestJson<LuluCostCalculationResponse>("/print-job-cost-calculations/", {
+      method: "POST",
       body: JSON.stringify(input),
     });
   }
 
   async createPrintJob(input: LuluPrintJobRequest): Promise<LuluPrintJobResponse> {
-    return this.requestJson<LuluPrintJobResponse>('/print-jobs/', {
-      method: 'POST',
+    return this.requestJson<LuluPrintJobResponse>("/print-jobs/", {
+      method: "POST",
       body: JSON.stringify(input),
     });
   }
@@ -119,28 +121,28 @@ export class LuluClient {
 
   async cancelPrintJob(id: string): Promise<{ name: string }> {
     return this.requestJson<{ name: string }>(`/print-jobs/${id}/status/`, {
-      method: 'POST',
-      body: JSON.stringify({ name: 'CANCELED' }),
+      method: "POST",
+      body: JSON.stringify({ name: "CANCELED" }),
     });
   }
 
   async createWebhook(url: string): Promise<LuluWebhook> {
-    return this.requestJson<LuluWebhook>('/webhooks/', {
-      method: 'POST',
+    return this.requestJson<LuluWebhook>("/webhooks/", {
+      method: "POST",
       body: JSON.stringify({
-        topics: ['PRINT_JOB_STATUS_CHANGED'],
+        topics: ["PRINT_JOB_STATUS_CHANGED"],
         url,
       }),
     });
   }
 
   async listWebhooks(): Promise<LuluWebhook[]> {
-    return this.requestJson<LuluWebhook[]>('/webhooks/');
+    return this.requestJson<LuluWebhook[]>("/webhooks/");
   }
 
   async deleteWebhook(id: string): Promise<void> {
     await this.requestJson(`/webhooks/${id}/`, {
-      method: 'DELETE',
+      method: "DELETE",
     });
   }
 }

@@ -1,19 +1,27 @@
-import { eq } from 'drizzle-orm';
-import { Context, Effect, Layer } from 'every-plugin/effect';
-import * as schema from '../db/schema';
-import type { ProductType } from '../schema';
-import { Database } from './database';
+import { eq } from "drizzle-orm";
+import { Context, Effect, Layer } from "every-plugin/effect";
+import * as schema from "../db/schema";
+import type { ProductType } from "../schema";
+import { Database } from "./database";
 
-export class ProductTypeStore extends Context.Tag('ProductTypeStore')<
+export class ProductTypeStore extends Context.Tag("ProductTypeStore")<
   ProductTypeStore,
   {
     readonly findAll: () => Effect.Effect<ProductType[], Error>;
     readonly findBySlug: (slug: string) => Effect.Effect<ProductType | null, Error>;
-    readonly create: (productType: { slug: string; label: string; description?: string; displayOrder?: number }) => Effect.Effect<ProductType, Error>;
-    readonly update: (slug: string, data: { label?: string; description?: string; displayOrder?: number }) => Effect.Effect<ProductType | null, Error>;
+    readonly create: (productType: {
+      slug: string;
+      label: string;
+      description?: string;
+      displayOrder?: number;
+    }) => Effect.Effect<ProductType, Error>;
+    readonly update: (
+      slug: string,
+      data: { label?: string; description?: string; displayOrder?: number },
+    ) => Effect.Effect<ProductType | null, Error>;
     readonly delete: (slug: string) => Effect.Effect<boolean, Error>;
   }
->() { }
+>() {}
 
 export const ProductTypeStoreLive = Layer.effect(
   ProductTypeStore,
@@ -80,7 +88,7 @@ export const ProductTypeStoreLive = Layer.effect(
               .limit(1);
 
             if (results.length === 0) {
-              throw new Error('Product type not found after create');
+              throw new Error("Product type not found after create");
             }
 
             return rowToProductType(results[0]!);
@@ -131,14 +139,12 @@ export const ProductTypeStoreLive = Layer.effect(
               return false;
             }
 
-            await db
-              .delete(schema.productTypes)
-              .where(eq(schema.productTypes.slug, slug));
+            await db.delete(schema.productTypes).where(eq(schema.productTypes.slug, slug));
 
             return true;
           },
           catch: (error) => new Error(`Failed to delete product type: ${error}`),
         }),
     };
-  })
+  }),
 );

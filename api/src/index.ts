@@ -1,11 +1,11 @@
 import { createPlugin } from "every-plugin";
 import { Effect } from "every-plugin/effect";
+import { ORPCError } from "every-plugin/orpc";
 import { z } from "every-plugin/zod";
 import { contract } from "./contract";
 import { DatabaseLive, DatabaseTag } from "./db/layer";
 import { loadMigrations } from "./db/load-migrations";
 import { migrate } from "./db/migrator";
-import { createAuthMiddleware } from "./lib/auth";
 import type { PluginsClient } from "./lib/plugins-types.gen";
 
 export default createPlugin.withPlugins<PluginsClient>()({
@@ -42,18 +42,21 @@ export default createPlugin.withPlugins<PluginsClient>()({
 
         const { auth, ...restPlugins } = plugins;
 
-        const stripeClient = (restPlugins as any).stripe;
-        const pingpayClient = (restPlugins as any).pingpay;
-
-        return { auth, plugins: restPlugins, db, stripeClient, pingpayClient };
+        return { auth, plugins: restPlugins, db };
       }),
       DatabaseLive(config.secrets.API_DATABASE_URL),
     ),
 
   createRouter: (services, builder) => {
-    const { requireAuth } = createAuthMiddleware(builder);
-    const stripe = (services as any).stripeClient;
-    const pingpay = (services as any).pingpayClient;
+    const getPaymentPlugin = (provider: string) => {
+      const factory = (services.plugins as Record<string, unknown>)[provider];
+      if (!factory || typeof factory !== "function") {
+        throw new ORPCError("NOT_FOUND", {
+          message: `Unknown payment provider: ${provider}`,
+        });
+      }
+      return factory;
+    };
 
     return {
       ping: builder.ping.handler(async () => ({
@@ -61,44 +64,45 @@ export default createPlugin.withPlugins<PluginsClient>()({
         timestamp: new Date().toISOString(),
       })),
 
-      stripePing: builder.stripePing.handler(async () => {
-        const client = stripe();
-        return await client.ping();
+      paymentProviders: builder.paymentProviders.handler(async () => {
+        const providers: Array<{
+          key: string;
+          name: string;
+          logo: string;
+          description: string;
+        }> = [];
+
+        for (const [key, factory] of Object.entries(services.plugins)) {
+          if (typeof factory !== "function") continue;
+          try {
+            const client = (factory as () => any)();
+            const metadata = await client.metadata();
+            providers.push({ key, ...metadata });
+          } catch {}
+        }
+
+        return providers;
       }),
 
-      stripeCreateCheckout: builder.stripeCreateCheckout.handler(async ({ input }) => {
-        const client = stripe();
-        return await client.createCheckout(input) as any;
+      paymentCheckout: builder.paymentCheckout.handler(async ({ input }) => {
+        const { provider, ...checkoutInput } = input;
+        const factory = getPaymentPlugin(provider);
+        const client = (factory as (opts?: unknown) => any)();
+        return (await client.createCheckout(checkoutInput)) as any;
       }),
 
-      stripeVerifyWebhook: builder.stripeVerifyWebhook.handler(async ({ input, context }) => {
-        const client = stripe({ headers: context.reqHeaders });
-        return await client.verifyWebhook(input) as any;
+      paymentWebhook: builder.paymentWebhook.handler(async ({ input, context }) => {
+        const { provider, ...webhookInput } = input;
+        const factory = getPaymentPlugin(provider);
+        const client = (factory as (opts?: unknown) => any)({ headers: context.reqHeaders });
+        return (await client.verifyWebhook(webhookInput)) as any;
       }),
 
-      stripeGetSession: builder.stripeGetSession.handler(async ({ input }) => {
-        const client = stripe();
-        return await client.getSession(input) as any;
-      }),
-
-      pingpayPing: builder.pingpayPing.handler(async () => {
-        const client = pingpay();
-        return await client.ping();
-      }),
-
-      pingpayCreateCheckout: builder.pingpayCreateCheckout.handler(async ({ input }) => {
-        const client = pingpay();
-        return await client.createCheckout(input) as any;
-      }),
-
-      pingpayVerifyWebhook: builder.pingpayVerifyWebhook.handler(async ({ input, context }) => {
-        const client = pingpay({ headers: context.reqHeaders });
-        return await client.verifyWebhook(input) as any;
-      }),
-
-      pingpayGetSession: builder.pingpayGetSession.handler(async ({ input }) => {
-        const client = pingpay();
-        return await client.getSession(input) as any;
+      paymentSession: builder.paymentSession.handler(async ({ input }) => {
+        const { provider, sessionId } = input;
+        const factory = getPaymentPlugin(provider);
+        const client = (factory as (opts?: unknown) => any)();
+        return (await client.getSession({ sessionId })) as any;
       }),
     };
   },

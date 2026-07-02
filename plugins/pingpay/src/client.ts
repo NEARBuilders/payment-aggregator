@@ -40,7 +40,7 @@ export interface CheckoutSessionResponse {
 export interface GetCheckoutSessionResponse {
   session: {
     sessionId: string;
-    status: 'CREATED' | 'PENDING' | 'COMPLETED' | 'EXPIRED' | 'CANCELLED';
+    status: "CREATED" | "PENDING" | "COMPLETED" | "EXPIRED" | "CANCELLED";
     amount: string;
     recipient: string;
     asset: PingAsset;
@@ -56,22 +56,22 @@ export class PingPayClient {
   private apiKey?: string;
   private testMode: boolean;
 
-  constructor(baseUrl = 'https://pay.pingpay.io', apiKey?: string) {
-    this.baseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+  constructor(baseUrl = "https://pay.pingpay.io", apiKey?: string) {
+    this.baseUrl = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
     this.apiKey = apiKey;
-    this.testMode = !apiKey || apiKey.startsWith('test_');
+    this.testMode = !apiKey || apiKey.startsWith("test_");
   }
 
   private async request<T>(path: string, options?: RequestInit): Promise<T> {
     const url = `${this.baseUrl}/api${path}`;
 
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      ...options?.headers as Record<string, string>,
+      "Content-Type": "application/json",
+      ...(options?.headers as Record<string, string>),
     };
 
     if (this.apiKey) {
-      headers['x-api-key'] = this.apiKey;
+      headers["x-api-key"] = this.apiKey;
     }
 
     const response = await fetch(url, {
@@ -87,22 +87,20 @@ export class PingPayClient {
     return response.json() as T;
   }
 
-  async ping(): Promise<{ status: 'ok'; timestamp: string }> {
+  async ping(): Promise<{ status: "ok"; timestamp: string }> {
     if (this.testMode) {
-      return { status: 'ok', timestamp: new Date().toISOString() };
+      return { status: "ok", timestamp: new Date().toISOString() };
     }
-    return this.request('/ping');
+    return this.request("/ping");
   }
 
-  async createCheckoutSession(
-    input: CreateCheckoutSessionInput
-  ): Promise<CheckoutSessionResponse> {
+  async createCheckoutSession(input: CreateCheckoutSessionInput): Promise<CheckoutSessionResponse> {
     if (this.testMode) {
       const sessionId = `test_session_${Date.now()}`;
       return {
         session: {
           sessionId,
-          status: 'CREATED',
+          status: "CREATED",
           amount: input.amount,
           recipient: input.recipient.address,
           asset: input.asset,
@@ -112,8 +110,8 @@ export class PingPayClient {
         sessionUrl: `https://pay.pingpay.io/checkout/${sessionId}`,
       };
     }
-    return this.request('/checkout/sessions', {
-      method: 'POST',
+    return this.request("/checkout/sessions", {
+      method: "POST",
       body: JSON.stringify(input),
     });
   }
@@ -123,10 +121,10 @@ export class PingPayClient {
       return {
         session: {
           sessionId,
-          status: 'CREATED',
-          amount: '1000000',
-          recipient: 'test-recipient.near',
-          asset: { chain: 'NEAR', symbol: 'USDC' },
+          status: "CREATED",
+          amount: "1000000",
+          recipient: "test-recipient.near",
+          asset: { chain: "NEAR", symbol: "USDC" },
           createdAt: new Date().toISOString(),
           metadata: {},
         },

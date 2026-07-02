@@ -1,46 +1,46 @@
-import { createPlugin } from 'every-plugin';
-import { Effect } from 'every-plugin/effect';
-import { ORPCError } from 'every-plugin/orpc';
-import { z } from 'every-plugin/zod';
-import { FulfillmentContract } from '../contract';
-import { FulfillmentError } from '../errors';
-import { PrintfulService } from './service';
+import { createPlugin } from "every-plugin";
+import { Effect } from "every-plugin/effect";
+import { ORPCError } from "every-plugin/orpc";
+import { z } from "every-plugin/zod";
+import { FulfillmentContract } from "../contract";
+import type { FulfillmentError } from "../errors";
+import { PrintfulService } from "./service";
 
 const mapFulfillmentErrorToORPC = (error: FulfillmentError) => {
   switch (error.code) {
-    case 'RATE_LIMIT':
-      return new ORPCError('TOO_MANY_REQUESTS', {
+    case "RATE_LIMIT":
+      return new ORPCError("TOO_MANY_REQUESTS", {
         message: error.message,
         data: { provider: error.provider, statusCode: error.statusCode },
       });
-    case 'INVALID_ADDRESS':
-    case 'INVALID_REQUEST':
-      return new ORPCError('BAD_REQUEST', {
+    case "INVALID_ADDRESS":
+    case "INVALID_REQUEST":
+      return new ORPCError("BAD_REQUEST", {
         message: error.message,
         data: { provider: error.provider, code: error.code },
       });
-    case 'AUTHENTICATION_FAILED':
-      return new ORPCError('UNAUTHORIZED', {
+    case "AUTHENTICATION_FAILED":
+      return new ORPCError("UNAUTHORIZED", {
         message: error.message,
         data: { provider: error.provider },
       });
-    case 'SERVICE_UNAVAILABLE':
-      return new ORPCError('SERVICE_UNAVAILABLE', {
+    case "SERVICE_UNAVAILABLE":
+      return new ORPCError("SERVICE_UNAVAILABLE", {
         message: error.message,
         data: { provider: error.provider },
       });
-    case 'NOT_FOUND':
-      return new ORPCError('NOT_FOUND', {
+    case "NOT_FOUND":
+      return new ORPCError("NOT_FOUND", {
         message: error.message,
         data: { provider: error.provider },
       });
-    case 'UNSUPPORTED_OPERATION':
-      return new ORPCError('NOT_IMPLEMENTED', {
+    case "UNSUPPORTED_OPERATION":
+      return new ORPCError("NOT_IMPLEMENTED", {
         message: error.message,
         data: { provider: error.provider },
       });
     default:
-      return new ORPCError('INTERNAL_SERVER_ERROR', {
+      return new ORPCError("INTERNAL_SERVER_ERROR", {
         message: error.message,
         data: { provider: error.provider },
       });
@@ -52,7 +52,7 @@ const wrapHandler = <T>(effect: Effect.Effect<T, FulfillmentError>) =>
 
 export default createPlugin({
   variables: z.object({
-    baseUrl: z.string().default('https://api.printful.com'),
+    baseUrl: z.string().default("https://api.printful.com"),
   }),
 
   secrets: z.object({
@@ -64,14 +64,14 @@ export default createPlugin({
   contract: FulfillmentContract,
 
   initialize: (config) =>
-    Effect.gen(function* () {
+    Effect.sync(() => {
       const service = new PrintfulService(
         config.secrets.PRINTFUL_API_KEY,
         config.secrets.PRINTFUL_STORE_ID,
-        config.variables.baseUrl
+        config.variables.baseUrl,
       );
 
-      console.log('[Printful Plugin] Initialized successfully');
+      console.log("[Printful Plugin] Initialized successfully");
 
       return {
         service,
@@ -85,62 +85,65 @@ export default createPlugin({
     const { service } = context;
 
     return {
-      ping: builder.ping.handler(async () =>
-        wrapHandler(service.ping())
-      ),
+      ping: builder.ping.handler(async () => wrapHandler(service.ping())),
 
       browseCatalog: builder.browseCatalog.handler(async ({ input }) =>
-        wrapHandler(service.browseCatalog(input))
+        wrapHandler(service.browseCatalog(input)),
       ),
 
       getCatalogProduct: builder.getCatalogProduct.handler(async ({ input }) =>
-        wrapHandler(service.getCatalogProduct(input))
+        wrapHandler(service.getCatalogProduct(input)),
       ),
 
       getCatalogProductVariants: builder.getCatalogProductVariants.handler(async ({ input }) =>
-        wrapHandler(service.getCatalogProductVariants(input))
+        wrapHandler(service.getCatalogProductVariants(input)),
       ),
 
       getVariantPrice: builder.getVariantPrice.handler(async ({ input }) =>
-        wrapHandler(service.getVariantPrice(input))
+        wrapHandler(service.getVariantPrice(input)),
       ),
 
       generateMockups: builder.generateMockups.handler(async ({ input }) =>
-        wrapHandler(service.generateMockups(input))
+        wrapHandler(service.generateMockups(input)),
       ),
 
       getMockupResult: builder.getMockupResult.handler(async ({ input }) =>
-        wrapHandler(service.getMockupResult(input.taskId))
+        wrapHandler(service.getMockupResult(input.taskId)),
       ),
 
       createOrder: builder.createOrder.handler(async ({ input }) =>
-        wrapHandler(service.createOrder(input))
+        wrapHandler(service.createOrder(input)),
       ),
 
-      getOrder: builder.getOrder.handler(async ({ input }) =>
-        wrapHandler(service.getOrder(input))
-      ),
+      getOrder: builder.getOrder.handler(async ({ input }) => wrapHandler(service.getOrder(input))),
 
       confirmOrder: builder.confirmOrder.handler(async ({ input }) =>
-        wrapHandler(service.confirmOrder(input))
+        wrapHandler(service.confirmOrder(input)),
       ),
 
       cancelOrder: builder.cancelOrder.handler(async ({ input }) =>
-        wrapHandler(service.cancelOrder(input))
+        wrapHandler(service.cancelOrder(input)),
       ),
 
       quoteShipping: builder.quoteShipping.handler(async ({ input }) =>
-        wrapHandler(service.quoteShipping(input))
+        wrapHandler(service.quoteShipping(input)),
       ),
 
-calculateTax: builder.calculateTax.handler(async ({ input }) =>
-        wrapHandler(service.calculateTax(input))),
+      calculateTax: builder.calculateTax.handler(async ({ input }) =>
+        wrapHandler(service.calculateTax(input)),
+      ),
 
       getPlacements: builder.getPlacements.handler(async ({ input }) =>
-        wrapHandler(service.getPlacements(input))),
+        wrapHandler(service.getPlacements(input)),
+      ),
     };
   },
 });
 
-export { PrintfulService } from './service';
-export { PRINTFUL_PROVIDER_FIELDS, PrintfulProviderDetailsSchema, type PrintfulProviderDetails, type PrintfulProviderFields } from './types';
+export { PrintfulService } from "./service";
+export {
+  PRINTFUL_PROVIDER_FIELDS,
+  type PrintfulProviderDetails,
+  PrintfulProviderDetailsSchema,
+  type PrintfulProviderFields,
+} from "./types";

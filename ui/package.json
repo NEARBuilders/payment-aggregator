@@ -13,7 +13,7 @@
     "generate-metadata": "bun run ./scripts/generate-metadata.ts",
     "preview": "rsbuild preview",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "bun run ./scripts/generate-routes.ts && tsc --noEmit",
     "build:types": "tsc --declaration --emitDeclarationOnly --outDir dist/types"
   },
   "dependencies": {

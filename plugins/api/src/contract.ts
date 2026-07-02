@@ -1,24 +1,21 @@
-import {
-  NOT_FOUND,
-  FORBIDDEN,
-  UNAUTHORIZED,
-  BAD_REQUEST,
-} from "every-plugin/errors";
-import { oc, eventIterator } from "every-plugin/orpc";
+import { BAD_REQUEST, FORBIDDEN, NOT_FOUND, UNAUTHORIZED } from "every-plugin/errors";
+import { eventIterator, oc } from "every-plugin/orpc";
 import { z } from "every-plugin/zod";
 import {
+  AssetSchema,
   CollectionSchema,
   ConfigureWebhookInputSchema,
   ConfigureWebhookOutputSchema,
   CreateCheckoutInputSchema,
   CreateCheckoutOutputSchema,
-  ProductMetadataSchema,
-  SubscribeNewsletterInputSchema,
-  SubscribeNewsletterOutputSchema,
+  DeleteOrdersInputSchema,
+  DeleteOrdersOutputSchema,
+  GetOrderAuditLogOutputSchema,
   OrderStatusEventSchema,
   OrderStatusSchema,
   OrderWithItemsSchema,
   ProductImageSchema,
+  ProductMetadataSchema,
   ProductSchema,
   ProductTypeSchema,
   ProviderConfigSchema,
@@ -29,15 +26,18 @@ import {
   QuoteItemInputSchema,
   QuoteOutputSchema,
   ShippingAddressSchema,
-  WebhookResponseSchema,
+  SubscribeNewsletterInputSchema,
+  SubscribeNewsletterOutputSchema,
   UpdateOrderStatusInputSchema,
   UpdateOrderStatusOutputSchema,
-  DeleteOrdersInputSchema,
-  DeleteOrdersOutputSchema,
-  GetOrderAuditLogOutputSchema,
-  AssetSchema,
+  WebhookResponseSchema,
 } from "./schema";
-import { SyncProgressEventSchema, ProviderCatalogProductSchema, CatalogSlotSchema, ProviderCatalogVariantSchema } from "./services/fulfillment/schema";
+import {
+  CatalogSlotSchema,
+  ProviderCatalogProductSchema,
+  ProviderCatalogVariantSchema,
+  SyncProgressEventSchema,
+} from "./services/fulfillment/schema";
 
 export const contract = oc.router({
   ping: oc
@@ -60,8 +60,7 @@ export const contract = oc.router({
       method: "POST",
       path: "/newsletter/subscribe",
       summary: "Subscribe to newsletter",
-      description:
-        "Stores a newsletter subscription email. Idempotent for duplicates.",
+      description: "Stores a newsletter subscription email. Idempotent for duplicates.",
       tags: ["Newsletter"],
     })
     .input(SubscribeNewsletterInputSchema)
@@ -341,8 +340,7 @@ export const contract = oc.router({
       method: "GET",
       path: "/admin/orders",
       summary: "List all orders (Admin)",
-      description:
-        "Returns a list of all orders. Requires admin authentication.",
+      description: "Returns a list of all orders. Requires admin authentication.",
       tags: ["Admin"],
     })
     .input(
@@ -379,8 +377,7 @@ export const contract = oc.router({
       method: "POST",
       path: "/admin/orders/{id}/status",
       summary: "Update order status (Admin)",
-      description:
-        "Manually updates the status of an order. Logs the change in audit log.",
+      description: "Manually updates the status of an order. Logs the change in audit log.",
       tags: ["Admin"],
     })
     .input(UpdateOrderStatusInputSchema)
@@ -429,22 +426,22 @@ export const contract = oc.router({
 
   luluWebhook: oc
     .route({
-      method: 'POST',
-      path: '/webhooks/lulu',
-      summary: 'Lulu webhook',
-      description: 'Handles Lulu webhook events for order status updates.',
-      tags: ['Webhooks'],
+      method: "POST",
+      path: "/webhooks/lulu",
+      summary: "Lulu webhook",
+      description: "Handles Lulu webhook events for order status updates.",
+      tags: ["Webhooks"],
     })
     .input(z.unknown())
     .output(WebhookResponseSchema),
 
   manualWebhook: oc
     .route({
-      method: 'POST',
-      path: '/webhooks/manual',
-      summary: 'Manual webhook',
-      description: 'Handles manual fulfillment status update events.',
-      tags: ['Webhooks'],
+      method: "POST",
+      path: "/webhooks/manual",
+      summary: "Manual webhook",
+      description: "Handles manual fulfillment status update events.",
+      tags: ["Webhooks"],
     })
     .input(z.unknown())
     .output(WebhookResponseSchema),
@@ -465,8 +462,7 @@ export const contract = oc.router({
       method: "POST",
       path: "/products/{id}/listing",
       summary: "Update product listing status",
-      description:
-        "Updates whether a product is listed (visible) in the store.",
+      description: "Updates whether a product is listed (visible) in the store.",
       tags: ["Products"],
     })
     .input(
@@ -546,8 +542,7 @@ export const contract = oc.router({
       method: "GET",
       path: "/near-price",
       summary: "Get current NEAR price",
-      description:
-        "Returns the current NEAR token price in USD from CoinGecko.",
+      description: "Returns the current NEAR token price in USD from CoinGecko.",
       tags: ["Pricing"],
     })
     .output(
@@ -568,7 +563,7 @@ export const contract = oc.router({
         "Returns the configuration for a fulfillment provider including webhook settings.",
       tags: ["Admin", "Providers"],
     })
-    .input(z.object({ provider: z.enum(['printful', 'lulu', 'manual']) }))
+    .input(z.object({ provider: z.enum(["printful", "lulu", "manual"]) }))
     .output(z.object({ config: ProviderConfigSchema.nullable() }))
     .errors({ UNAUTHORIZED }),
 
@@ -577,8 +572,7 @@ export const contract = oc.router({
       method: "POST",
       path: "/admin/providers/{provider}/webhook",
       summary: "Configure provider webhook",
-      description:
-        "Configures webhook URL and events for a fulfillment provider.",
+      description: "Configures webhook URL and events for a fulfillment provider.",
       tags: ["Admin", "Providers"],
     })
     .input(ConfigureWebhookInputSchema)
@@ -593,7 +587,7 @@ export const contract = oc.router({
       description: "Disables webhook notifications for a fulfillment provider.",
       tags: ["Admin", "Providers"],
     })
-    .input(z.object({ provider: z.enum(['printful', 'lulu', 'manual']) }))
+    .input(z.object({ provider: z.enum(["printful", "lulu", "manual"]) }))
     .output(z.object({ success: z.boolean() }))
     .errors({ BAD_REQUEST, UNAUTHORIZED }),
 
@@ -605,12 +599,14 @@ export const contract = oc.router({
       description: "Tests the connection to a fulfillment provider.",
       tags: ["Admin", "Providers"],
     })
-    .input(z.object({ provider: z.enum(['printful', 'lulu', 'manual']) }))
-    .output(z.object({
-      success: z.boolean(),
-      message: z.string().optional(),
-      timestamp: z.string().datetime(),
-    }))
+    .input(z.object({ provider: z.enum(["printful", "lulu", "manual"]) }))
+    .output(
+      z.object({
+        success: z.boolean(),
+        message: z.string().optional(),
+        timestamp: z.string().datetime(),
+      }),
+    )
     .errors({ BAD_REQUEST, UNAUTHORIZED }),
 
   getProviderTestState: oc
@@ -621,7 +617,7 @@ export const contract = oc.router({
       description: "Returns the latest provider test scenario and step results.",
       tags: ["Admin", "Providers"],
     })
-    .input(z.object({ provider: z.enum(['printful', 'lulu', 'manual']) }))
+    .input(z.object({ provider: z.enum(["printful", "lulu", "manual"]) }))
     .output(z.object({ state: ProviderTestStateSchema.nullable() }))
     .errors({ UNAUTHORIZED }),
 
@@ -633,7 +629,12 @@ export const contract = oc.router({
       description: "Persists a provider test scenario and its hidden test product.",
       tags: ["Admin", "Providers"],
     })
-    .input(z.object({ provider: z.enum(['printful', 'lulu', 'manual']), scenario: ProviderTestScenarioSchema }))
+    .input(
+      z.object({
+        provider: z.enum(["printful", "lulu", "manual"]),
+        scenario: ProviderTestScenarioSchema,
+      }),
+    )
     .output(z.object({ state: ProviderTestStateSchema }))
     .errors({ UNAUTHORIZED }),
 
@@ -645,7 +646,9 @@ export const contract = oc.router({
       description: "Executes a single provider test step and persists the result.",
       tags: ["Admin", "Providers"],
     })
-    .input(z.object({ provider: z.enum(['printful', 'lulu', 'manual']), step: ProviderTestStepSchema }))
+    .input(
+      z.object({ provider: z.enum(["printful", "lulu", "manual"]), step: ProviderTestStepSchema }),
+    )
     .output(ProviderTestRunSchema)
     .errors({ UNAUTHORIZED }),
 
@@ -658,7 +661,7 @@ export const contract = oc.router({
         "Returns field configurations for each fulfillment provider, used to display product details.",
       tags: ["Admin", "Providers"],
     })
-    .input(z.object({ provider: z.enum(['printful', 'lulu', 'manual']).optional() }))
+    .input(z.object({ provider: z.enum(["printful", "lulu", "manual"]).optional() }))
     .output(z.record(z.string(), z.any()))
     .errors({ UNAUTHORIZED }),
 
@@ -671,7 +674,7 @@ export const contract = oc.router({
         "Triggers a sync of Printful store products into the local product catalog. Returns SSE progress events.",
       tags: ["Admin", "Products"],
     })
-    .input(z.object({ provider: z.enum(['printful']).default('printful') }))
+    .input(z.object({ provider: z.enum(["printful"]).default("printful") }))
     .output(eventIterator(SyncProgressEventSchema))
     .errors({ UNAUTHORIZED }),
 
@@ -680,8 +683,7 @@ export const contract = oc.router({
       method: "GET",
       path: "/categories",
       summary: "List all categories (collections)",
-      description:
-        "Returns a list of all product collections for categorization.",
+      description: "Returns a list of all product collections for categorization.",
       tags: ["Collections"],
     })
     .output(
@@ -928,15 +930,19 @@ export const contract = oc.router({
       description: "Browses the catalog of a fulfillment provider (blanks/products).",
       tags: ["Admin", "Catalog"],
     })
-    .input(z.object({
-      provider: z.enum(["printful", "lulu", "manual"]),
-      limit: z.number().int().positive().max(100).default(50),
-      offset: z.number().int().min(0).default(0),
-    }))
-    .output(z.object({
-      products: z.array(ProviderCatalogProductSchema),
-      total: z.number(),
-    }))
+    .input(
+      z.object({
+        provider: z.enum(["printful", "lulu", "manual"]),
+        limit: z.number().int().positive().max(100).default(50),
+        offset: z.number().int().min(0).default(0),
+      }),
+    )
+    .output(
+      z.object({
+        products: z.array(ProviderCatalogProductSchema),
+        total: z.number(),
+      }),
+    )
     .errors({ UNAUTHORIZED }),
 
   getProviderCatalogProduct: oc
@@ -947,13 +953,17 @@ export const contract = oc.router({
       description: "Gets details for a specific catalog product from a provider.",
       tags: ["Admin", "Catalog"],
     })
-    .input(z.object({
-      provider: z.enum(["printful", "lulu", "manual"]),
-      id: z.string(),
-    }))
-    .output(z.object({
-      product: ProviderCatalogProductSchema,
-    }))
+    .input(
+      z.object({
+        provider: z.enum(["printful", "lulu", "manual"]),
+        id: z.string(),
+      }),
+    )
+    .output(
+      z.object({
+        product: ProviderCatalogProductSchema,
+      }),
+    )
     .errors({ NOT_FOUND, UNAUTHORIZED }),
 
   getProviderCatalogVariants: oc
@@ -964,13 +974,17 @@ export const contract = oc.router({
       description: "Gets variants for a specific catalog product from a provider.",
       tags: ["Admin", "Catalog"],
     })
-    .input(z.object({
-      provider: z.enum(["printful", "lulu", "manual"]),
-      id: z.string(),
-    }))
-    .output(z.object({
-      variants: z.array(ProviderCatalogVariantSchema),
-    }))
+    .input(
+      z.object({
+        provider: z.enum(["printful", "lulu", "manual"]),
+        id: z.string(),
+      }),
+    )
+    .output(
+      z.object({
+        variants: z.array(ProviderCatalogVariantSchema),
+      }),
+    )
     .errors({ UNAUTHORIZED }),
 
   getProviderPlacements: oc
@@ -978,16 +992,21 @@ export const contract = oc.router({
       method: "POST",
       path: "/admin/fulfillment/placements",
       summary: "Get available placements for a catalog product",
-      description: "Returns the available placement slots (e.g. front, back, sleeve) for a given provider and catalog product. Provider-agnostic — routes through the fulfillment provider's implementation.",
+      description:
+        "Returns the available placement slots (e.g. front, back, sleeve) for a given provider and catalog product. Provider-agnostic — routes through the fulfillment provider's implementation.",
       tags: ["Admin", "Fulfillment"],
     })
-    .input(z.object({
-      provider: z.enum(["printful", "lulu", "manual"]),
-      catalogProductId: z.string(),
-    }))
-    .output(z.object({
-      placements: z.array(CatalogSlotSchema),
-    }))
+    .input(
+      z.object({
+        provider: z.enum(["printful", "lulu", "manual"]),
+        catalogProductId: z.string(),
+      }),
+    )
+    .output(
+      z.object({
+        placements: z.array(CatalogSlotSchema),
+      }),
+    )
     .errors({ BAD_REQUEST, UNAUTHORIZED }),
 
   // ─── Admin: Assets ───
@@ -997,20 +1016,25 @@ export const contract = oc.router({
       method: "POST",
       path: "/admin/assets/upload",
       summary: "Request a presigned upload URL",
-      description: "Returns a presigned URL for direct upload to storage, plus an asset ID. After uploading to the presigned URL, call confirmAssetUpload to finalize the asset record.",
+      description:
+        "Returns a presigned URL for direct upload to storage, plus an asset ID. After uploading to the presigned URL, call confirmAssetUpload to finalize the asset record.",
       tags: ["Admin", "Assets"],
     })
-    .input(z.object({
-      filename: z.string().min(1),
-      contentType: z.string().default("image/png"),
-      prefix: z.string().optional(),
-    }))
-    .output(z.object({
-      presignedUrl: z.string().url(),
-      assetId: z.string(),
-      publicUrl: z.string().url(),
-      key: z.string(),
-    }))
+    .input(
+      z.object({
+        filename: z.string().min(1),
+        contentType: z.string().default("image/png"),
+        prefix: z.string().optional(),
+      }),
+    )
+    .output(
+      z.object({
+        presignedUrl: z.string().url(),
+        assetId: z.string(),
+        publicUrl: z.string().url(),
+        key: z.string(),
+      }),
+    )
     .errors({ BAD_REQUEST, UNAUTHORIZED }),
 
   confirmAssetUpload: oc
@@ -1018,17 +1042,20 @@ export const contract = oc.router({
       method: "POST",
       path: "/admin/assets/upload/confirm",
       summary: "Confirm an asset upload",
-      description: "After uploading to the presigned URL, call this to create the asset record with the storage key and public URL.",
+      description:
+        "After uploading to the presigned URL, call this to create the asset record with the storage key and public URL.",
       tags: ["Admin", "Assets"],
     })
-    .input(z.object({
-      key: z.string().min(1),
-      publicUrl: z.string().url(),
-      assetId: z.string(),
-      filename: z.string().optional(),
-      contentType: z.string().optional(),
-      size: z.number().optional(),
-    }))
+    .input(
+      z.object({
+        key: z.string().min(1),
+        publicUrl: z.string().url(),
+        assetId: z.string(),
+        filename: z.string().optional(),
+        contentType: z.string().optional(),
+        size: z.number().optional(),
+      }),
+    )
     .output(AssetSchema)
     .errors({ BAD_REQUEST, UNAUTHORIZED }),
 
@@ -1040,14 +1067,18 @@ export const contract = oc.router({
       description: "Returns a time-limited signed URL for accessing a private asset.",
       tags: ["Admin", "Assets"],
     })
-    .input(z.object({
-      id: z.string(),
-      expiresIn: z.number().int().positive().max(86400).default(3600),
-    }))
-    .output(z.object({
-      url: z.string().url(),
-      expiresIn: z.number(),
-    }))
+    .input(
+      z.object({
+        id: z.string(),
+        expiresIn: z.number().int().positive().max(86400).default(3600),
+      }),
+    )
+    .output(
+      z.object({
+        url: z.string().url(),
+        expiresIn: z.number(),
+      }),
+    )
     .errors({ NOT_FOUND, UNAUTHORIZED }),
 
   createAsset: oc
@@ -1058,12 +1089,14 @@ export const contract = oc.router({
       description: "Creates a new asset record with a URL.",
       tags: ["Admin", "Assets"],
     })
-    .input(z.object({
-      url: z.string().url(),
-      type: z.string(),
-      name: z.string().optional(),
-      metadata: z.record(z.string(), z.unknown()).optional(),
-    }))
+    .input(
+      z.object({
+        url: z.string().url(),
+        type: z.string(),
+        name: z.string().optional(),
+        metadata: z.record(z.string(), z.unknown()).optional(),
+      }),
+    )
     .output(AssetSchema)
     .errors({ UNAUTHORIZED }),
 
@@ -1075,15 +1108,19 @@ export const contract = oc.router({
       description: "Lists all assets with optional type filter.",
       tags: ["Admin", "Assets"],
     })
-    .input(z.object({
-      type: z.string().optional(),
-      limit: z.number().int().positive().max(100).default(50),
-      offset: z.number().int().min(0).default(0),
-    }))
-    .output(z.object({
-      assets: z.array(AssetSchema),
-      total: z.number(),
-    }))
+    .input(
+      z.object({
+        type: z.string().optional(),
+        limit: z.number().int().positive().max(100).default(50),
+        offset: z.number().int().min(0).default(0),
+      }),
+    )
+    .output(
+      z.object({
+        assets: z.array(AssetSchema),
+        total: z.number(),
+      }),
+    )
     .errors({ UNAUTHORIZED }),
 
   deleteAsset: oc
@@ -1105,26 +1142,35 @@ export const contract = oc.router({
       method: "PATCH",
       path: "/admin/products/{id}",
       summary: "Update a product",
-      description: "Updates product details including name, description, price, variants, images, and thumbnail. Only provided fields are updated.",
+      description:
+        "Updates product details including name, description, price, variants, images, and thumbnail. Only provided fields are updated.",
       tags: ["Admin", "Products"],
     })
-    .input(z.object({
-      id: z.string(),
-      name: z.string().optional(),
-      description: z.string().nullable().optional(),
-      price: z.number().positive().optional(),
-      priceLocked: z.boolean().optional(),
-      variants: z.array(z.object({
+    .input(
+      z.object({
         id: z.string(),
-        price: z.number().positive(),
-      })).optional(),
-      images: z.array(ProductImageSchema).optional(),
-      thumbnailImage: z.string().nullable().optional(),
-    }))
-    .output(z.object({
-      success: z.boolean(),
-      product: ProductSchema.optional(),
-    }))
+        name: z.string().optional(),
+        description: z.string().nullable().optional(),
+        price: z.number().positive().optional(),
+        priceLocked: z.boolean().optional(),
+        variants: z
+          .array(
+            z.object({
+              id: z.string(),
+              price: z.number().positive(),
+            }),
+          )
+          .optional(),
+        images: z.array(ProductImageSchema).optional(),
+        thumbnailImage: z.string().nullable().optional(),
+      }),
+    )
+    .output(
+      z.object({
+        success: z.boolean(),
+        product: ProductSchema.optional(),
+      }),
+    )
     .errors({ NOT_FOUND, UNAUTHORIZED }),
 
   // ─── Admin: Product Builder ───
@@ -1134,34 +1180,43 @@ export const contract = oc.router({
       method: "POST",
       path: "/admin/products/build",
       summary: "Build a product",
-      description: "Creates a product with the given variants, files, and provider config. Caller constructs providerConfig per variant (opaque to the builder).",
+      description:
+        "Creates a product with the given variants, files, and provider config. Caller constructs providerConfig per variant (opaque to the builder).",
       tags: ["Admin", "Products"],
     })
-    .input(z.object({
-      name: z.string(),
-      description: z.string().optional(),
-      providerName: z.string(),
-      image: z.string().optional(),
-      variants: z.array(z.object({
+    .input(
+      z.object({
         name: z.string(),
-        variantRef: z.string(),
-        providerConfig: z.record(z.string(), z.unknown()),
-        attributes: z.array(z.object({ name: z.string(), value: z.string() })).optional(),
-        price: z.number().optional(),
+        description: z.string().optional(),
+        providerName: z.string(),
+        image: z.string().optional(),
+        variants: z
+          .array(
+            z.object({
+              name: z.string(),
+              variantRef: z.string(),
+              providerConfig: z.record(z.string(), z.unknown()),
+              attributes: z.array(z.object({ name: z.string(), value: z.string() })).optional(),
+              price: z.number().optional(),
+              currency: z.string().optional(),
+              sku: z.string().optional(),
+            }),
+          )
+          .min(1),
+        files: z.array(
+          z.object({
+            assetId: z.string(),
+            url: z.string(),
+            slot: z.string().optional(),
+            metadata: z.record(z.string(), z.unknown()).optional(),
+          }),
+        ),
+        assetId: z.string().optional(),
+        priceOverride: z.number().optional(),
         currency: z.string().optional(),
-        sku: z.string().optional(),
-      })).min(1),
-      files: z.array(z.object({
-        assetId: z.string(),
-        url: z.string(),
-        slot: z.string().optional(),
         metadata: z.record(z.string(), z.unknown()).optional(),
-      })),
-      assetId: z.string().optional(),
-      priceOverride: z.number().optional(),
-      currency: z.string().optional(),
-      metadata: z.record(z.string(), z.unknown()).optional(),
-    }))
+      }),
+    )
     .output(ProductSchema)
     .errors({ BAD_REQUEST, UNAUTHORIZED }),
 
@@ -1173,10 +1228,12 @@ export const contract = oc.router({
       description: "Triggers mockup generation for an existing product.",
       tags: ["Admin", "Products"],
     })
-    .input(z.object({
-      id: z.string(),
-      styleIds: z.array(z.number()).optional(),
-    }))
+    .input(
+      z.object({
+        id: z.string(),
+        styleIds: z.array(z.number()).optional(),
+      }),
+    )
     .output(ProductSchema)
     .errors({ NOT_FOUND, UNAUTHORIZED }),
 });

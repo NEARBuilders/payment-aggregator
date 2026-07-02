@@ -1,10 +1,10 @@
-import { Effect } from 'every-plugin/effect';
-import { ORPCError } from 'every-plugin/orpc';
-import type { MarketplaceRuntime, PaymentProvider } from '../../runtime';
-import { OrderStore } from '../../store/orders';
-import { ProviderConfigStore } from '../../store/providers';
-import { EmailService } from '../email';
-import { processPaymentSuccessEffect } from './payment-success';
+import { Effect } from "every-plugin/effect";
+import { ORPCError } from "every-plugin/orpc";
+import type { MarketplaceRuntime, PaymentProvider } from "../../runtime";
+import { OrderStore } from "../../store/orders";
+import type { ProviderConfigStore } from "../../store/providers";
+import type { EmailService } from "../email";
+import { processPaymentSuccessEffect } from "./payment-success";
 
 export function handlePingPayWebhookEffect(options: {
   runtime: MarketplaceRuntime;
@@ -25,8 +25,8 @@ export function handlePingPayWebhookEffect(options: {
         }),
       catch: (error) => {
         const errorMsg = `Webhook verification failed: ${error instanceof Error ? error.message : String(error)}`;
-        console.error('[PingPay Webhook]', errorMsg, { error: String(error) });
-        return new ORPCError('UNAUTHORIZED', { message: errorMsg });
+        console.error("[PingPay Webhook]", errorMsg, { error: String(error) });
+        return new ORPCError("UNAUTHORIZED", { message: errorMsg });
       },
     });
 
@@ -45,29 +45,29 @@ export function handlePingPayWebhookEffect(options: {
     }
 
     switch (eventType) {
-      case 'payment.success':
-      case 'checkout.session.completed': {
-        if (order.status !== 'draft_created' && order.status !== 'pending' && order.status !== 'payment_pending') {
+      case "payment.success":
+      case "checkout.session.completed": {
+        if (
+          order.status !== "draft_created" &&
+          order.status !== "pending" &&
+          order.status !== "payment_pending"
+        ) {
           return { received: true } as const;
         }
 
         const result = yield* processPaymentSuccessEffect({
           runtime,
           order,
-          actor: 'service:pingpay',
+          actor: "service:pingpay",
           metadata: { sessionId, eventType },
         });
         break;
       }
 
-      case 'payment.failed':
-        yield* store.updateStatus(
-          order.id,
-          'payment_failed',
-          'service:pingpay',
-          eventType,
-          { sessionId },
-        );
+      case "payment.failed":
+        yield* store.updateStatus(order.id, "payment_failed", "service:pingpay", eventType, {
+          sessionId,
+        });
         break;
     }
 

@@ -1,14 +1,11 @@
-export * from './schema';
-export * from './contract';
-
-export { PrintfulService } from './printful/service';
-
-export { LuluService } from './lulu/service';
-
-export { ManualService } from './manual/service';
+export * from "./contract";
+export { LuluService } from "./lulu/service";
+export { ManualService } from "./manual/service";
 export {
   MANUAL_PROVIDER_FIELDS,
-  ManualProviderSettingsSchema,
-  type ManualProviderSettings,
   type ManualProviderFields,
-} from './manual/types';
+  type ManualProviderSettings,
+  ManualProviderSettingsSchema,
+} from "./manual/types";
+export { PrintfulService } from "./printful/service";
+export * from "./schema";

@@ -1,5 +1,5 @@
-import { Context, Effect, Layer } from 'every-plugin/effect';
-import { Resend } from 'resend';
+import { Context, Effect, Layer } from "every-plugin/effect";
+import { Resend } from "resend";
 
 interface EmailNotification {
   to: string[];
@@ -8,7 +8,7 @@ interface EmailNotification {
   replyTo?: string;
 }
 
-export class EmailService extends Context.Tag('EmailService')<
+export class EmailService extends Context.Tag("EmailService")<
   EmailService,
   {
     readonly sendNotification: (notification: EmailNotification) => Effect.Effect<void, Error>;
@@ -19,9 +19,7 @@ export const EmailServiceLive = (config: { fromEmail: string; resendApiKey?: str
   Layer.effect(
     EmailService,
     Effect.gen(function* () {
-      const resend = config.resendApiKey
-        ? new Resend(config.resendApiKey)
-        : null;
+      const resend = config.resendApiKey ? new Resend(config.resendApiKey) : null;
 
       return {
         sendNotification: (notification) =>
@@ -40,15 +38,17 @@ export const EmailServiceLive = (config: { fromEmail: string; resendApiKey?: str
                   throw new Error(`Resend API error: ${error.message}`);
                 }
 
-                console.log(`[EmailService] Sent notification to: ${notification.to.join(', ')} via Resend (id: ${data?.id})`);
+                console.log(
+                  `[EmailService] Sent notification to: ${notification.to.join(", ")} via Resend (id: ${data?.id})`,
+                );
               } else {
                 console.log(
                   `[EmailService] No Resend API key configured; logging notification:\n` +
-                  `To: ${notification.to.join(', ')}\n` +
-                  `From: ${config.fromEmail}\n` +
-                  `Subject: ${notification.subject}\n` +
-                  (notification.replyTo ? `Reply-To: ${notification.replyTo}\n` : '') +
-                  `\n${notification.body}`
+                    `To: ${notification.to.join(", ")}\n` +
+                    `From: ${config.fromEmail}\n` +
+                    `Subject: ${notification.subject}\n` +
+                    (notification.replyTo ? `Reply-To: ${notification.replyTo}\n` : "") +
+                    `\n${notification.body}`,
                 );
               }
             },

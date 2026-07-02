@@ -1,9 +1,9 @@
-import { Context, Effect, Layer } from 'every-plugin/effect';
-import type { MarketplaceRuntime } from '../runtime';
-import type { FulfillmentConfig, Product, ProductImage } from '../schema';
-import { ProductStore, type ProductVariantInput, type ProductWithImages } from '../store';
-import type { FulfillmentFile } from './fulfillment/schema';
-import { generateProductId, generatePublicKey, generateSlug } from '../utils/product-ids';
+import { Context, Effect, Layer } from "every-plugin/effect";
+import type { MarketplaceRuntime } from "../runtime";
+import type { FulfillmentConfig, Product, ProductImage } from "../schema";
+import { ProductStore, type ProductVariantInput, type ProductWithImages } from "../store";
+import { generateProductId, generatePublicKey, generateSlug } from "../utils/product-ids";
+import type { FulfillmentFile } from "./fulfillment/schema";
 
 export interface BuildVariantInput {
   name: string;
@@ -28,7 +28,7 @@ export interface BuildProductInput {
   metadata?: Record<string, unknown>;
 }
 
-export class ProductBuilderService extends Context.Tag('ProductBuilderService')<
+export class ProductBuilderService extends Context.Tag("ProductBuilderService")<
   ProductBuilderService,
   {
     readonly build: (input: BuildProductInput) => Effect.Effect<Product, Error>;
@@ -48,11 +48,11 @@ export const ProductBuilderServiceLive = (runtime: MarketplaceRuntime) =>
       const build = (input: BuildProductInput) =>
         Effect.gen(function* () {
           if (input.variants.length === 0) {
-            return yield* Effect.fail(new Error('At least one variant is required'));
+            return yield* Effect.fail(new Error("At least one variant is required"));
           }
 
           const basePrice = input.priceOverride ?? input.variants[0]!.price ?? 0;
-          const baseCurrency = input.currency ?? input.variants[0]!.currency ?? 'USD';
+          const baseCurrency = input.currency ?? input.variants[0]!.currency ?? "USD";
 
           const optionsMap = new Map<string, Set<string>>();
           for (const variant of input.variants) {
@@ -74,7 +74,7 @@ export const ProductBuilderServiceLive = (runtime: MarketplaceRuntime) =>
             images.push({
               id: `product-image-0`,
               url: input.image,
-              type: 'catalog',
+              type: "catalog",
               order: 0,
             });
           }
@@ -140,12 +140,14 @@ export const ProductBuilderServiceLive = (runtime: MarketplaceRuntime) =>
 
           const provider = runtime.getProvider(product.fulfillmentProvider);
           if (!provider) {
-            return yield* Effect.fail(new Error(`Provider not found: ${product.fulfillmentProvider}`));
+            return yield* Effect.fail(
+              new Error(`Provider not found: ${product.fulfillmentProvider}`),
+            );
           }
 
           const config = product.variants[0]?.fulfillmentConfig;
           if (!config) {
-            return yield* Effect.fail(new Error('No fulfillment config on product variants'));
+            return yield* Effect.fail(new Error("No fulfillment config on product variants"));
           }
 
           const variantRefs = product.variants
@@ -161,17 +163,15 @@ export const ProductBuilderServiceLive = (runtime: MarketplaceRuntime) =>
                 mockupStyleIds: styleIds,
               }),
             catch: (e) =>
-              new Error(
-                `Mockup generation failed: ${e instanceof Error ? e.message : String(e)}`,
-              ),
+              new Error(`Mockup generation failed: ${e instanceof Error ? e.message : String(e)}`),
           });
 
-          if (mockupResult.status === 'completed' && mockupResult.images.length > 0) {
+          if (mockupResult.status === "completed" && mockupResult.images.length > 0) {
             const existingImages = product.images || [];
             const mockupImages: ProductImage[] = mockupResult.images.map((img, index) => ({
-              id: `mockup-${img.styleId || 'default'}-${index}`,
+              id: `mockup-${img.styleId || "default"}-${index}`,
               url: img.imageUrl,
-              type: 'mockup' as const,
+              type: "mockup" as const,
               placement: img.slot,
               style: img.styleId,
               variantIds: [img.variantRef],
@@ -180,7 +180,7 @@ export const ProductBuilderServiceLive = (runtime: MarketplaceRuntime) =>
 
             const updatedProduct: ProductWithImages = {
               id: product.id,
-              publicKey: product.slug ? '' : generatePublicKey(),
+              publicKey: product.slug ? "" : generatePublicKey(),
               slug: product.slug,
               name: product.title,
               description: product.description,

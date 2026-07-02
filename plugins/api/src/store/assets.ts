@@ -75,7 +75,11 @@ export const AssetStoreLive = Layer.effect(
               .limit(1);
             return results.length > 0 ? rowToAsset(results[0]!) : null;
           },
-          catch: (error) => new Error(`Failed to find asset: ${error instanceof Error ? error.message : String(error)}`, { cause: error }),
+          catch: (error) =>
+            new Error(
+              `Failed to find asset: ${error instanceof Error ? error.message : String(error)}`,
+              { cause: error },
+            ),
         }),
 
       findMany: (options) =>
@@ -101,7 +105,11 @@ export const AssetStoreLive = Layer.effect(
 
             return { assets: results.map(rowToAsset), total };
           },
-          catch: (error) => new Error(`Failed to find assets: ${error instanceof Error ? error.message : String(error)}`, { cause: error }),
+          catch: (error) =>
+            new Error(
+              `Failed to find assets: ${error instanceof Error ? error.message : String(error)}`,
+              { cause: error },
+            ),
         }),
 
       create: (data) =>
@@ -131,7 +139,11 @@ export const AssetStoreLive = Layer.effect(
             }
             return rowToAsset(results[0]!);
           },
-          catch: (error) => new Error(`Failed to create asset: ${error instanceof Error ? error.message : String(error)}`, { cause: error }),
+          catch: (error) =>
+            new Error(
+              `Failed to create asset: ${error instanceof Error ? error.message : String(error)}`,
+              { cause: error },
+            ),
         }),
 
       update: (id, data) =>
@@ -158,7 +170,11 @@ export const AssetStoreLive = Layer.effect(
 
             return results.length > 0 ? rowToAsset(results[0]!) : null;
           },
-          catch: (error) => new Error(`Failed to update asset: ${error instanceof Error ? error.message : String(error)}`, { cause: error }),
+          catch: (error) =>
+            new Error(
+              `Failed to update asset: ${error instanceof Error ? error.message : String(error)}`,
+              { cause: error },
+            ),
         }),
 
       delete: (id) =>
@@ -166,7 +182,11 @@ export const AssetStoreLive = Layer.effect(
           try: async () => {
             await db.delete(schema.assets).where(eq(schema.assets.id, id));
           },
-          catch: (error) => new Error(`Failed to delete asset: ${error instanceof Error ? error.message : String(error)}`, { cause: error }),
+          catch: (error) =>
+            new Error(
+              `Failed to delete asset: ${error instanceof Error ? error.message : String(error)}`,
+              { cause: error },
+            ),
         }),
     };
   }),

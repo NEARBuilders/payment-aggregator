@@ -55,7 +55,7 @@ describe("StripePaymentService", () => {
           items: [{ name: "Test Item", unitAmount: 1000, quantity: 1 }],
           successUrl: "https://example.com/success",
           cancelUrl: "https://example.com/cancel",
-        })
+        }),
       );
 
       expect(result).toEqual({
@@ -67,12 +67,13 @@ describe("StripePaymentService", () => {
 
   describe("verifyWebhook", () => {
     it("should verify and parse webhook event", async () => {
-      const result = await Effect.runPromise(
-        service.verifyWebhook("{}", "sig_test")
-      );
+      const result = await Effect.runPromise(service.verifyWebhook("{}", "sig_test"));
 
       expect(result).toEqual({
-        event: { type: "checkout.session.completed", data: { object: { metadata: { orderId: "order-123" } } } },
+        event: {
+          type: "checkout.session.completed",
+          data: { object: { metadata: { orderId: "order-123" } } },
+        },
         orderId: "order-123",
       });
     });

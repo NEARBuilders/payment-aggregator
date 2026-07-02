@@ -1,21 +1,21 @@
-import { createPlugin } from 'every-plugin';
-import { Effect } from 'every-plugin/effect';
-import { ORPCError } from 'every-plugin/orpc';
-import { z } from 'every-plugin/zod';
-import { FulfillmentContract } from '../contract';
-import { FulfillmentError } from '../errors';
-import { ManualService } from './service';
-import { ManualProviderSettingsSchema } from './types';
+import { createPlugin } from "every-plugin";
+import { Effect } from "every-plugin/effect";
+import { ORPCError } from "every-plugin/orpc";
+import { z } from "every-plugin/zod";
+import { FulfillmentContract } from "../contract";
+import { FulfillmentError } from "../errors";
+import { ManualService } from "./service";
+import { ManualProviderSettingsSchema } from "./types";
 
 const mapError = (error: unknown) => {
   if (error instanceof FulfillmentError) {
     switch (error.code) {
-      case 'UNSUPPORTED_OPERATION':
-        return new ORPCError('NOT_IMPLEMENTED', { message: error.message });
-      case 'NOT_FOUND':
-        return new ORPCError('NOT_FOUND', { message: error.message });
+      case "UNSUPPORTED_OPERATION":
+        return new ORPCError("NOT_IMPLEMENTED", { message: error.message });
+      case "NOT_FOUND":
+        return new ORPCError("NOT_FOUND", { message: error.message });
       default:
-        return new ORPCError('INTERNAL_SERVER_ERROR', { message: error.message });
+        return new ORPCError("INTERNAL_SERVER_ERROR", { message: error.message });
     }
   }
   return error;
@@ -34,10 +34,10 @@ export default createPlugin({
   contract: FulfillmentContract,
 
   initialize: () =>
-    Effect.gen(function* () {
+    Effect.sync(() => {
       const service = new ManualService();
 
-      console.log('[Manual Plugin] Initialized successfully');
+      console.log("[Manual Plugin] Initialized successfully");
 
       return { service };
     }),
@@ -50,65 +50,49 @@ export default createPlugin({
     return {
       ping: builder.ping.handler(async () => run(service.ping())),
 
-      browseCatalog: builder.browseCatalog.handler(async () =>
-        run(service.browseCatalog())
-      ),
+      browseCatalog: builder.browseCatalog.handler(async () => run(service.browseCatalog())),
 
       getCatalogProduct: builder.getCatalogProduct.handler(async () =>
-        run(service.getCatalogProduct())
+        run(service.getCatalogProduct()),
       ),
 
       getCatalogProductVariants: builder.getCatalogProductVariants.handler(async () =>
-        run(service.getCatalogProductVariants())
+        run(service.getCatalogProductVariants()),
       ),
 
-      getVariantPrice: builder.getVariantPrice.handler(async () =>
-        run(service.getVariantPrice())
-      ),
+      getVariantPrice: builder.getVariantPrice.handler(async () => run(service.getVariantPrice())),
 
-      generateMockups: builder.generateMockups.handler(async () =>
-        run(service.generateMockups())
-      ),
+      generateMockups: builder.generateMockups.handler(async () => run(service.generateMockups())),
 
-      getMockupResult: builder.getMockupResult.handler(async () =>
-        run(service.getMockupResult())
-      ),
+      getMockupResult: builder.getMockupResult.handler(async () => run(service.getMockupResult())),
 
       createOrder: builder.createOrder.handler(async ({ input }) =>
-        run(service.createOrder(input))
+        run(service.createOrder(input)),
       ),
 
-      getOrder: builder.getOrder.handler(async ({ input }) =>
-        run(service.getOrder(input))
-      ),
+      getOrder: builder.getOrder.handler(async ({ input }) => run(service.getOrder(input))),
 
       confirmOrder: builder.confirmOrder.handler(async ({ input }) =>
-        run(service.confirmOrder(input))
+        run(service.confirmOrder(input)),
       ),
 
       cancelOrder: builder.cancelOrder.handler(async ({ input }) =>
-        run(service.cancelOrder(input))
+        run(service.cancelOrder(input)),
       ),
 
-      quoteShipping: builder.quoteShipping.handler(async () =>
-        run(service.quoteShipping())
-      ),
+      quoteShipping: builder.quoteShipping.handler(async () => run(service.quoteShipping())),
 
-      calculateTax: builder.calculateTax.handler(async () =>
-        run(service.calculateTax())
-      ),
+      calculateTax: builder.calculateTax.handler(async () => run(service.calculateTax())),
 
-      getPlacements: builder.getPlacements.handler(async () =>
-        run(service.getPlacements())
-      ),
+      getPlacements: builder.getPlacements.handler(async () => run(service.getPlacements())),
     };
   },
 });
 
-export { ManualService } from './service';
+export { ManualService } from "./service";
 export {
   MANUAL_PROVIDER_FIELDS,
-  ManualProviderSettingsSchema,
-  type ManualProviderSettings,
   type ManualProviderFields,
-} from './types';
+  type ManualProviderSettings,
+  ManualProviderSettingsSchema,
+} from "./types";

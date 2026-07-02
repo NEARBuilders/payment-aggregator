@@ -1,19 +1,19 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
-import { getPluginClient, runMigrations, teardown } from '../setup';
-import { 
-  clearOrders, 
-  clearOrdersItems,
-  clearProducts, 
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import {
+  addProductToCollection,
   clearCollections,
-  createTestProduct, 
-  createTestProductVariant, 
-  createTestProductWithImages,
+  clearOrders,
+  clearOrdersItems,
+  clearProducts,
   createTestCollection,
-  addProductToCollection
-} from '../helpers';
+  createTestProduct,
+  createTestProductVariant,
+  createTestProductWithImages,
+} from "../helpers";
+import { getPluginClient, runMigrations, teardown } from "../setup";
 
-describe('Database Integration Tests', () => {
-  const TEST_USER = 'test-user.near';
+describe("Database Integration Tests", () => {
+  const TEST_USER = "test-user.near";
 
   beforeAll(async () => {
     await runMigrations();
@@ -37,49 +37,67 @@ describe('Database Integration Tests', () => {
     await clearCollections();
   });
 
-  describe('Product Operations', () => {
-    it('should create product with variants and images in PostgreSQL', async () => {
+  describe("Product Operations", () => {
+    it("should create product with variants and images in PostgreSQL", async () => {
       const client = await getPluginClient({ nearAccountId: TEST_USER });
 
-      const { product, images } = await createTestProductWithImages('prod_123', {
-        name: 'Test T-Shirt',
+      const { product, images } = await createTestProductWithImages("prod_123", {
+        name: "Test T-Shirt",
         price: 2999,
-        currency: 'USD',
-        brand: 'Test Brand',
-        fulfillmentProvider: 'printful',
-        source: 'test',
+        currency: "USD",
+        brand: "Test Brand",
+        fulfillmentProvider: "printful",
+        source: "test",
         listed: true,
       });
 
       expect(product).toBeDefined();
-      expect(product.id).toBe('prod_123');
-      expect(product.name).toBe('Test T-Shirt');
+      expect(product.id).toBe("prod_123");
+      expect(product.name).toBe("Test T-Shirt");
       expect(product.price).toBe(2999);
 
-      await createTestProductVariant('var_456', 'prod_123', {
-        name: 'Large',
+      await createTestProductVariant("var_456", "prod_123", {
+        name: "Large",
         price: 2999,
-        sku: 'TS-LG-001',
+        sku: "TS-LG-001",
         inStock: true,
       });
 
       const getProductsResult = await client.getProducts({});
-      
-      const foundProduct = getProductsResult.products.find((p: any) => p.id === 'prod_123');
+
+      const foundProduct = getProductsResult.products.find((p: any) => p.id === "prod_123");
       expect(foundProduct).toBeDefined();
-      expect(foundProduct?.title).toBe('Test T-Shirt');
+      expect(foundProduct?.title).toBe("Test T-Shirt");
 
       expect(images).toHaveLength(2);
-      const getImageResult = await client.getProduct({ id: 'prod_123' });
-      expect(getImageResult.product.id).toBe('prod_123');
+      const getImageResult = await client.getProduct({ id: "prod_123" });
+      expect(getImageResult.product.id).toBe("prod_123");
     });
 
-    it('should list products with filters from PostgreSQL', async () => {
+    it("should list products with filters from PostgreSQL", async () => {
       const client = await getPluginClient({ nearAccountId: TEST_USER });
 
-      await createTestProduct('prod_1', { name: 'Product A', price: 1000, listed: true, fulfillmentProvider: 'manual', source: 'test' });
-      await createTestProduct('prod_2', { name: 'Product B', price: 2000, listed: true, fulfillmentProvider: 'manual', source: 'test' });
-      await createTestProduct('prod_3', { name: 'Product C', price: 1500, listed: false, fulfillmentProvider: 'manual', source: 'test' });
+      await createTestProduct("prod_1", {
+        name: "Product A",
+        price: 1000,
+        listed: true,
+        fulfillmentProvider: "manual",
+        source: "test",
+      });
+      await createTestProduct("prod_2", {
+        name: "Product B",
+        price: 2000,
+        listed: true,
+        fulfillmentProvider: "manual",
+        source: "test",
+      });
+      await createTestProduct("prod_3", {
+        name: "Product C",
+        price: 1500,
+        listed: false,
+        fulfillmentProvider: "manual",
+        source: "test",
+      });
 
       const result = await client.getProducts({ includeUnlisted: true });
 
@@ -87,64 +105,64 @@ describe('Database Integration Tests', () => {
       expect(result.products.length).toBeGreaterThanOrEqual(2);
     });
 
-    it('should find product by ID with details from PostgreSQL', async () => {
+    it("should find product by ID with details from PostgreSQL", async () => {
       const client = await getPluginClient({ nearAccountId: TEST_USER });
 
-      const { product } = await createTestProductWithImages('prod_123', {
-        name: 'FindMe Product',
-        description: 'A product to find',
+      const { product } = await createTestProductWithImages("prod_123", {
+        name: "FindMe Product",
+        description: "A product to find",
         price: 3499,
-        currency: 'USD',
-        fulfillmentProvider: 'manual',
-        source: 'test',
+        currency: "USD",
+        fulfillmentProvider: "manual",
+        source: "test",
       });
 
-      await createTestProductVariant('var_456', 'prod_123', {
-        name: 'Medium',
+      await createTestProductVariant("var_456", "prod_123", {
+        name: "Medium",
         price: 3499,
-        sku: 'FM-MED-001',
+        sku: "FM-MED-001",
         inStock: true,
       });
 
-      const result = await client.getProduct({ id: 'prod_123' });
+      const result = await client.getProduct({ id: "prod_123" });
 
       expect(result.product).toBeDefined();
-      expect(result.product?.title).toBe('FindMe Product');
+      expect(result.product?.title).toBe("FindMe Product");
       expect(result.product.price).toBe(34.99);
     });
 
-    it('should handle product with tags in PostgreSQL JSONB', async () => {
+    it("should handle product with tags in PostgreSQL JSONB", async () => {
       const client = await getPluginClient({ nearAccountId: TEST_USER });
 
-      const tags = ['summer', 'clothing', 't-shirt']
-      await createTestProduct('prod_123', {
-        name: 'Tagged Product',
+      const tags = ["summer", "clothing", "t-shirt"];
+      await createTestProduct("prod_123", {
+        name: "Tagged Product",
         price: 2500,
-        currency: 'USD',
+        currency: "USD",
         tags,
-        fulfillmentProvider: 'manual',
-        source: 'test',
+        fulfillmentProvider: "manual",
+        source: "test",
       });
 
-      const searchResult = await client.searchProducts({ query: 'clothing' });
+      const searchResult = await client.searchProducts({ query: "clothing" });
 
       expect(searchResult.products).toBeDefined();
       expect(searchResult.products.length).toBeGreaterThan(0);
     });
   });
 
-  describe('Collection Operations', () => {
-    it('should get collections from PostgreSQL', async () => {
+  describe("Collection Operations", () => {
+    it("should get collections from PostgreSQL", async () => {
       const client = await getPluginClient({ nearAccountId: TEST_USER });
 
-      await createTestCollection('summer', {
-        name: 'Summer Collection',
-        description: 'Best summer items',
+      await createTestCollection("summer", {
+        name: "Summer Collection",
+        description: "Best summer items",
       });
 
-      await createTestCollection('winter', {
-        name: 'Winter Collection',
-        description: 'Cozy winter items',
+      await createTestCollection("winter", {
+        name: "Winter Collection",
+        description: "Cozy winter items",
       });
 
       const result = await client.getCollections({});
@@ -153,23 +171,23 @@ describe('Database Integration Tests', () => {
       expect(result.collections.length).toBeGreaterThanOrEqual(2);
     });
 
-    it('should add product to collection in PostgreSQL', async () => {
+    it("should add product to collection in PostgreSQL", async () => {
       const client = await getPluginClient({ nearAccountId: TEST_USER });
 
-      await createTestProduct('prod_123', {
-        name: 'Collection Product',
+      await createTestProduct("prod_123", {
+        name: "Collection Product",
         price: 1999,
-        currency: 'USD',
-        fulfillmentProvider: 'manual',
-        source: 'test',
+        currency: "USD",
+        fulfillmentProvider: "manual",
+        source: "test",
       });
 
-      await createTestCollection('summer', {
-        name: 'Summer Collection',
-        description: 'Best summer items',
+      await createTestCollection("summer", {
+        name: "Summer Collection",
+        description: "Best summer items",
       });
 
-      await addProductToCollection('prod_123', 'summer');
+      await addProductToCollection("prod_123", "summer");
 
       const collectionsResult = await client.getCollections({});
 
@@ -177,17 +195,17 @@ describe('Database Integration Tests', () => {
       expect(collectionsResult.collections.length).toBeGreaterThanOrEqual(1);
     });
 
-    it('should get carousel collections from PostgreSQL', async () => {
+    it("should get carousel collections from PostgreSQL", async () => {
       const client = await getPluginClient({ nearAccountId: TEST_USER });
 
-      await createTestCollection('featured', {
-        name: 'Featured Collection',
+      await createTestCollection("featured", {
+        name: "Featured Collection",
         showInCarousel: true,
         carouselOrder: 1,
       });
 
-      await createTestCollection('hidden', {
-        name: 'Hidden Collection',
+      await createTestCollection("hidden", {
+        name: "Hidden Collection",
         showInCarousel: false,
         carouselOrder: 2,
       });
@@ -200,54 +218,54 @@ describe('Database Integration Tests', () => {
     });
   });
 
-  describe('Order Operations', () => {
-    it('should create and find order in PostgreSQL', async () => {
+  describe("Order Operations", () => {
+    it("should create and find order in PostgreSQL", async () => {
       const client = await getPluginClient({ nearAccountId: TEST_USER });
 
-      await createTestProduct('prod_1', {
-        name: 'Test Product 1',
+      await createTestProduct("prod_1", {
+        name: "Test Product 1",
         price: 1000,
-        currency: 'USD',
-        fulfillmentProvider: 'manual',
-        source: 'test',
+        currency: "USD",
+        fulfillmentProvider: "manual",
+        source: "test",
       });
 
-      await createTestProductVariant('var_1', 'prod_1', {
-        name: 'Variant 1',
+      await createTestProductVariant("var_1", "prod_1", {
+        name: "Variant 1",
         price: 1000,
-        sku: 'SKU-001',
+        sku: "SKU-001",
         inStock: true,
       });
 
-      await createTestProduct('prod_2', {
-        name: 'Test Product 2',
+      await createTestProduct("prod_2", {
+        name: "Test Product 2",
         price: 1500,
-        currency: 'USD',
-        fulfillmentProvider: 'manual',
-        source: 'test',
+        currency: "USD",
+        fulfillmentProvider: "manual",
+        source: "test",
       });
 
-      await createTestProductVariant('var_2', 'prod_2', {
-        name: 'Variant 2',
+      await createTestProductVariant("var_2", "prod_2", {
+        name: "Variant 2",
         price: 1500,
-        sku: 'SKU-002',
+        sku: "SKU-002",
         inStock: true,
       });
 
       const quoteResult = await client.quote({
         items: [
-          { productId: 'prod_1', variantId: 'var_1', quantity: 2 },
-          { productId: 'prod_2', variantId: 'var_2', quantity: 1 },
+          { productId: "prod_1", variantId: "var_1", quantity: 2 },
+          { productId: "prod_2", variantId: "var_2", quantity: 1 },
         ],
         shippingAddress: {
-          firstName: 'John',
-          lastName: 'Doe',
-          email: 'john@example.com',
-          addressLine1: '123 Main St',
-          city: 'Los Angeles',
-          state: 'CA',
-          postCode: '90001',
-          country: 'US',
+          firstName: "John",
+          lastName: "Doe",
+          email: "john@example.com",
+          addressLine1: "123 Main St",
+          city: "Los Angeles",
+          state: "CA",
+          postCode: "90001",
+          country: "US",
         },
       });
 
@@ -260,24 +278,22 @@ describe('Database Integration Tests', () => {
       });
 
       const checkoutResult = await client.createCheckout({
-        items: [
-          { productId: 'prod_1', variantId: 'var_1', quantity: 2 },
-        ],
+        items: [{ productId: "prod_1", variantId: "var_1", quantity: 2 }],
         shippingAddress: {
-          firstName: 'John',
-          lastName: 'Doe',
-          email: 'john@example.com',
-          addressLine1: '123 Main St',
-          city: 'Los Angeles',
-          state: 'CA',
-          postCode: '90001',
-          country: 'US',
+          firstName: "John",
+          lastName: "Doe",
+          email: "john@example.com",
+          addressLine1: "123 Main St",
+          city: "Los Angeles",
+          state: "CA",
+          postCode: "90001",
+          country: "US",
         },
         selectedRates,
         shippingCost: quoteResult.shippingCost,
-        successUrl: 'https://example.com/success',
-        cancelUrl: 'https://example.com/cancel',
-        paymentProvider: 'pingpay',
+        successUrl: "https://example.com/success",
+        cancelUrl: "https://example.com/cancel",
+        paymentProvider: "pingpay",
       });
 
       expect(checkoutResult).toBeDefined();
@@ -290,15 +306,15 @@ describe('Database Integration Tests', () => {
       expect(order.order.id).toBe(checkoutResult.orderId);
     });
 
-    it('should append dynamic referral fees for eligible products', async () => {
+    it("should append dynamic referral fees for eligible products", async () => {
       const client = await getPluginClient({ nearAccountId: TEST_USER });
 
-      await createTestProduct('prod_ref', {
-        name: 'Referral Product',
+      await createTestProduct("prod_ref", {
+        name: "Referral Product",
         price: 1000,
-        currency: 'USD',
-        fulfillmentProvider: 'manual',
-        source: 'test',
+        currency: "USD",
+        fulfillmentProvider: "manual",
+        source: "test",
         metadata: {
           fees: [],
           affiliate: {
@@ -310,24 +326,24 @@ describe('Database Integration Tests', () => {
         },
       });
 
-      await createTestProductVariant('var_ref', 'prod_ref', {
-        name: 'Referral Variant',
+      await createTestProductVariant("var_ref", "prod_ref", {
+        name: "Referral Variant",
         price: 1000,
-        sku: 'SKU-REF-001',
+        sku: "SKU-REF-001",
         inStock: true,
       });
 
       const quoteResult = await client.quote({
-        items: [{ productId: 'prod_ref', variantId: 'var_ref', quantity: 1 }],
+        items: [{ productId: "prod_ref", variantId: "var_ref", quantity: 1 }],
         shippingAddress: {
-          firstName: 'Referral',
-          lastName: 'Buyer',
-          email: 'buyer@example.com',
-          addressLine1: '123 Main St',
-          city: 'Los Angeles',
-          state: 'CA',
-          postCode: '90001',
-          country: 'US',
+          firstName: "Referral",
+          lastName: "Buyer",
+          email: "buyer@example.com",
+          addressLine1: "123 Main St",
+          city: "Los Angeles",
+          state: "CA",
+          postCode: "90001",
+          country: "US",
         },
       });
 
@@ -339,27 +355,27 @@ describe('Database Integration Tests', () => {
       const checkoutResult = await client.createCheckout({
         items: [
           {
-            productId: 'prod_ref',
-            variantId: 'var_ref',
+            productId: "prod_ref",
+            variantId: "var_ref",
             quantity: 1,
-            referralAccountId: 'referrer.near',
+            referralAccountId: "referrer.near",
           },
         ],
         shippingAddress: {
-          firstName: 'Referral',
-          lastName: 'Buyer',
-          email: 'buyer@example.com',
-          addressLine1: '123 Main St',
-          city: 'Los Angeles',
-          state: 'CA',
-          postCode: '90001',
-          country: 'US',
+          firstName: "Referral",
+          lastName: "Buyer",
+          email: "buyer@example.com",
+          addressLine1: "123 Main St",
+          city: "Los Angeles",
+          state: "CA",
+          postCode: "90001",
+          country: "US",
         },
         selectedRates,
         shippingCost: quoteResult.shippingCost,
-        successUrl: 'https://example.com/success',
-        cancelUrl: 'https://example.com/cancel',
-        paymentProvider: 'pingpay',
+        successUrl: "https://example.com/success",
+        cancelUrl: "https://example.com/cancel",
+        paymentProvider: "pingpay",
       });
 
       const order = await client.getOrder({ id: checkoutResult.orderId });
@@ -371,9 +387,9 @@ describe('Database Integration Tests', () => {
       expect(requestFees).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            type: 'affiliate',
-            label: 'Referral',
-            recipient: 'referrer.near',
+            type: "affiliate",
+            label: "Referral",
+            recipient: "referrer.near",
             bps: 2000,
           }),
         ]),
@@ -381,23 +397,23 @@ describe('Database Integration Tests', () => {
       expect(referralItems).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            productId: 'prod_ref',
-            recipient: 'referrer.near',
+            productId: "prod_ref",
+            recipient: "referrer.near",
             configuredFeeBps: 2000,
           }),
         ]),
       );
     });
 
-    it('should split referral fees proportionally across the full order total', async () => {
+    it("should split referral fees proportionally across the full order total", async () => {
       const client = await getPluginClient({ nearAccountId: TEST_USER });
 
-      await createTestProduct('prod_book', {
-        name: 'Book',
+      await createTestProduct("prod_book", {
+        name: "Book",
         price: 2000,
-        currency: 'USD',
-        fulfillmentProvider: 'manual',
-        source: 'test',
+        currency: "USD",
+        fulfillmentProvider: "manual",
+        source: "test",
         metadata: {
           fees: [],
           affiliate: {
@@ -409,19 +425,19 @@ describe('Database Integration Tests', () => {
         },
       });
 
-      await createTestProductVariant('var_book', 'prod_book', {
-        name: 'Book Variant',
+      await createTestProductVariant("var_book", "prod_book", {
+        name: "Book Variant",
         price: 2000,
-        sku: 'SKU-BOOK-001',
+        sku: "SKU-BOOK-001",
         inStock: true,
       });
 
-      await createTestProduct('prod_poster', {
-        name: 'Poster',
+      await createTestProduct("prod_poster", {
+        name: "Poster",
         price: 3000,
-        currency: 'USD',
-        fulfillmentProvider: 'manual',
-        source: 'test',
+        currency: "USD",
+        fulfillmentProvider: "manual",
+        source: "test",
         metadata: {
           fees: [],
           affiliate: {
@@ -433,46 +449,46 @@ describe('Database Integration Tests', () => {
         },
       });
 
-      await createTestProductVariant('var_poster', 'prod_poster', {
-        name: 'Poster Variant',
+      await createTestProductVariant("var_poster", "prod_poster", {
+        name: "Poster Variant",
         price: 3000,
-        sku: 'SKU-POSTER-001',
+        sku: "SKU-POSTER-001",
         inStock: true,
       });
 
-      await createTestProduct('prod_other', {
-        name: 'Other',
+      await createTestProduct("prod_other", {
+        name: "Other",
         price: 5000,
-        currency: 'USD',
-        fulfillmentProvider: 'manual',
-        source: 'test',
+        currency: "USD",
+        fulfillmentProvider: "manual",
+        source: "test",
         metadata: {
           fees: [],
         },
       });
 
-      await createTestProductVariant('var_other', 'prod_other', {
-        name: 'Other Variant',
+      await createTestProductVariant("var_other", "prod_other", {
+        name: "Other Variant",
         price: 5000,
-        sku: 'SKU-OTHER-001',
+        sku: "SKU-OTHER-001",
         inStock: true,
       });
 
       const quoteResult = await client.quote({
         items: [
-          { productId: 'prod_book', variantId: 'var_book', quantity: 1 },
-          { productId: 'prod_poster', variantId: 'var_poster', quantity: 1 },
-          { productId: 'prod_other', variantId: 'var_other', quantity: 1 },
+          { productId: "prod_book", variantId: "var_book", quantity: 1 },
+          { productId: "prod_poster", variantId: "var_poster", quantity: 1 },
+          { productId: "prod_other", variantId: "var_other", quantity: 1 },
         ],
         shippingAddress: {
-          firstName: 'Referral',
-          lastName: 'Buyer',
-          email: 'buyer@example.com',
-          addressLine1: '123 Main St',
-          city: 'Los Angeles',
-          state: 'CA',
-          postCode: '90001',
-          country: 'US',
+          firstName: "Referral",
+          lastName: "Buyer",
+          email: "buyer@example.com",
+          addressLine1: "123 Main St",
+          city: "Los Angeles",
+          state: "CA",
+          postCode: "90001",
+          country: "US",
         },
       });
 
@@ -484,38 +500,38 @@ describe('Database Integration Tests', () => {
       const checkoutResult = await client.createCheckout({
         items: [
           {
-            productId: 'prod_book',
-            variantId: 'var_book',
+            productId: "prod_book",
+            variantId: "var_book",
             quantity: 1,
-            referralAccountId: 'reader.near',
+            referralAccountId: "reader.near",
           },
           {
-            productId: 'prod_poster',
-            variantId: 'var_poster',
+            productId: "prod_poster",
+            variantId: "var_poster",
             quantity: 1,
-            referralAccountId: 'artist.near',
+            referralAccountId: "artist.near",
           },
           {
-            productId: 'prod_other',
-            variantId: 'var_other',
+            productId: "prod_other",
+            variantId: "var_other",
             quantity: 1,
           },
         ],
         shippingAddress: {
-          firstName: 'Referral',
-          lastName: 'Buyer',
-          email: 'buyer@example.com',
-          addressLine1: '123 Main St',
-          city: 'Los Angeles',
-          state: 'CA',
-          postCode: '90001',
-          country: 'US',
+          firstName: "Referral",
+          lastName: "Buyer",
+          email: "buyer@example.com",
+          addressLine1: "123 Main St",
+          city: "Los Angeles",
+          state: "CA",
+          postCode: "90001",
+          country: "US",
         },
         selectedRates,
         shippingCost: quoteResult.shippingCost,
-        successUrl: 'https://example.com/success',
-        cancelUrl: 'https://example.com/cancel',
-        paymentProvider: 'pingpay',
+        successUrl: "https://example.com/success",
+        cancelUrl: "https://example.com/cancel",
+        paymentProvider: "pingpay",
       });
 
       const order = await client.getOrder({ id: checkoutResult.orderId });
@@ -526,21 +542,21 @@ describe('Database Integration Tests', () => {
       expect(requestFees).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            recipient: 'reader.near',
+            recipient: "reader.near",
             bps: 1000,
           }),
           expect.objectContaining({
-            recipient: 'artist.near',
+            recipient: "artist.near",
             bps: 300,
           }),
         ]),
       );
 
-      const bookReferral = referralItems?.find((item) => item.productId === 'prod_book');
-      const posterReferral = referralItems?.find((item) => item.productId === 'prod_poster');
+      const bookReferral = referralItems?.find((item) => item.productId === "prod_book");
+      const posterReferral = referralItems?.find((item) => item.productId === "prod_poster");
 
       expect(bookReferral).toMatchObject({
-        recipient: 'reader.near',
+        recipient: "reader.near",
         configuredFeeBps: 5000,
         itemSubtotal: 20,
       });
@@ -549,7 +565,7 @@ describe('Database Integration Tests', () => {
       expect(bookReferral?.feeAmount).toBeCloseTo(10);
 
       expect(posterReferral).toMatchObject({
-        recipient: 'artist.near',
+        recipient: "artist.near",
         configuredFeeBps: 1000,
         itemSubtotal: 30,
       });
@@ -558,37 +574,35 @@ describe('Database Integration Tests', () => {
       expect(posterReferral?.feeAmount).toBeCloseTo(3);
     });
 
-    it('should find order by checkout session ID from PostgreSQL', async () => {
+    it("should find order by checkout session ID from PostgreSQL", async () => {
       const client = await getPluginClient({ nearAccountId: TEST_USER });
 
-      await createTestProduct('prod_1', {
-        name: 'Test Product',
+      await createTestProduct("prod_1", {
+        name: "Test Product",
         price: 1000,
-        currency: 'USD',
-        fulfillmentProvider: 'manual',
-        source: 'test',
+        currency: "USD",
+        fulfillmentProvider: "manual",
+        source: "test",
       });
 
-      await createTestProductVariant('var_1', 'prod_1', {
-        name: 'Variant 1',
+      await createTestProductVariant("var_1", "prod_1", {
+        name: "Variant 1",
         price: 1000,
-        sku: 'SKU-001',
+        sku: "SKU-001",
         inStock: true,
       });
 
       const quoteResult = await client.quote({
-        items: [
-          { productId: 'prod_1', variantId: 'var_1', quantity: 1 },
-        ],
+        items: [{ productId: "prod_1", variantId: "var_1", quantity: 1 }],
         shippingAddress: {
-          firstName: 'Jane',
-          lastName: 'Smith',
-          email: 'jane@example.com',
-          addressLine1: '456 Oak Ave',
-          city: 'San Francisco',
-          state: 'CA',
-          postCode: '94102',
-          country: 'US',
+          firstName: "Jane",
+          lastName: "Smith",
+          email: "jane@example.com",
+          addressLine1: "456 Oak Ave",
+          city: "San Francisco",
+          state: "CA",
+          postCode: "94102",
+          country: "US",
         },
       });
 
@@ -598,64 +612,62 @@ describe('Database Integration Tests', () => {
       });
 
       const checkoutResult = await client.createCheckout({
-        items: [
-          { productId: 'prod_1', variantId: 'var_1', quantity: 1 },
-        ],
+        items: [{ productId: "prod_1", variantId: "var_1", quantity: 1 }],
         shippingAddress: {
-          firstName: 'Jane',
-          lastName: 'Smith',
-          email: 'jane@example.com',
-          addressLine1: '456 Oak Ave',
-          city: 'San Francisco',
-          state: 'CA',
-          postCode: '94102',
-          country: 'US',
+          firstName: "Jane",
+          lastName: "Smith",
+          email: "jane@example.com",
+          addressLine1: "456 Oak Ave",
+          city: "San Francisco",
+          state: "CA",
+          postCode: "94102",
+          country: "US",
         },
         selectedRates,
         shippingCost: quoteResult.shippingCost,
-        successUrl: 'https://example.com/success',
-        cancelUrl: 'https://example.com/cancel',
-        paymentProvider: 'pingpay',
+        successUrl: "https://example.com/success",
+        cancelUrl: "https://example.com/cancel",
+        paymentProvider: "pingpay",
       });
 
       const sessionId = checkoutResult.checkoutSessionId;
 
       const result = await client.getOrderByCheckoutSession({ sessionId });
-      
+
       expect(result.order).toBeDefined();
       expect(result.order?.id).toBe(checkoutResult.orderId);
       expect(result.order?.checkoutSessionId).toBe(sessionId);
     });
 
-    it('should store timestamps correctly in PostgreSQL TIMESTAMPTZ', async () => {
+    it("should store timestamps correctly in PostgreSQL TIMESTAMPTZ", async () => {
       const client = await getPluginClient({ nearAccountId: TEST_USER });
 
-      await createTestProduct('prod_1', {
-        name: 'Timestamp Test Product',
+      await createTestProduct("prod_1", {
+        name: "Timestamp Test Product",
         price: 1000,
-        currency: 'USD',
-        fulfillmentProvider: 'manual',
-        source: 'test',
+        currency: "USD",
+        fulfillmentProvider: "manual",
+        source: "test",
       });
 
-      await createTestProductVariant('var_1', 'prod_1', {
-        name: 'Variant 1',
+      await createTestProductVariant("var_1", "prod_1", {
+        name: "Variant 1",
         price: 1000,
-        sku: 'SKU-001',
+        sku: "SKU-001",
         inStock: true,
       });
 
       const quoteResult = await client.quote({
-        items: [{ productId: 'prod_1', variantId: 'var_1', quantity: 1 }],
+        items: [{ productId: "prod_1", variantId: "var_1", quantity: 1 }],
         shippingAddress: {
-          firstName: 'Test',
-          lastName: 'User',
-          email: 'test@example.com',
-          addressLine1: '123 Test St',
-          city: 'Test City',
-          state: 'CA',
-          postCode: '12345',
-          country: 'US',
+          firstName: "Test",
+          lastName: "User",
+          email: "test@example.com",
+          addressLine1: "123 Test St",
+          city: "Test City",
+          state: "CA",
+          postCode: "12345",
+          country: "US",
         },
       });
 
@@ -667,22 +679,22 @@ describe('Database Integration Tests', () => {
       const creationTime = new Date().toISOString();
 
       const checkoutResult = await client.createCheckout({
-        items: [{ productId: 'prod_1', variantId: 'var_1', quantity: 1 }],
+        items: [{ productId: "prod_1", variantId: "var_1", quantity: 1 }],
         shippingAddress: {
-          firstName: 'Test',
-          lastName: 'User',
-          email: 'test@example.com',
-          addressLine1: '123 Test St',
-          city: 'Test City',
-          state: 'CA',
-          postCode: '12345',
-          country: 'US',
+          firstName: "Test",
+          lastName: "User",
+          email: "test@example.com",
+          addressLine1: "123 Test St",
+          city: "Test City",
+          state: "CA",
+          postCode: "12345",
+          country: "US",
         },
         selectedRates,
         shippingCost: quoteResult.shippingCost,
-        successUrl: 'https://example.com/success',
-        cancelUrl: 'https://example.com/cancel',
-        paymentProvider: 'pingpay',
+        successUrl: "https://example.com/success",
+        cancelUrl: "https://example.com/cancel",
+        paymentProvider: "pingpay",
       });
 
       const order = await client.getOrder({ id: checkoutResult.orderId });

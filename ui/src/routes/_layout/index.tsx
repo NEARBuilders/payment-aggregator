@@ -76,12 +76,6 @@ function FloatingSkillAssistant() {
                   Report issue
                 </a>
               </Button>
-              <Button variant="outline" asChild className="justify-start">
-                <Link to="/about" preload="intent" onClick={() => setOpen(false)}>
-                  <ExternalLink size={14} />
-                  About
-                </Link>
-              </Button>
               <Button variant="outline" className="justify-start" onClick={handleCopy}>
                 <Copy size={14} />
                 {copied ? "Copied URL" : "Copy skill URL"}

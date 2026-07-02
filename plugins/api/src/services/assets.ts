@@ -1,8 +1,8 @@
-import { Context, Effect, Layer } from 'every-plugin/effect';
-import { AssetStore, type Asset } from '../store/assets';
-import { generateProductId } from '../utils/product-ids';
+import { Context, Effect, Layer } from "every-plugin/effect";
+import { type Asset, AssetStore } from "../store/assets";
+import { generateProductId } from "../utils/product-ids";
 
-export class AssetService extends Context.Tag('AssetService')<
+export class AssetService extends Context.Tag("AssetService")<
   AssetService,
   {
     readonly create: (input: {

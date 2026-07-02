@@ -1,7 +1,6 @@
 import { Effect } from "every-plugin/effect";
 import { describe, expect, it } from "vitest";
-import { PingPayService, PingPayServiceLive } from "@/service";
-import { PingPayConfig } from "@/service";
+import { type PingPayConfig, PingPayService, PingPayServiceLive } from "@/service";
 
 const testConfig: PingPayConfig = {
   baseUrl: "https://pay.pingpay.io",
@@ -27,7 +26,7 @@ describe("PingPayService", () => {
             successUrl: "https://example.com/success",
             cancelUrl: "https://example.com/cancel",
           });
-        }).pipe(Effect.provide(serviceLayer))
+        }).pipe(Effect.provide(serviceLayer)),
       );
 
       expect(result).toBeDefined();
@@ -48,9 +47,9 @@ describe("PingPayService", () => {
               successUrl: "https://example.com/success",
               cancelUrl: "https://example.com/cancel",
             },
-            [{ type: "platform", label: "Platform Fee", recipient: "platform.near", bps: 250 }]
+            [{ type: "platform", label: "Platform Fee", recipient: "platform.near", bps: 250 }],
           );
-        }).pipe(Effect.provide(serviceLayer))
+        }).pipe(Effect.provide(serviceLayer)),
       );
 
       expect(result.sessionId).toContain("test_session_");
@@ -76,7 +75,7 @@ describe("PingPayService", () => {
         Effect.gen(function* () {
           const service = yield* PingPayService;
           return yield* service.verifyWebhook(payload, signature, timestamp);
-        }).pipe(Effect.provide(serviceLayer))
+        }).pipe(Effect.provide(serviceLayer)),
       );
 
       expect(result.eventType).toBe("payment.success");
@@ -94,8 +93,8 @@ describe("PingPayService", () => {
           Effect.gen(function* () {
             const service = yield* PingPayService;
             return yield* service.verifyWebhook(payload, "invalid-signature", "123456789");
-          }).pipe(Effect.provide(serviceLayer))
-        )
+          }).pipe(Effect.provide(serviceLayer)),
+        ),
       ).rejects.toThrow();
     });
 
@@ -112,8 +111,8 @@ describe("PingPayService", () => {
           Effect.gen(function* () {
             const service = yield* PingPayService;
             return yield* service.verifyWebhook("not-json", signature, timestamp);
-          }).pipe(Effect.provide(serviceLayer))
-        )
+          }).pipe(Effect.provide(serviceLayer)),
+        ),
       ).rejects.toThrow("Invalid JSON");
     });
   });
@@ -124,7 +123,7 @@ describe("PingPayService", () => {
         Effect.gen(function* () {
           const service = yield* PingPayService;
           return yield* service.getSession("test_session_123");
-        }).pipe(Effect.provide(serviceLayer))
+        }).pipe(Effect.provide(serviceLayer)),
       );
 
       expect(result.id).toBe("test_session_123");

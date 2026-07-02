@@ -1,54 +1,52 @@
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createHmac } from 'crypto';
-import { getPluginClient, runMigrations, teardown } from '../setup';
+import { createHmac } from "crypto";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   clearOrders,
   clearProducts,
   clearProviderConfigs,
   createTestProduct,
   createTestProductVariant,
-} from '../helpers';
+} from "../helpers";
+import { getPluginClient, runMigrations, teardown } from "../setup";
 
-const TEST_USER = 'test-user.near';
+const TEST_USER = "test-user.near";
 
 const ADMIN_CONTEXT = {
-  nearAccountId: 'admin.near',
+  nearAccountId: "admin.near",
   user: {
-    id: 'admin-user',
-    role: 'admin' as const,
-    email: 'admin@nearmerch.com',
-    name: 'Admin User',
+    id: "admin-user",
+    role: "admin" as const,
+    email: "admin@nearmerch.com",
+    name: "Admin User",
   },
 };
 
-const TEST_WEBHOOK_SECRET = 'whsec_test_secret_key';
+const TEST_WEBHOOK_SECRET = "whsec_test_secret_key";
 
 const mockShippingAddress = {
-  firstName: 'John',
-  lastName: 'Doe',
-  email: 'john@example.com',
-  addressLine1: '123 Main St',
-  city: 'Los Angeles',
-  state: 'CA',
-  postCode: '90001',
-  country: 'US',
+  firstName: "John",
+  lastName: "Doe",
+  email: "john@example.com",
+  addressLine1: "123 Main St",
+  city: "Los Angeles",
+  state: "CA",
+  postCode: "90001",
+  country: "US",
 };
 
 function generatePingPaySignature(timestamp: string, payload: string, secret: string): string {
   const signaturePayload = `${timestamp}.${payload}`;
-  return createHmac('sha256', secret)
-    .update(signaturePayload)
-    .digest('hex');
+  return createHmac("sha256", secret).update(signaturePayload).digest("hex");
 }
 
 function createWebhookHeaders(signature: string, timestamp: string): Headers {
   const headers = new Headers();
-  headers.set('x-ping-signature', signature);
-  headers.set('x-ping-timestamp', timestamp);
+  headers.set("x-ping-signature", signature);
+  headers.set("x-ping-timestamp", timestamp);
   return headers;
 }
 
-describe('Manual email flow', () => {
+describe("Manual email flow", () => {
   beforeAll(async () => {
     await runMigrations();
   });
@@ -70,58 +68,58 @@ describe('Manual email flow', () => {
     await clearProviderConfigs();
   });
 
-  it('persists manual provider settings when configured for the first time', async () => {
+  it("persists manual provider settings when configured for the first time", async () => {
     const adminClient = await getPluginClient(ADMIN_CONTEXT);
 
     await adminClient.configureWebhook({
-      provider: 'manual',
+      provider: "manual",
       settings: {
-        notificationEmails: ['ops@nearmerch.com'],
-        ownerAccountIds: ['owner.near'],
-        replyToEmail: 'support@nearmerch.com',
+        notificationEmails: ["ops@nearmerch.com"],
+        ownerAccountIds: ["owner.near"],
+        replyToEmail: "support@nearmerch.com",
       },
     });
 
-    const result = await adminClient.getProviderConfig({ provider: 'manual' });
+    const result = await adminClient.getProviderConfig({ provider: "manual" });
 
     expect(result.config?.settings).toEqual({
-      notificationEmails: ['ops@nearmerch.com'],
-      ownerAccountIds: ['owner.near'],
-      replyToEmail: 'support@nearmerch.com',
+      notificationEmails: ["ops@nearmerch.com"],
+      ownerAccountIds: ["owner.near"],
+      replyToEmail: "support@nearmerch.com",
     });
   });
 
-  it('logs a manual notification email after payment success with provider and product recipients', async () => {
-    await createTestProduct('prod_manual', {
-      name: 'Manual Product',
-      fulfillmentProvider: 'manual',
+  it("logs a manual notification email after payment success with provider and product recipients", async () => {
+    await createTestProduct("prod_manual", {
+      name: "Manual Product",
+      fulfillmentProvider: "manual",
       metadata: {
         fees: [],
         providerDetails: {
           manual: {
-            notificationEmails: ['artist@nearmerch.com'],
-            ownerAccountIds: ['creator.near'],
+            notificationEmails: ["artist@nearmerch.com"],
+            ownerAccountIds: ["creator.near"],
           },
         },
       },
     });
-    await createTestProductVariant('var_manual', 'prod_manual');
+    await createTestProductVariant("var_manual", "prod_manual");
 
     const adminClient = await getPluginClient(ADMIN_CONTEXT);
     await adminClient.configureWebhook({
-      provider: 'manual',
+      provider: "manual",
       settings: {
-        notificationEmails: ['ops@nearmerch.com'],
-        ownerAccountIds: ['owner.near'],
-        replyToEmail: 'support@nearmerch.com',
+        notificationEmails: ["ops@nearmerch.com"],
+        ownerAccountIds: ["owner.near"],
+        replyToEmail: "support@nearmerch.com",
       },
     });
 
     const client = await getPluginClient({ nearAccountId: TEST_USER });
-    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 
     const quoteResult = await client.quote({
-      items: [{ productId: 'prod_manual', variantId: 'var_manual', quantity: 1 }],
+      items: [{ productId: "prod_manual", variantId: "var_manual", quantity: 1 }],
       shippingAddress: mockShippingAddress,
     });
 
@@ -131,13 +129,13 @@ describe('Manual email flow', () => {
     });
 
     const checkoutResult = await client.createCheckout({
-      items: [{ productId: 'prod_manual', variantId: 'var_manual', quantity: 1 }],
+      items: [{ productId: "prod_manual", variantId: "var_manual", quantity: 1 }],
       shippingAddress: mockShippingAddress,
       selectedRates,
       shippingCost: quoteResult.shippingCost,
-      successUrl: 'https://example.com/success',
-      cancelUrl: 'https://example.com/cancel',
-      paymentProvider: 'pingpay',
+      successUrl: "https://example.com/success",
+      cancelUrl: "https://example.com/cancel",
+      paymentProvider: "pingpay",
     });
 
     const createdOrder = await client.getOrder({ id: checkoutResult.orderId });
@@ -145,17 +143,17 @@ describe('Manual email flow', () => {
 
     const timestamp = Math.floor(Date.now() / 1000).toString();
     const webhookPayload = {
-      id: 'whevt_manual123',
-      type: 'payment.success',
+      id: "whevt_manual123",
+      type: "payment.success",
       created: new Date().toISOString(),
       data: {
-        paymentId: 'pay_manual123',
-        status: 'SUCCESS',
-        amount: '1000000',
-        assetId: 'NEAR:USDC',
-        payerAddress: 'user.near',
-        recipientAddress: 'near-merch-store.near',
-        merchantId: 'merch_test',
+        paymentId: "pay_manual123",
+        status: "SUCCESS",
+        amount: "1000000",
+        assetId: "NEAR:USDC",
+        payerAddress: "user.near",
+        recipientAddress: "near-merch-store.near",
+        merchantId: "merch_test",
       },
       sessionId: checkoutResult.checkoutSessionId,
       metadata: {
@@ -175,21 +173,23 @@ describe('Manual email flow', () => {
     expect(webhookResult.received).toBe(true);
 
     const paidOrder = await client.getOrder({ id: checkoutResult.orderId });
-    expect(paidOrder.order.status).toBe('processing');
+    expect(paidOrder.order.status).toBe("processing");
     expect(paidOrder.order.shippingAddress).toEqual(mockShippingAddress);
 
     const emailLog = logSpy.mock.calls
       .map(([message]) => String(message))
-      .find((message) => message.includes('[EmailService] No Resend API key configured'));
+      .find((message) => message.includes("[EmailService] No Resend API key configured"));
 
     expect(emailLog).toBeDefined();
-    expect(emailLog).toContain('To: ops@nearmerch.com, owner.near@near.email, artist@nearmerch.com, creator.near@near.email');
-    expect(emailLog).toContain('From: orders@nearmerch.com');
-    expect(emailLog).toContain('Reply-To: support@nearmerch.com');
+    expect(emailLog).toContain(
+      "To: ops@nearmerch.com, owner.near@near.email, artist@nearmerch.com, creator.near@near.email",
+    );
+    expect(emailLog).toContain("From: orders@nearmerch.com");
+    expect(emailLog).toContain("Reply-To: support@nearmerch.com");
     expect(emailLog).toContain(`Order ID: ${checkoutResult.orderId}`);
-    expect(emailLog).toContain('Manual Product');
+    expect(emailLog).toContain("Manual Product");
     expect(emailLog).toContain(`/dashboard/orders?orderId=${checkoutResult.orderId}`);
-    expect(emailLog).not.toContain('123 Main St');
-    expect(emailLog).not.toContain('john@example.com');
+    expect(emailLog).not.toContain("123 Main St");
+    expect(emailLog).not.toContain("john@example.com");
   });
 });

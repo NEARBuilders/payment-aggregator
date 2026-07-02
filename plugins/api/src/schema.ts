@@ -1,25 +1,25 @@
 import { z } from "every-plugin/zod";
 import {
-  PrintfulProviderDetailsSchema,
-  type PrintfulProviderDetails,
-} from './services/fulfillment/printful/types';
-import {
-  LuluProviderDetailsSchema,
   type LuluProviderDetails,
-} from './services/fulfillment/lulu/types';
+  LuluProviderDetailsSchema,
+} from "./services/fulfillment/lulu/types";
 import {
-  ManualProviderSettingsSchema,
   type ManualProviderSettings,
-} from './services/fulfillment/manual/types';
-import { FulfillmentFileSchema as FulfillmentFileSchemaBase } from './services/fulfillment/schema';
+  ManualProviderSettingsSchema,
+} from "./services/fulfillment/manual/types";
+import {
+  type PrintfulProviderDetails,
+  PrintfulProviderDetailsSchema,
+} from "./services/fulfillment/printful/types";
+import { FulfillmentFileSchema as FulfillmentFileSchemaBase } from "./services/fulfillment/schema";
 
 export {
-  PrintfulProviderDetailsSchema,
+  type LuluProviderDetails,
   LuluProviderDetailsSchema,
+  type ManualProviderSettings,
   ManualProviderSettingsSchema,
   type PrintfulProviderDetails,
-  type LuluProviderDetails,
-  type ManualProviderSettings,
+  PrintfulProviderDetailsSchema,
 };
 
 export const FulfillmentFileSchema = FulfillmentFileSchemaBase;
@@ -42,13 +42,7 @@ export const FulfillmentConfigSchema = z.object({
   files: z.array(FulfillmentFileSchema),
 });
 
-export const ProductImageTypeSchema = z.enum([
-  "primary",
-  "mockup",
-  "preview",
-  "detail",
-  "catalog",
-]);
+export const ProductImageTypeSchema = z.enum(["primary", "mockup", "preview", "detail", "catalog"]);
 
 export const MockupConfigSchema = z.object({
   styles: z.array(z.string()).optional(),
@@ -212,9 +206,7 @@ export type ProductImage = z.infer<typeof ProductImageSchema>;
 export type ProductImageType = z.infer<typeof ProductImageTypeSchema>;
 export type MockupConfig = z.infer<typeof MockupConfigSchema>;
 export type Collection = z.infer<typeof CollectionSchema>;
-export type CollectionFeaturedProduct = z.infer<
-  typeof CollectionFeaturedProductSchema
->;
+export type CollectionFeaturedProduct = z.infer<typeof CollectionFeaturedProductSchema>;
 export type FulfillmentConfig = z.infer<typeof FulfillmentConfigSchema>;
 
 const emptyStringToUndefined = (value: unknown) => {
@@ -359,25 +351,16 @@ export const SubscribeNewsletterInputSchema = z.object({
   email: z.string().trim().email().max(320),
 });
 
-export const NewsletterSubscribeStatusSchema = z.enum([
-  "subscribed",
-  "already_subscribed",
-]);
+export const NewsletterSubscribeStatusSchema = z.enum(["subscribed", "already_subscribed"]);
 
 export const SubscribeNewsletterOutputSchema = z.object({
   success: z.boolean(),
   status: NewsletterSubscribeStatusSchema,
 });
 
-export type SubscribeNewsletterInput = z.infer<
-  typeof SubscribeNewsletterInputSchema
->;
-export type NewsletterSubscribeStatus = z.infer<
-  typeof NewsletterSubscribeStatusSchema
->;
-export type SubscribeNewsletterOutput = z.infer<
-  typeof SubscribeNewsletterOutputSchema
->;
+export type SubscribeNewsletterInput = z.infer<typeof SubscribeNewsletterInputSchema>;
+export type NewsletterSubscribeStatus = z.infer<typeof NewsletterSubscribeStatusSchema>;
+export type SubscribeNewsletterOutput = z.infer<typeof SubscribeNewsletterOutputSchema>;
 
 export const ReturnAddressSchema = ShippingAddressSchema;
 
@@ -565,9 +548,7 @@ export const QuoteOutputSchema = z.object({
 });
 
 export type QuoteItemInput = z.infer<typeof QuoteItemInputSchema>;
-export type ProviderShippingOption = z.infer<
-  typeof ProviderShippingOptionSchema
->;
+export type ProviderShippingOption = z.infer<typeof ProviderShippingOptionSchema>;
 export type ProviderBreakdown = z.infer<typeof ProviderBreakdownSchema>;
 export type TaxBreakdown = z.infer<typeof TaxBreakdownSchema>;
 export type QuoteOutput = z.infer<typeof QuoteOutputSchema>;
@@ -600,18 +581,20 @@ export const PrintfulEventConfigSchema = z.object({
   params: z.array(z.record(z.string(), z.unknown())).optional(),
 });
 
-export const LuluWebhookEventTypeSchema = z.enum(['PRINT_JOB_STATUS_CHANGED']);
+export const LuluWebhookEventTypeSchema = z.enum(["PRINT_JOB_STATUS_CHANGED"]);
 
-export const ManualWebhookEventTypeSchema = z.enum(['ORDER_STATUS_CHANGED']);
-export const ManualWebhookPayloadSchema = z.object({
-  orderId: z.string().optional(),
-  externalId: z.string().optional(),
-  status: OrderStatusSchema,
-  trackingInfo: z.array(TrackingInfoSchema).optional(),
-  metadata: z.record(z.string(), z.unknown()).optional(),
-}).passthrough();
+export const ManualWebhookEventTypeSchema = z.enum(["ORDER_STATUS_CHANGED"]);
+export const ManualWebhookPayloadSchema = z
+  .object({
+    orderId: z.string().optional(),
+    externalId: z.string().optional(),
+    status: OrderStatusSchema,
+    trackingInfo: z.array(TrackingInfoSchema).optional(),
+    metadata: z.record(z.string(), z.unknown()).optional(),
+  })
+  .passthrough();
 
-export const ProviderNameSchema = z.enum(['printful', 'lulu', 'manual']);
+export const ProviderNameSchema = z.enum(["printful", "lulu", "manual"]);
 export const ProviderWebhookEventTypeSchema = z.union([
   PrintfulWebhookEventTypeSchema,
   LuluWebhookEventTypeSchema,
@@ -634,42 +617,46 @@ export const ProviderConfigSchema = z.object({
 });
 
 export const ProviderTestStepSchema = z.enum([
-  'connection',
-  'quote',
-  'checkout',
-  'payment_webhook',
-  'provider_webhook',
+  "connection",
+  "quote",
+  "checkout",
+  "payment_webhook",
+  "provider_webhook",
 ]);
 
-export const ProviderTestProductSchema = z.object({
-  name: z.string().optional(),
-  description: z.string().optional(),
-  price: z.number().optional(),
-  currency: z.string().optional(),
-  brand: z.string().optional(),
-  source: z.string().optional(),
-  externalProductId: z.string().optional(),
-  listed: z.boolean().optional(),
-  fulfillmentProvider: ProviderNameSchema.optional(),
-  productTypeSlug: z.string().optional(),
-  tags: z.array(z.string()).optional(),
-  options: z.array(ProductOptionSchema).optional(),
-  images: z.array(ProductImageSchema).optional(),
-  designFiles: z.array(FulfillmentFileSchema).optional(),
-  metadata: ProductMetadataSchema.optional(),
-  variants: z.array(ProductVariantInputSchema).optional(),
-}).passthrough();
+export const ProviderTestProductSchema = z
+  .object({
+    name: z.string().optional(),
+    description: z.string().optional(),
+    price: z.number().optional(),
+    currency: z.string().optional(),
+    brand: z.string().optional(),
+    source: z.string().optional(),
+    externalProductId: z.string().optional(),
+    listed: z.boolean().optional(),
+    fulfillmentProvider: ProviderNameSchema.optional(),
+    productTypeSlug: z.string().optional(),
+    tags: z.array(z.string()).optional(),
+    options: z.array(ProductOptionSchema).optional(),
+    images: z.array(ProductImageSchema).optional(),
+    designFiles: z.array(FulfillmentFileSchema).optional(),
+    metadata: ProductMetadataSchema.optional(),
+    variants: z.array(ProductVariantInputSchema).optional(),
+  })
+  .passthrough();
 
-export const ProviderTestScenarioSchema = z.object({
-  quantity: z.number().int().positive().default(1),
-  shippingAddress: ShippingAddressSchema.optional(),
-  selectedRates: z.record(z.string(), z.string()).optional(),
-  successUrl: z.string().optional(),
-  cancelUrl: z.string().optional(),
-  product: ProviderTestProductSchema.optional(),
-  requestOverrides: z.record(z.string(), z.unknown()).optional(),
-  payloadOverrides: z.record(z.string(), z.unknown()).optional(),
-}).passthrough();
+export const ProviderTestScenarioSchema = z
+  .object({
+    quantity: z.number().int().positive().default(1),
+    shippingAddress: ShippingAddressSchema.optional(),
+    selectedRates: z.record(z.string(), z.string()).optional(),
+    successUrl: z.string().optional(),
+    cancelUrl: z.string().optional(),
+    product: ProviderTestProductSchema.optional(),
+    requestOverrides: z.record(z.string(), z.unknown()).optional(),
+    payloadOverrides: z.record(z.string(), z.unknown()).optional(),
+  })
+  .passthrough();
 
 export const ProviderTestStateSchema = z.object({
   provider: ProviderNameSchema,
@@ -710,9 +697,7 @@ export const ConfigureWebhookOutputSchema = z.object({
   settings: ManualProviderSettingsSchema.optional(),
 });
 
-export type PrintfulWebhookEventType = z.infer<
-  typeof PrintfulWebhookEventTypeSchema
->;
+export type PrintfulWebhookEventType = z.infer<typeof PrintfulWebhookEventTypeSchema>;
 export type LuluWebhookEventType = z.infer<typeof LuluWebhookEventTypeSchema>;
 export type ManualWebhookEventType = z.infer<typeof ManualWebhookEventTypeSchema>;
 export type ManualWebhookPayload = z.infer<typeof ManualWebhookPayloadSchema>;
@@ -726,9 +711,7 @@ export type ProviderTestScenario = z.infer<typeof ProviderTestScenarioSchema>;
 export type ProviderTestState = z.infer<typeof ProviderTestStateSchema>;
 export type ProviderTestRun = z.infer<typeof ProviderTestRunSchema>;
 export type ConfigureWebhookInput = z.infer<typeof ConfigureWebhookInputSchema>;
-export type ConfigureWebhookOutput = z.infer<
-  typeof ConfigureWebhookOutputSchema
->;
+export type ConfigureWebhookOutput = z.infer<typeof ConfigureWebhookOutputSchema>;
 
 export const OrderStatusEventSchema = z.object({
   status: OrderStatusSchema,

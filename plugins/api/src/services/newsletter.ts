@@ -1,10 +1,12 @@
-import { Context, Effect, Layer } from 'every-plugin/effect';
-import { NewsletterStore, type NewsletterSubscribeStatus } from '../store/newsletter';
+import { Context, Effect, Layer } from "every-plugin/effect";
+import { NewsletterStore, type NewsletterSubscribeStatus } from "../store/newsletter";
 
-export class NewsletterService extends Context.Tag('NewsletterService')<
+export class NewsletterService extends Context.Tag("NewsletterService")<
   NewsletterService,
   {
-    readonly subscribe: (email: string) => Effect.Effect<{ status: NewsletterSubscribeStatus }, Error>;
+    readonly subscribe: (
+      email: string,
+    ) => Effect.Effect<{ status: NewsletterSubscribeStatus }, Error>;
   }
 >() {}
 
@@ -21,5 +23,5 @@ export const NewsletterServiceLive = Layer.effect(
           return { status };
         }),
     };
-  })
+  }),
 );

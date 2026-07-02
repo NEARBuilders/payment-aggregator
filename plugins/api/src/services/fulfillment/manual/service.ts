@@ -1,32 +1,32 @@
-import { Effect } from 'every-plugin/effect';
-import { FulfillmentError } from '../errors';
+import { Effect } from "every-plugin/effect";
+import { FulfillmentError } from "../errors";
 import type {
-  PingOutput,
   BrowseCatalogOutput,
   CatalogProductDetailOutput,
   CatalogVariantsOutput,
-  VariantPriceOutput,
+  FulfillmentOrder,
   GenerateMockupsOutput,
   GetMockupResultOutput,
+  GetPlacementsOutput,
   OrderResult,
-  FulfillmentOrder,
+  PingOutput,
   ShippingQuoteOutput,
   TaxQuoteOutput,
-  GetPlacementsOutput,
-} from '../schema';
+  VariantPriceOutput,
+} from "../schema";
 
 const UNSUPPORTED = (method: string) =>
   new FulfillmentError({
     message: `Manual provider does not support ${method}`,
-    code: 'UNSUPPORTED_OPERATION',
-    provider: 'manual',
+    code: "UNSUPPORTED_OPERATION",
+    provider: "manual",
   });
 
 export class ManualService {
   ping(): Effect.Effect<PingOutput, FulfillmentError> {
     return Effect.succeed({
-      provider: 'manual',
-      status: 'ok',
+      provider: "manual",
+      status: "ok",
       timestamp: new Date().toISOString(),
     });
   }
@@ -36,31 +36,29 @@ export class ManualService {
   }
 
   getCatalogProduct(): Effect.Effect<CatalogProductDetailOutput, FulfillmentError> {
-    return Effect.fail(UNSUPPORTED('getCatalogProduct'));
+    return Effect.fail(UNSUPPORTED("getCatalogProduct"));
   }
 
   getCatalogProductVariants(): Effect.Effect<CatalogVariantsOutput, FulfillmentError> {
-    return Effect.fail(UNSUPPORTED('getCatalogProductVariants'));
+    return Effect.fail(UNSUPPORTED("getCatalogProductVariants"));
   }
 
   getVariantPrice(): Effect.Effect<VariantPriceOutput, FulfillmentError> {
-    return Effect.fail(UNSUPPORTED('getVariantPrice'));
+    return Effect.fail(UNSUPPORTED("getVariantPrice"));
   }
 
   generateMockups(): Effect.Effect<GenerateMockupsOutput, FulfillmentError> {
-    return Effect.succeed({ status: 'unsupported', images: [] });
+    return Effect.succeed({ status: "unsupported", images: [] });
   }
 
   getMockupResult(): Effect.Effect<GetMockupResultOutput, FulfillmentError> {
-    return Effect.succeed({ status: 'unsupported', images: [] });
+    return Effect.succeed({ status: "unsupported", images: [] });
   }
 
-  createOrder(input: {
-    externalId: string;
-  }): Effect.Effect<OrderResult, FulfillmentError> {
+  createOrder(input: { externalId: string }): Effect.Effect<OrderResult, FulfillmentError> {
     return Effect.succeed({
       id: `manual-${input.externalId}-${Date.now()}`,
-      status: 'draft',
+      status: "draft",
     });
   }
 
@@ -69,42 +67,42 @@ export class ManualService {
       order: {
         id: input.id,
         externalId: input.id,
-        status: 'pending',
+        status: "pending",
         created: Date.now(),
         updated: Date.now(),
         recipient: {
-          name: 'Manual Fulfillment',
-          address1: '',
-          city: '',
-          countryCode: 'US',
-          zip: '',
-          email: 'manual@localhost',
+          name: "Manual Fulfillment",
+          address1: "",
+          city: "",
+          countryCode: "US",
+          zip: "",
+          email: "manual@localhost",
         },
       },
     });
   }
 
   confirmOrder(input: { id: string }): Effect.Effect<OrderResult, FulfillmentError> {
-    return Effect.succeed({ id: input.id, status: 'processing' });
+    return Effect.succeed({ id: input.id, status: "processing" });
   }
 
   cancelOrder(input: { id: string }): Effect.Effect<OrderResult, FulfillmentError> {
-    return Effect.succeed({ id: input.id, status: 'cancelled' });
+    return Effect.succeed({ id: input.id, status: "cancelled" });
   }
 
   quoteShipping(): Effect.Effect<ShippingQuoteOutput, FulfillmentError> {
     return Effect.succeed({
       rates: [
         {
-          id: 'manual-standard',
-          name: 'Standard Shipping',
+          id: "manual-standard",
+          name: "Standard Shipping",
           rate: 0,
-          currency: 'USD',
+          currency: "USD",
           minDeliveryDays: 5,
           maxDeliveryDays: 10,
         },
       ],
-      currency: 'USD',
+      currency: "USD",
     });
   }
 
@@ -126,7 +124,7 @@ export class ManualService {
     FulfillmentError
   > {
     return Effect.succeed({
-      webhookUrl: '',
+      webhookUrl: "",
       publicKey: null,
       enabledEvents: [],
     });

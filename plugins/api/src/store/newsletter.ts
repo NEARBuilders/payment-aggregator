@@ -1,11 +1,11 @@
-import { eq } from 'drizzle-orm';
-import { Context, Effect, Layer } from 'every-plugin/effect';
-import * as schema from '../db/schema';
-import { Database } from './database';
+import { eq } from "drizzle-orm";
+import { Context, Effect, Layer } from "every-plugin/effect";
+import * as schema from "../db/schema";
+import { Database } from "./database";
 
-export type NewsletterSubscribeStatus = 'subscribed' | 'already_subscribed';
+export type NewsletterSubscribeStatus = "subscribed" | "already_subscribed";
 
-export class NewsletterStore extends Context.Tag('NewsletterStore')<
+export class NewsletterStore extends Context.Tag("NewsletterStore")<
   NewsletterStore,
   {
     readonly subscribe: (email: string) => Effect.Effect<NewsletterSubscribeStatus, Error>;
@@ -35,7 +35,7 @@ export const NewsletterStoreLive = Layer.effect(
               .onConflictDoNothing({ target: schema.newsletterSubscriptions.email })
               .returning({ id: schema.newsletterSubscriptions.id });
 
-            return inserted.length > 0 ? 'subscribed' : 'already_subscribed';
+            return inserted.length > 0 ? "subscribed" : "already_subscribed";
           },
           catch: (error) => new Error(`Failed to subscribe newsletter: ${error}`),
         }),
@@ -53,5 +53,5 @@ export const NewsletterStoreLive = Layer.effect(
           catch: (error) => new Error(`Failed to check newsletter subscription: ${error}`),
         }),
     };
-  })
+  }),
 );

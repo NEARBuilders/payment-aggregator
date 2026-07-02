@@ -1,25 +1,26 @@
-import { migrate } from 'drizzle-orm/postgres-js/migrator';
-import { drizzle } from 'drizzle-orm/postgres-js';
-import Plugin from '@/index';
-import type { DatabaseType } from '@/db';
-import * as schema from '@/db/schema';
-import pluginDevConfig from '../plugin.dev';
-import { createPluginRuntime } from 'every-plugin';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import pg from 'postgres';
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { drizzle } from "drizzle-orm/postgres-js";
+import { migrate } from "drizzle-orm/postgres-js/migrator";
+import { createPluginRuntime } from "every-plugin";
+import pg from "postgres";
+import type { DatabaseType } from "@/db";
+import * as schema from "@/db/schema";
+import Plugin from "@/index";
+import pluginDevConfig from "../plugin.dev";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-export const TEST_DB_URL = process.env.TEST_DATABASE_URL || 'postgres://postgres:postgres@localhost:5433/api_test';
+export const TEST_DB_URL =
+  process.env.TEST_DATABASE_URL || "postgres://postgres:postgres@localhost:5433/api_test";
 
 function normalizeDatabaseUrl(url: string) {
   try {
     const parsed = new URL(url);
-    parsed.username = '';
-    parsed.password = '';
-    parsed.search = '';
+    parsed.username = "";
+    parsed.password = "";
+    parsed.search = "";
     return `${parsed.protocol}//${parsed.host}${parsed.pathname}`;
   } catch {
     return url;
@@ -29,24 +30,24 @@ function normalizeDatabaseUrl(url: string) {
 const API_DB_URL = process.env.API_DATABASE_URL;
 
 if (API_DB_URL && normalizeDatabaseUrl(API_DB_URL) === normalizeDatabaseUrl(TEST_DB_URL)) {
-  const apiMasked = API_DB_URL.replace(/:\/\/.*@/, '://***@');
-  const testMasked = TEST_DB_URL.replace(/:\/\/.*@/, '://***@');
+  const apiMasked = API_DB_URL.replace(/:\/\/.*@/, "://***@");
+  const testMasked = TEST_DB_URL.replace(/:\/\/.*@/, "://***@");
   throw new Error(
     `[Test Setup] SAFETY: TEST_DATABASE_URL must point to a different database than API_DATABASE_URL. ` +
-    `API=${apiMasked} TEST=${testMasked}`
+      `API=${apiMasked} TEST=${testMasked}`,
   );
 }
 
 if (
-  !TEST_DB_URL.includes('localhost') &&
-  !TEST_DB_URL.includes('127.0.0.1') &&
-  !TEST_DB_URL.includes('_test') &&
-  !TEST_DB_URL.includes('_test_db')
+  !TEST_DB_URL.includes("localhost") &&
+  !TEST_DB_URL.includes("127.0.0.1") &&
+  !TEST_DB_URL.includes("_test") &&
+  !TEST_DB_URL.includes("_test_db")
 ) {
-  const masked = TEST_DB_URL.replace(/:\/\/.*@/, '://***@');
+  const masked = TEST_DB_URL.replace(/:\/\/.*@/, "://***@");
   throw new Error(
     `[Test Setup] SAFETY: Refusing to run tests against non-local database: ${masked}. ` +
-    `Set TEST_DATABASE_URL to a local or test-specific database.`
+      `Set TEST_DATABASE_URL to a local or test-specific database.`,
   );
 }
 
@@ -54,10 +55,10 @@ const TEST_CONFIG = {
   variables: pluginDevConfig.config.variables,
   secrets: {
     API_DATABASE_URL: TEST_DB_URL,
-    PING_API_KEY: 'test_api_key',
-    PING_WEBHOOK_SECRET: 'whsec_test_secret_key',
+    PING_API_KEY: "test_api_key",
+    PING_WEBHOOK_SECRET: "whsec_test_secret_key",
     // Printful v2 webhook secret is hex; tests compute HMAC over raw body.
-    PRINTFUL_WEBHOOK_SECRET: 'a'.repeat(64),
+    PRINTFUL_WEBHOOK_SECRET: "a".repeat(64),
   },
 };
 
@@ -69,15 +70,15 @@ let _suiteDatabaseCleared = false;
 
 async function ensureTestDatabaseExists(databaseUrl: string) {
   const url = new URL(databaseUrl);
-  const databaseName = decodeURIComponent(url.pathname.replace(/^\//, ''));
+  const databaseName = decodeURIComponent(url.pathname.replace(/^\//, ""));
 
   if (!databaseName) {
     throw new Error(`[Test Setup] Invalid database URL: ${databaseUrl}`);
   }
 
   const adminUrl = new URL(databaseUrl);
-  adminUrl.pathname = '/postgres';
-  adminUrl.search = '';
+  adminUrl.pathname = "/postgres";
+  adminUrl.search = "";
 
   const adminClient = pg(adminUrl.toString(), {
     max: 1,
@@ -121,7 +122,7 @@ async function clearTestDatabaseData() {
 
   const tableList = tables
     .map(({ tablename }) => `"${String(tablename).replace(/"/g, '""')}"`)
-    .join(', ');
+    .join(", ");
 
   await _postgresClient.unsafe(`TRUNCATE TABLE ${tableList} RESTART IDENTITY CASCADE`);
 }
@@ -155,7 +156,7 @@ export function getTestDb(): DatabaseType {
 
   const db = _testDb;
   if (!db) {
-    throw new Error('Database initialization failed');
+    throw new Error("Database initialization failed");
   }
   return db;
 }
@@ -172,7 +173,7 @@ export async function runMigrations() {
   await ensureTestDatabaseExists(TEST_DB_URL);
 
   const db = getTestDb();
-  const migrationsFolder = join(__dirname, '../src/db/migrations');
+  const migrationsFolder = join(__dirname, "../src/db/migrations");
 
   console.log(`[Test Setup] Running migrations from: ${migrationsFolder}`);
   console.log(`[Test Setup] Database URL: ${TEST_DB_URL}`);
@@ -182,21 +183,23 @@ export async function runMigrations() {
     await clearTestDatabaseData();
     _migrationsRun = true;
     _suiteDatabaseCleared = true;
-    console.log('[Test Setup] Migrations completed successfully');
+    console.log("[Test Setup] Migrations completed successfully");
   } catch (error) {
-    console.error('[Test Setup] Migration failed:', error);
+    console.error("[Test Setup] Migration failed:", error);
     throw error;
   }
 }
 
-export async function getPluginClient(context?: { nearAccountId?: string; reqHeaders?: Headers; getRawBody?: () => Promise<string>; user?: { id: string; role?: string; email?: string; name?: string } | null }) {
+export async function getPluginClient(context?: {
+  nearAccountId?: string;
+  reqHeaders?: Headers;
+  getRawBody?: () => Promise<string>;
+  user?: { id: string; role?: string; email?: string; name?: string } | null;
+}) {
   await runMigrations();
 
   const runtime = getRuntime();
-  const { createClient } = await runtime.usePlugin(
-    pluginDevConfig.pluginId,
-    TEST_CONFIG
-  );
+  const { createClient } = await runtime.usePlugin(pluginDevConfig.pluginId, TEST_CONFIG);
   return createClient({ ...context, user: context?.user ?? null });
 }
 

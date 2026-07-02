@@ -1,7 +1,7 @@
-import { createPlugin } from 'every-plugin';
-import { Effect } from 'every-plugin/effect';
-import { z } from 'every-plugin/zod';
-import { ExclusiveCheckContract } from './contract';
+import { createPlugin } from "every-plugin";
+import { Effect } from "every-plugin/effect";
+import { z } from "every-plugin/zod";
+import { ExclusiveCheckContract } from "./contract";
 
 const WhitelistPlugin = createPlugin({
   variables: z.object({}),
@@ -11,8 +11,8 @@ const WhitelistPlugin = createPlugin({
   contract: ExclusiveCheckContract,
 
   initialize: () =>
-    Effect.gen(function* () {
-      console.log('[Whitelist Plugin] Initialized successfully');
+    Effect.sync(() => {
+      console.log("[Whitelist Plugin] Initialized successfully");
       return {};
     }),
 
@@ -30,7 +30,7 @@ const WhitelistPlugin = createPlugin({
 
         const normalizedId = nearAccountId.toLowerCase();
         const hasAccess = allowedAccounts.some(
-          (account) => typeof account === 'string' && account.toLowerCase() === normalizedId
+          (account) => typeof account === "string" && account.toLowerCase() === normalizedId,
         );
 
         return { hasAccess };
