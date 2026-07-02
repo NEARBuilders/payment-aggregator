@@ -3,16 +3,16 @@ import { Context, Effect, Layer } from "every-plugin/effect";
 import * as schema from "../db/schema";
 import type {
   Collection,
-  ProductMetadata,
   Product,
   ProductCriteria,
   ProductImage,
+  ProductMetadata,
   ProductType,
   ProductVariant,
   ProductWithImages,
 } from "../schema";
+import type { PrintfulProviderConfig } from "../services/fulfillment/printful/client";
 import { Database } from "./database";
-import type { PrintfulProviderConfig } from '../services/fulfillment/printful/client';
 
 function mergeProviderDetails(
   existing: ProductMetadata["providerDetails"] | undefined,
@@ -46,9 +46,7 @@ export class ProductStore extends Context.Tag("ProductStore")<
     readonly findBySource: (source: string) => Effect.Effect<Product | null, Error>;
     readonly findBySlug: (slug: string) => Effect.Effect<Product | null, Error>;
     readonly find: (identifier: string) => Effect.Effect<Product | null, Error>;
-    readonly findByPublicKey: (
-      publicKey: string,
-    ) => Effect.Effect<Product | null, Error>;
+    readonly findByPublicKey: (publicKey: string) => Effect.Effect<Product | null, Error>;
     readonly findByExternalProductId: (
       externalProductId: string,
       fulfillmentProvider: string,
@@ -56,23 +54,14 @@ export class ProductStore extends Context.Tag("ProductStore")<
     readonly findMany: (
       criteria: ProductCriteria,
     ) => Effect.Effect<{ products: Product[]; total: number }, Error>;
-    readonly search: (
-      query: string,
-      limit: number,
-    ) => Effect.Effect<Product[], Error>;
+    readonly search: (query: string, limit: number) => Effect.Effect<Product[], Error>;
     readonly upsert: (
       product: ProductWithImages,
       syncedAt?: Date,
     ) => Effect.Effect<Product & { isNew: boolean }, Error>;
     readonly delete: (id: string) => Effect.Effect<void, Error>;
-    readonly updateListing: (
-      id: string,
-      listed: boolean,
-    ) => Effect.Effect<Product | null, Error>;
-    readonly updateTags: (
-      id: string,
-      tags: string[],
-    ) => Effect.Effect<Product | null, Error>;
+    readonly updateListing: (id: string, listed: boolean) => Effect.Effect<Product | null, Error>;
+    readonly updateTags: (id: string, tags: string[]) => Effect.Effect<Product | null, Error>;
     readonly updateFeatured: (
       id: string,
       featured: boolean,
@@ -85,18 +74,18 @@ export class ProductStore extends Context.Tag("ProductStore")<
       id: string,
       metadata: ProductMetadata,
     ) => Effect.Effect<Product | null, Error>;
-      readonly updateProduct: (
-        id: string,
-        data: {
-          name?: string;
-          description?: string | null;
-          price?: number;
-          priceLocked?: boolean;
-          variants?: Array<{ id: string; price: number }>;
-          images?: ProductImage[];
-          thumbnailImage?: string | null;
-        },
-      ) => Effect.Effect<Product | null, Error>;
+    readonly updateProduct: (
+      id: string,
+      data: {
+        name?: string;
+        description?: string | null;
+        price?: number;
+        priceLocked?: boolean;
+        variants?: Array<{ id: string; price: number }>;
+        images?: ProductImage[];
+        thumbnailImage?: string | null;
+      },
+    ) => Effect.Effect<Product | null, Error>;
   }
 >() {}
 
@@ -105,9 +94,7 @@ export const ProductStoreLive = Layer.effect(
   Effect.gen(function* () {
     const db = yield* Database;
 
-    const getProductImages = async (
-      productId: string,
-    ): Promise<ProductImage[]> => {
+    const getProductImages = async (productId: string): Promise<ProductImage[]> => {
       const images = await db
         .select()
         .from(schema.productImages)
@@ -125,16 +112,17 @@ export const ProductStoreLive = Layer.effect(
       }));
     };
 
-    const getProductVariants = async (
-      productId: string,
-    ): Promise<ProductVariant[]> => {
+    const getProductVariants = async (productId: string): Promise<ProductVariant[]> => {
       const variants = await db
         .select()
         .from(schema.productVariants)
         .where(eq(schema.productVariants.productId, productId));
 
       return variants.map((v) => {
-        const fc = v.fulfillmentConfig as { providerName?: string; providerConfig?: PrintfulProviderConfig } | null;
+        const fc = v.fulfillmentConfig as {
+          providerName?: string;
+          providerConfig?: PrintfulProviderConfig;
+        } | null;
         const fulfillmentCost = fc?.providerConfig?.fulfillmentCost;
         return {
           id: v.id,
@@ -151,9 +139,7 @@ export const ProductStoreLive = Layer.effect(
       });
     };
 
-    const getProductCollections = async (
-      productId: string,
-    ): Promise<Collection[]> => {
+    const getProductCollections = async (productId: string): Promise<Collection[]> => {
       const results = await db
         .select({
           slug: schema.collections.slug,
@@ -202,11 +188,7 @@ export const ProductStoreLive = Layer.effect(
       };
     };
 
-    const safeParseJsonArray = (
-      value: unknown,
-      fieldName: string,
-      rowId: string,
-    ): any[] => {
+    const safeParseJsonArray = (value: unknown, fieldName: string, rowId: string): any[] => {
       if (!value) return [];
       if (Array.isArray(value)) return value;
 
@@ -225,9 +207,7 @@ export const ProductStoreLive = Layer.effect(
       return [];
     };
 
-    const rowToProduct = async (
-      row: typeof schema.products.$inferSelect,
-    ): Promise<Product> => {
+    const rowToProduct = async (row: typeof schema.products.$inferSelect): Promise<Product> => {
       const images = await getProductImages(row.id);
       const variants = await getProductVariants(row.id);
       const collections = await getProductCollections(row.id);
@@ -323,10 +303,9 @@ export const ProductStoreLive = Layer.effect(
       find: (identifier) =>
         Effect.tryPromise({
           try: async () => {
-            const isUUID =
-              /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-                identifier,
-              );
+            const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+              identifier,
+            );
 
             if (isUUID) {
               const results = await db
@@ -382,8 +361,7 @@ export const ProductStoreLive = Layer.effect(
 
             return await rowToProduct(results[0]!);
           },
-          catch: (error) =>
-            new Error(`Failed to find product by publicKey: ${error}`),
+          catch: (error) => new Error(`Failed to find product by publicKey: ${error}`),
         }),
 
       findByExternalProductId: (externalProductId, fulfillmentProvider) =>
@@ -406,8 +384,7 @@ export const ProductStoreLive = Layer.effect(
 
             return await rowToProduct(results[0]!);
           },
-          catch: (error) =>
-            new Error(`Failed to find product by externalProductId: ${error}`),
+          catch: (error) => new Error(`Failed to find product by externalProductId: ${error}`),
         }),
 
       findMany: (criteria) =>
@@ -430,17 +407,14 @@ export const ProductStoreLive = Layer.effect(
             }
 
             if (productTypeSlug) {
-              conditions.push(
-                eq(schema.products.productTypeSlug, productTypeSlug),
-              );
+              conditions.push(eq(schema.products.productTypeSlug, productTypeSlug));
             }
 
             if (featured !== undefined) {
               conditions.push(eq(schema.products.featured, featured));
             }
 
-            const whereClause =
-              conditions.length > 0 ? and(...conditions) : undefined;
+            const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
             let productIds: string[] | undefined;
 
@@ -448,16 +422,9 @@ export const ProductStoreLive = Layer.effect(
               const collectionProducts = await db
                 .select({ productId: schema.productCollections.productId })
                 .from(schema.productCollections)
-                .where(
-                  inArray(
-                    schema.productCollections.collectionSlug,
-                    collectionSlugs,
-                  ),
-                );
+                .where(inArray(schema.productCollections.collectionSlug, collectionSlugs));
 
-              productIds = [
-                ...new Set(collectionProducts.map((p) => p.productId)),
-              ];
+              productIds = [...new Set(collectionProducts.map((p) => p.productId))];
 
               if (productIds.length === 0) {
                 return { products: [], total: 0 };
@@ -516,9 +483,7 @@ export const ProductStoreLive = Layer.effect(
             const allProducts = await Promise.all(results.map(rowToProduct));
 
             return allProducts.filter((product) => {
-              const nameMatch = product.title
-                .toLowerCase()
-                .includes(query.toLowerCase());
+              const nameMatch = product.title.toLowerCase().includes(query.toLowerCase());
               const tagMatch = product.tags.some((tag) =>
                 tag.toLowerCase().includes(query.toLowerCase()),
               );
@@ -533,22 +498,15 @@ export const ProductStoreLive = Layer.effect(
           try: async () => {
             const now = new Date();
 
-            let existingProduct: typeof schema.products.$inferSelect | null =
-              null;
+            let existingProduct: typeof schema.products.$inferSelect | null = null;
             if (product.externalProductId) {
               const existing = await db
                 .select()
                 .from(schema.products)
                 .where(
                   and(
-                    eq(
-                      schema.products.externalProductId,
-                      product.externalProductId,
-                    ),
-                    eq(
-                      schema.products.fulfillmentProvider,
-                      product.fulfillmentProvider,
-                    ),
+                    eq(schema.products.externalProductId, product.externalProductId),
+                    eq(schema.products.fulfillmentProvider, product.fulfillmentProvider),
                   ),
                 )
                 .limit(1);
@@ -560,10 +518,13 @@ export const ProductStoreLive = Layer.effect(
 
             const finalId = existingProduct?.id ?? product.id;
 
-            let existingVariantsByExtId = new Map<string, { price: number }>();
+            const existingVariantsByExtId = new Map<string, { price: number }>();
             if (existingProduct && existingProduct.priceLocked) {
               const existingVariants = await db
-                .select({ externalVariantId: schema.productVariants.externalVariantId, price: schema.productVariants.price })
+                .select({
+                  externalVariantId: schema.productVariants.externalVariantId,
+                  price: schema.productVariants.price,
+                })
                 .from(schema.productVariants)
                 .where(eq(schema.productVariants.productId, existingProduct.id));
               for (const ev of existingVariants) {
@@ -580,7 +541,9 @@ export const ProductStoreLive = Layer.effect(
               await db
                 .update(schema.products)
                 .set({
-                  price: existingProduct.priceLocked ? existingProduct.price : Math.round(product.price * 100),
+                  price: existingProduct.priceLocked
+                    ? existingProduct.price
+                    : Math.round(product.price * 100),
                   options: product.options,
                   thumbnailImage: product.thumbnailImage || existingProduct.thumbnailImage || null,
                   currency: product.currency,
@@ -601,14 +564,19 @@ export const ProductStoreLive = Layer.effect(
               if (product.variants.length > 0) {
                 await db.insert(schema.productVariants).values(
                   product.variants.map((variant) => {
-                    const existingVariant = existingVariantsByExtId.get(variant.externalVariantId || '');
+                    const existingVariant = existingVariantsByExtId.get(
+                      variant.externalVariantId || "",
+                    );
                     const isPriceLocked = existingProduct.priceLocked ?? false;
                     return {
                       id: variant.id,
                       productId: finalId,
                       name: variant.name,
                       sku: variant.sku || null,
-                      price: (isPriceLocked && existingVariant) ? existingVariant.price : Math.round(variant.price * 100),
+                      price:
+                        isPriceLocked && existingVariant
+                          ? existingVariant.price
+                          : Math.round(variant.price * 100),
                       currency: variant.currency,
                       attributes: variant.attributes || null,
                       externalVariantId: variant.externalVariantId || null,
@@ -632,7 +600,7 @@ export const ProductStoreLive = Layer.effect(
                   .from(schema.productImages)
                   .where(eq(schema.productImages.productId, finalId));
 
-                const existingByUrl = new Map(existingImages.map(i => [i.url, i]));
+                const existingByUrl = new Map(existingImages.map((i) => [i.url, i]));
 
                 const newImages: typeof product.images = [];
                 for (const img of product.images) {
@@ -649,7 +617,9 @@ export const ProductStoreLive = Layer.effect(
                         .update(schema.productImages)
                         .set({
                           ...(typeChanged ? { type: img.type } : {}),
-                          ...(vidsChanged ? { variantIds: newVids.length > 0 ? newVids : null } : {}),
+                          ...(vidsChanged
+                            ? { variantIds: newVids.length > 0 ? newVids : null }
+                            : {}),
                         })
                         .where(eq(schema.productImages.id, existing.id));
                     }
@@ -657,7 +627,10 @@ export const ProductStoreLive = Layer.effect(
                 }
 
                 if (newImages.length > 0) {
-                  const maxOrder = existingImages.length > 0 ? Math.max(...existingImages.map(i => i.order)) + 1 : 0;
+                  const maxOrder =
+                    existingImages.length > 0
+                      ? Math.max(...existingImages.map((i) => i.order)) + 1
+                      : 0;
                   let nextOrder = maxOrder;
 
                   await db.insert(schema.productImages).values(
@@ -780,8 +753,7 @@ export const ProductStoreLive = Layer.effect(
 
             return await rowToProduct(results[0]!);
           },
-          catch: (error) =>
-            new Error(`Failed to update product listing: ${error}`),
+          catch: (error) => new Error(`Failed to update product listing: ${error}`),
         }),
 
       updateTags: (id, tags) =>
@@ -805,8 +777,7 @@ export const ProductStoreLive = Layer.effect(
 
             return await rowToProduct(results[0]!);
           },
-          catch: (error) =>
-            new Error(`Failed to update product tags: ${error}`),
+          catch: (error) => new Error(`Failed to update product tags: ${error}`),
         }),
 
       updateFeatured: (id, featured) =>
@@ -830,8 +801,7 @@ export const ProductStoreLive = Layer.effect(
 
             return await rowToProduct(results[0]!);
           },
-          catch: (error) =>
-            new Error(`Failed to update product featured status: ${error}`),
+          catch: (error) => new Error(`Failed to update product featured status: ${error}`),
         }),
 
       updateProductType: (id, productTypeSlug) =>
@@ -855,8 +825,7 @@ export const ProductStoreLive = Layer.effect(
 
             return await rowToProduct(results[0]!);
           },
-          catch: (error) =>
-            new Error(`Failed to update product type: ${error}`),
+          catch: (error) => new Error(`Failed to update product type: ${error}`),
         }),
 
       updateMetadata: (id, metadata) =>
@@ -894,8 +863,7 @@ export const ProductStoreLive = Layer.effect(
 
             return await rowToProduct(results[0]!);
           },
-          catch: (error) =>
-            new Error(`Failed to update product metadata: ${error}`),
+          catch: (error) => new Error(`Failed to update product metadata: ${error}`),
         }),
 
       updateProduct: (id, data) =>
@@ -922,10 +890,7 @@ export const ProductStoreLive = Layer.effect(
             if (data.priceLocked !== undefined) updateData.priceLocked = data.priceLocked;
             if (data.thumbnailImage !== undefined) updateData.thumbnailImage = data.thumbnailImage;
 
-            await db
-              .update(schema.products)
-              .set(updateData)
-              .where(eq(schema.products.id, id));
+            await db.update(schema.products).set(updateData).where(eq(schema.products.id, id));
 
             if (nextPrice !== undefined) {
               const existingVariants = await db
@@ -976,7 +941,9 @@ export const ProductStoreLive = Layer.effect(
                   .where(eq(schema.productVariants.productId, id));
 
                 if (updatedVariants.length > 0) {
-                  const lowestVariantPrice = Math.min(...updatedVariants.map((variant) => variant.price));
+                  const lowestVariantPrice = Math.min(
+                    ...updatedVariants.map((variant) => variant.price),
+                  );
                   await db
                     .update(schema.products)
                     .set({ price: lowestVariantPrice, updatedAt: now })
@@ -986,9 +953,7 @@ export const ProductStoreLive = Layer.effect(
             }
 
             if (data.images !== undefined) {
-              await db
-                .delete(schema.productImages)
-                .where(eq(schema.productImages.productId, id));
+              await db.delete(schema.productImages).where(eq(schema.productImages.productId, id));
 
               if (data.images.length > 0) {
                 await db.insert(schema.productImages).values(
@@ -1019,8 +984,7 @@ export const ProductStoreLive = Layer.effect(
 
             return await rowToProduct(results[0]!);
           },
-          catch: (error) =>
-            new Error(`Failed to update product: ${error}`),
+          catch: (error) => new Error(`Failed to update product: ${error}`),
         }),
     };
   }),

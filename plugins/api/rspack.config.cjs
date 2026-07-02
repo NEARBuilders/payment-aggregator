@@ -4,7 +4,7 @@ const { EveryPluginDevServer } = require("every-plugin/build/rspack");
 const { withZephyr } = require("zephyr-rspack-plugin");
 const pkg = require("./package.json");
 
-const shouldDeploy = process.env.DEPLOY === 'true';
+const shouldDeploy = process.env.DEPLOY === "true";
 
 function updateHostConfig(name, url) {
   try {
@@ -25,14 +25,12 @@ function updateHostConfig(name, url) {
 }
 
 const baseConfig = {
-  externals: [
-    /^@libsql\/.*/, 
-  ],
+  externals: [/^@libsql\/.*/],
   plugins: [new EveryPluginDevServer()],
   infrastructureLogging: {
-    level: 'error',
+    level: "error",
   },
-  stats: 'errors-warnings',
+  stats: "errors-warnings",
 };
 
 module.exports = shouldDeploy

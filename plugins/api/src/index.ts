@@ -1,14 +1,21 @@
-import * as crypto from 'crypto';
-import { createPlugin } from 'every-plugin';
-import { Effect, Layer, Cause, Exit } from 'every-plugin/effect';
-import { ManagedRuntime } from 'every-plugin/effect';
-import { ORPCError } from 'every-plugin/orpc';
-import { z } from 'every-plugin/zod';
-import { contract } from './contract';
-import { cleanupAbandonedDrafts } from './jobs/cleanup-drafts';
-import { retryPendingConfirmations } from './jobs/retry-confirmations';
-import { createMarketplaceRuntime } from './runtime';
-import { ReturnAddressSchema, ManualWebhookPayloadSchema, type ConfigureWebhookOutput, type PrintfulWebhookEventType, type ProductMetadata, type ProviderWebhookEventType, type Product } from './schema';
+import * as crypto from "crypto";
+import { createPlugin } from "every-plugin";
+import { Cause, Effect, Exit, Layer, ManagedRuntime } from "every-plugin/effect";
+import { ORPCError } from "every-plugin/orpc";
+import { z } from "every-plugin/zod";
+import { contract } from "./contract";
+import { cleanupAbandonedDrafts } from "./jobs/cleanup-drafts";
+import { retryPendingConfirmations } from "./jobs/retry-confirmations";
+import { createMarketplaceRuntime } from "./runtime";
+import {
+  type ConfigureWebhookOutput,
+  ManualWebhookPayloadSchema,
+  type PrintfulWebhookEventType,
+  type Product,
+  type ProductMetadata,
+  type ProviderWebhookEventType,
+  ReturnAddressSchema,
+} from "./schema";
 
 function sanitizeProductForPublic<T extends Product>(product: T): T {
   if (product.metadata?.providerDetails?.manual) {
@@ -21,28 +28,50 @@ function sanitizeProductForPublic<T extends Product>(product: T): T {
   }
   return product;
 }
-import { CheckoutService, CheckoutServiceLive } from './services/checkout';
-import { CheckoutError } from './services/checkout/errors';
-import { EmailService, EmailServiceLive } from './services/email';
-import { ProductService, ProductServiceLive } from './services/products';
-import { ProductBuilderService, ProductBuilderServiceLive } from './services/product-builder';
-import { AssetService, AssetServiceLive } from './services/assets';
-import { StripeService } from './services/stripe';
-import { NewsletterService, NewsletterServiceLive } from './services/newsletter';
-import { DatabaseLive, OrderStore, OrderStoreLive, ProductStore, ProductStoreLive, ProductTypeStore, ProductTypeStoreLive, CollectionStoreLive, AssetStoreLive, ProviderTestStateStore, ProviderTestStateStoreLive } from './store';
-import { NewsletterStoreLive } from './store/newsletter';
-import { ProviderConfigStore, ProviderConfigStoreLive } from './store/providers';
-import { parsePrintfulWebhook, verifyPrintfulWebhookSignature } from './services/fulfillment/printful/webhook';
-import { verifyPingPayWebhookSignature } from '../../pingpay/src/service';
-import { handlePingPayWebhookEffect } from './services/payments/pingpay-webhook';
-import { processPaymentSuccessEffect } from './services/payments/payment-success';
-import { processManualWebhookEffect } from './services/webhooks/manual';
-import { logWebhookProcessingError, readWebhookBody } from './services/webhooks/common/route';
-import { runProviderTestStepEffect, saveProviderTestScenarioEffect } from './services/provider-tests';
-import { findOrderByFulfillmentRefEffect, processLuluWebhookEffect, processPrintfulWebhookEffect } from './services/fulfillment/webhook';
-export * from './schema';
 
+import { verifyPingPayWebhookSignature } from "../../pingpay/src/service";
+import { AssetService, AssetServiceLive } from "./services/assets";
+import { CheckoutService, CheckoutServiceLive } from "./services/checkout";
+import { CheckoutError } from "./services/checkout/errors";
+import { EmailService, EmailServiceLive } from "./services/email";
+import {
+  parsePrintfulWebhook,
+  verifyPrintfulWebhookSignature,
+} from "./services/fulfillment/printful/webhook";
+import {
+  findOrderByFulfillmentRefEffect,
+  processLuluWebhookEffect,
+  processPrintfulWebhookEffect,
+} from "./services/fulfillment/webhook";
+import { NewsletterService, NewsletterServiceLive } from "./services/newsletter";
+import { processPaymentSuccessEffect } from "./services/payments/payment-success";
+import { handlePingPayWebhookEffect } from "./services/payments/pingpay-webhook";
+import { ProductBuilderService, ProductBuilderServiceLive } from "./services/product-builder";
+import { ProductService, ProductServiceLive } from "./services/products";
+import {
+  runProviderTestStepEffect,
+  saveProviderTestScenarioEffect,
+} from "./services/provider-tests";
+import { StripeService } from "./services/stripe";
+import { logWebhookProcessingError, readWebhookBody } from "./services/webhooks/common/route";
+import { processManualWebhookEffect } from "./services/webhooks/manual";
+import {
+  AssetStoreLive,
+  CollectionStoreLive,
+  DatabaseLive,
+  OrderStore,
+  OrderStoreLive,
+  ProductStore,
+  ProductStoreLive,
+  ProductTypeStore,
+  ProductTypeStoreLive,
+  ProviderTestStateStore,
+  ProviderTestStateStoreLive,
+} from "./store";
+import { NewsletterStoreLive } from "./store/newsletter";
+import { ProviderConfigStore, ProviderConfigStoreLive } from "./store/providers";
 
+export * from "./schema";
 
 export default createPlugin({
   variables: z.object({
@@ -51,7 +80,7 @@ export default createPlugin({
     nodeUrl: z.string().optional(),
     hostUrl: z.string().url().optional(),
     returnAddress: ReturnAddressSchema.optional(),
-    luluEnvironment: z.enum(['sandbox', 'production']).default('production'),
+    luluEnvironment: z.enum(["sandbox", "production"]).default("production"),
     storageProvider: z.enum(["r2", "s3"]).optional(),
     storageBucket: z.string().optional(),
     storageEndpoint: z.string().optional(),
@@ -81,12 +110,14 @@ export default createPlugin({
     nearAccountId: z.string().optional(),
     reqHeaders: z.custom<Headers>().optional(),
     getRawBody: z.custom<() => Promise<string>>().optional(),
-    user: z.object({
-      id: z.string(),
-      role: z.string().optional(),
-      email: z.string().optional(),
-      name: z.string().optional(),
-    }).nullable(),
+    user: z
+      .object({
+        id: z.string(),
+        role: z.string().optional(),
+        email: z.string().optional(),
+        name: z.string().optional(),
+      })
+      .nullable(),
   }),
 
   contract,
@@ -111,8 +142,7 @@ export default createPlugin({
         createMarketplaceRuntime(
           {
             printful:
-              config.secrets.PRINTFUL_API_KEY &&
-              config.secrets.PRINTFUL_STORE_ID
+              config.secrets.PRINTFUL_API_KEY && config.secrets.PRINTFUL_STORE_ID
                 ? {
                     apiKey: config.secrets.PRINTFUL_API_KEY,
                     storeId: config.secrets.PRINTFUL_STORE_ID,
@@ -122,10 +152,10 @@ export default createPlugin({
             lulu:
               config.secrets.LULU_CLIENT_KEY && config.secrets.LULU_CLIENT_SECRET
                 ? {
-                  clientKey: config.secrets.LULU_CLIENT_KEY,
-                  clientSecret: config.secrets.LULU_CLIENT_SECRET,
-                  environment: config.variables.luluEnvironment,
-                }
+                    clientKey: config.secrets.LULU_CLIENT_KEY,
+                    clientSecret: config.secrets.LULU_CLIENT_SECRET,
+                    environment: config.variables.luluEnvironment,
+                  }
                 : undefined,
             manual: {
               notificationEmails: [],
@@ -134,8 +164,7 @@ export default createPlugin({
           },
           {
             stripe:
-              config.secrets.STRIPE_SECRET_KEY &&
-              config.secrets.STRIPE_WEBHOOK_SECRET
+              config.secrets.STRIPE_SECRET_KEY && config.secrets.STRIPE_WEBHOOK_SECRET
                 ? {
                     secretKey: config.secrets.STRIPE_SECRET_KEY,
                     webhookSecret: config.secrets.STRIPE_WEBHOOK_SECRET,
@@ -149,9 +178,12 @@ export default createPlugin({
           {
             nodeUrl: nearNodeUrl,
           },
-          config.variables.storageProvider && config.secrets.ACCESS_KEY_ID && config.secrets.SECRET_ACCESS_KEY && config.variables.storageBucket
+          config.variables.storageProvider &&
+            config.secrets.ACCESS_KEY_ID &&
+            config.secrets.SECRET_ACCESS_KEY &&
+            config.variables.storageBucket
             ? {
-                provider: config.variables.storageProvider as 'r2' | 's3',
+                provider: config.variables.storageProvider as "r2" | "s3",
                 accessKeyId: config.secrets.ACCESS_KEY_ID,
                 secretAccessKey: config.secrets.SECRET_ACCESS_KEY,
                 bucket: config.variables.storageBucket,
@@ -169,7 +201,7 @@ export default createPlugin({
       const dbLayer = DatabaseLive(config.secrets.API_DATABASE_URL);
 
       const emailServiceLayer = EmailServiceLive({
-        fromEmail: config.secrets.MANUAL_FULFILLMENT_FROM_EMAIL || 'orders@nearmerch.com',
+        fromEmail: config.secrets.MANUAL_FULFILLMENT_FROM_EMAIL || "orders@nearmerch.com",
         resendApiKey: config.secrets.RESEND_API_KEY,
       });
 
@@ -213,9 +245,7 @@ export default createPlugin({
       console.log(
         `[Marketplace] Providers: ${runtime.providers.map((p) => p.name).join(", ") || "none"}`,
       );
-      console.log(
-        `[Marketplace] Stripe: ${stripeService ? "configured" : "not configured"}`,
-      );
+      console.log(`[Marketplace] Stripe: ${stripeService ? "configured" : "not configured"}`);
 
       return {
         stripeService,
@@ -233,14 +263,12 @@ export default createPlugin({
         await context.runtime.shutdown();
         await context.managedRuntime.dispose();
       },
-      catch: (e) =>
-        new Error(
-          `Shutdown failed: ${e instanceof Error ? e.message : String(e)}`,
-        ),
+      catch: (e) => new Error(`Shutdown failed: ${e instanceof Error ? e.message : String(e)}`),
     }),
 
   createRouter: (context, builder) => {
-    const { stripeService, runtime, managedRuntime, secrets, nearPriceCache, luluEnvironment } = context;
+    const { stripeService, runtime, managedRuntime, secrets, nearPriceCache, luluEnvironment } =
+      context;
 
     const requireAuth = builder.middleware(async ({ context, next }) => {
       if (!context.nearAccountId) {
@@ -279,9 +307,8 @@ export default createPlugin({
       });
     });
 
-    const getPurchaseGatePluginId = (
-      metadata: ProductMetadata | undefined,
-    ): string | undefined => metadata?.purchaseGate?.pluginId;
+    const getPurchaseGatePluginId = (metadata: ProductMetadata | undefined): string | undefined =>
+      metadata?.purchaseGate?.pluginId;
 
     const checkPurchaseGateAccess = async (
       pluginId: string,
@@ -314,38 +341,36 @@ export default createPlugin({
         };
       }),
 
-      subscribeNewsletter: builder.subscribeNewsletter.handler(
-        async ({ input }) => {
-          const email = input.email.trim().toLowerCase();
-          if (!email) {
-            throw new ORPCError("BAD_REQUEST", {
-              message: "Please enter a valid email address",
-            });
+      subscribeNewsletter: builder.subscribeNewsletter.handler(async ({ input }) => {
+        const email = input.email.trim().toLowerCase();
+        if (!email) {
+          throw new ORPCError("BAD_REQUEST", {
+            message: "Please enter a valid email address",
+          });
+        }
+
+        const exit = await managedRuntime.runPromiseExit(
+          Effect.gen(function* () {
+            const service = yield* NewsletterService;
+            return yield* service.subscribe(email);
+          }),
+        );
+
+        if (Exit.isFailure(exit)) {
+          const error = Cause.squash(exit.cause);
+          if (error instanceof ORPCError) {
+            throw error;
           }
+          throw new ORPCError("INTERNAL_SERVER_ERROR", {
+            message: error instanceof Error ? error.message : String(error),
+          });
+        }
 
-          const exit = await managedRuntime.runPromiseExit(
-            Effect.gen(function* () {
-              const service = yield* NewsletterService;
-              return yield* service.subscribe(email);
-            }),
-          );
-
-          if (Exit.isFailure(exit)) {
-            const error = Cause.squash(exit.cause);
-            if (error instanceof ORPCError) {
-              throw error;
-            }
-            throw new ORPCError("INTERNAL_SERVER_ERROR", {
-              message: error instanceof Error ? error.message : String(error),
-            });
-          }
-
-          return {
-            success: true,
-            status: exit.value.status,
-          };
-        },
-      ),
+        return {
+          success: true,
+          status: exit.value.status,
+        };
+      }),
 
       getProducts: builder.getProducts.handler(async ({ input }) => {
         const exit = await managedRuntime.runPromiseExit(
@@ -385,10 +410,7 @@ export default createPlugin({
           if (error instanceof ORPCError) {
             throw error;
           }
-          if (
-            error instanceof Error &&
-            error.message.includes("Product not found")
-          ) {
+          if (error instanceof Error && error.message.includes("Product not found")) {
             throw errors.NOT_FOUND({
               message: error.message,
               data: { resource: "product", resourceId: input.id },
@@ -415,10 +437,7 @@ export default createPlugin({
             if (error instanceof ORPCError) {
               throw error;
             }
-            if (
-              error instanceof Error &&
-              error.message.includes("Product not found")
-            ) {
+            if (error instanceof Error && error.message.includes("Product not found")) {
               throw errors.NOT_FOUND({
                 message: error.message,
                 data: { resource: "product", resourceId: input.id },
@@ -455,32 +474,30 @@ export default createPlugin({
         };
       }),
 
-      getFeaturedProducts: builder.getFeaturedProducts.handler(
-        async ({ input }) => {
-          const exit = await managedRuntime.runPromiseExit(
-            Effect.gen(function* () {
-              const service = yield* ProductService;
-              return yield* service.getFeaturedProducts(input.limit);
-            }),
-          );
+      getFeaturedProducts: builder.getFeaturedProducts.handler(async ({ input }) => {
+        const exit = await managedRuntime.runPromiseExit(
+          Effect.gen(function* () {
+            const service = yield* ProductService;
+            return yield* service.getFeaturedProducts(input.limit);
+          }),
+        );
 
-          if (Exit.isFailure(exit)) {
-            const error = Cause.squash(exit.cause);
-            if (error instanceof ORPCError) {
-              throw error;
-            }
-            throw new ORPCError("INTERNAL_SERVER_ERROR", {
-              message: error instanceof Error ? error.message : String(error),
-            });
+        if (Exit.isFailure(exit)) {
+          const error = Cause.squash(exit.cause);
+          if (error instanceof ORPCError) {
+            throw error;
           }
+          throw new ORPCError("INTERNAL_SERVER_ERROR", {
+            message: error instanceof Error ? error.message : String(error),
+          });
+        }
 
-          const value = exit.value;
-          return {
-            ...value,
-            products: value.products.map(sanitizeProductForPublic),
-          };
-        },
-      ),
+        const value = exit.value;
+        return {
+          ...value,
+          products: value.products.map(sanitizeProductForPublic),
+        };
+      }),
 
       getCollections: builder.getCollections.handler(async () => {
         const exit = await managedRuntime.runPromiseExit(
@@ -503,65 +520,56 @@ export default createPlugin({
         return exit.value;
       }),
 
-      getCollection: builder.getCollection.handler(
-        async ({ input, errors }) => {
-          const exit = await managedRuntime.runPromiseExit(
-            Effect.gen(function* () {
-              const service = yield* ProductService;
-              return yield* service.getCollection(input.slug);
-            }),
-          );
+      getCollection: builder.getCollection.handler(async ({ input, errors }) => {
+        const exit = await managedRuntime.runPromiseExit(
+          Effect.gen(function* () {
+            const service = yield* ProductService;
+            return yield* service.getCollection(input.slug);
+          }),
+        );
 
-          if (Exit.isFailure(exit)) {
-            const error = Cause.squash(exit.cause);
-            if (error instanceof ORPCError) {
-              throw error;
-            }
-            if (
-              error instanceof Error &&
-              error.message.includes("Collection not found")
-            ) {
-              throw errors.NOT_FOUND({
-                message: error.message,
-                data: { resource: "collection", resourceId: input.slug },
-              });
-            }
+        if (Exit.isFailure(exit)) {
+          const error = Cause.squash(exit.cause);
+          if (error instanceof ORPCError) {
             throw error;
           }
-
-          const value = exit.value;
-          return {
-            ...value,
-            products: value.products.map(sanitizeProductForPublic),
-          };
-        },
-      ),
-
-      getCarouselCollections: builder.getCarouselCollections.handler(
-        async () => {
-          const exit = await managedRuntime.runPromiseExit(
-            Effect.gen(function* () {
-              const service = yield* ProductService;
-              return yield* service.getCarouselCollections();
-            }),
-          );
-
-          if (Exit.isFailure(exit)) {
-            const error = Cause.squash(exit.cause);
-            if (error instanceof ORPCError) {
-              throw error;
-            }
-            throw new ORPCError("INTERNAL_SERVER_ERROR", {
-              message: error instanceof Error ? error.message : String(error),
+          if (error instanceof Error && error.message.includes("Collection not found")) {
+            throw errors.NOT_FOUND({
+              message: error.message,
+              data: { resource: "collection", resourceId: input.slug },
             });
           }
+          throw error;
+        }
 
-          return exit.value;
-        },
-      ),
-      updateCollection: builder.updateCollection
-        .use(requireAdmin)
-        .handler(async ({ input }) => {
+        const value = exit.value;
+        return {
+          ...value,
+          products: value.products.map(sanitizeProductForPublic),
+        };
+      }),
+
+      getCarouselCollections: builder.getCarouselCollections.handler(async () => {
+        const exit = await managedRuntime.runPromiseExit(
+          Effect.gen(function* () {
+            const service = yield* ProductService;
+            return yield* service.getCarouselCollections();
+          }),
+        );
+
+        if (Exit.isFailure(exit)) {
+          const error = Cause.squash(exit.cause);
+          if (error instanceof ORPCError) {
+            throw error;
+          }
+          throw new ORPCError("INTERNAL_SERVER_ERROR", {
+            message: error instanceof Error ? error.message : String(error),
+          });
+        }
+
+        return exit.value;
+      }),
+      updateCollection: builder.updateCollection.use(requireAdmin).handler(async ({ input }) => {
         const { slug, ...data } = input;
         const exit = await managedRuntime.runPromiseExit(
           Effect.gen(function* () {
@@ -583,17 +591,13 @@ export default createPlugin({
         return exit.value;
       }),
 
-      updateCollectionFeaturedProduct:
-        builder.updateCollectionFeaturedProduct
-          .use(requireAdmin)
-          .handler(async ({ input }) => {
+      updateCollectionFeaturedProduct: builder.updateCollectionFeaturedProduct
+        .use(requireAdmin)
+        .handler(async ({ input }) => {
           const exit = await managedRuntime.runPromiseExit(
             Effect.gen(function* () {
               const service = yield* ProductService;
-              return yield* service.updateCollectionFeaturedProduct(
-                input.slug,
-                input.productId,
-              );
+              return yield* service.updateCollectionFeaturedProduct(input.slug, input.productId);
             }),
           );
 
@@ -644,10 +648,7 @@ export default createPlugin({
             cachedAt: now,
           };
         } catch (error) {
-          console.error(
-            "[getNearPrice] Failed to fetch from CoinGecko:",
-            error,
-          );
+          console.error("[getNearPrice] Failed to fetch from CoinGecko:", error);
           return {
             price: nearPriceCache.price || FALLBACK_PRICE,
             currency: "USD" as const,
@@ -659,15 +660,11 @@ export default createPlugin({
 
       updateProductListing: builder.updateProductListing
         .use(requireAdmin)
-        .handler(
-        async ({ input }) => {
+        .handler(async ({ input }) => {
           const exit = await managedRuntime.runPromiseExit(
             Effect.gen(function* () {
               const service = yield* ProductService;
-              return yield* service.updateProductListing(
-                input.id,
-                input.listed,
-              );
+              return yield* service.updateProductListing(input.id, input.listed);
             }),
           );
 
@@ -682,8 +679,7 @@ export default createPlugin({
           }
 
           return exit.value;
-        },
-      ),
+        }),
       createCheckout: builder.createCheckout
         .use(requireAuth)
         .handler(async ({ input, context }) => {
@@ -723,10 +719,7 @@ export default createPlugin({
           }
 
           for (const pluginId of gatedPluginsExit.value) {
-            const hasAccess = await checkPurchaseGateAccess(
-              pluginId,
-              context.nearAccountId,
-            );
+            const hasAccess = await checkPurchaseGateAccess(pluginId, context.nearAccountId);
 
             if (!hasAccess) {
               throw new ORPCError("FORBIDDEN", {
@@ -762,20 +755,15 @@ export default createPlugin({
             if (error instanceof CheckoutError) {
               if (error.code === "INVALID_ADDRESS") {
                 throw new ORPCError("BAD_REQUEST", {
-                  message:
-                    error.cause instanceof Error
-                      ? error.cause.message
-                      : error.message,
+                  message: error.cause instanceof Error ? error.cause.message : error.message,
                 });
               }
 
               console.error("[createCheckout] Checkout failed:", error.message);
-              if (error.cause)
-                console.error("[createCheckout] Cause:", error.cause);
+              if (error.cause) console.error("[createCheckout] Cause:", error.cause);
 
               throw new ORPCError("INTERNAL_SERVER_ERROR", {
-                message:
-                  "Order Failed, please contact support (orders@nearmerch.com)",
+                message: "Order Failed, please contact support (orders@nearmerch.com)",
               });
             }
 
@@ -806,87 +794,79 @@ export default createPlugin({
             throw error;
           }
           throw new ORPCError("BAD_REQUEST", {
-            message:
-              error instanceof Error
-                ? error.message
-                : "Failed to calculate shipping",
+            message: error instanceof Error ? error.message : "Failed to calculate shipping",
           });
         }
 
         return exit.value;
       }),
 
-      getOrders: builder.getOrders
-        .use(requireAuth)
-        .handler(async ({ input, context }) => {
-          const exit = await managedRuntime.runPromiseExit(
-            Effect.gen(function* () {
-              const store = yield* OrderStore;
-              return yield* store.findByUser(context.nearAccountId!, input);
-            }),
-          );
+      getOrders: builder.getOrders.use(requireAuth).handler(async ({ input, context }) => {
+        const exit = await managedRuntime.runPromiseExit(
+          Effect.gen(function* () {
+            const store = yield* OrderStore;
+            return yield* store.findByUser(context.nearAccountId!, input);
+          }),
+        );
 
-          if (Exit.isFailure(exit)) {
-            const error = Cause.squash(exit.cause);
-            if (error instanceof ORPCError) {
-              throw error;
-            }
-            throw new ORPCError("INTERNAL_SERVER_ERROR", {
-              message: error instanceof Error ? error.message : String(error),
-            });
+        if (Exit.isFailure(exit)) {
+          const error = Cause.squash(exit.cause);
+          if (error instanceof ORPCError) {
+            throw error;
           }
+          throw new ORPCError("INTERNAL_SERVER_ERROR", {
+            message: error instanceof Error ? error.message : String(error),
+          });
+        }
 
-          const result = exit.value;
-          return {
-            orders: result.orders,
-            total: result.total,
-          };
-        }),
+        const result = exit.value;
+        return {
+          orders: result.orders,
+          total: result.total,
+        };
+      }),
 
-      getOrder: builder.getOrder
-        .use(requireAuth)
-        .handler(async ({ input, context, errors }) => {
-          const exit = await managedRuntime.runPromiseExit(
-            Effect.gen(function* () {
-              const store = yield* OrderStore;
-              return yield* store.find(input.id);
-            }),
-          );
+      getOrder: builder.getOrder.use(requireAuth).handler(async ({ input, context, errors }) => {
+        const exit = await managedRuntime.runPromiseExit(
+          Effect.gen(function* () {
+            const store = yield* OrderStore;
+            return yield* store.find(input.id);
+          }),
+        );
 
-          if (Exit.isFailure(exit)) {
-            const error = Cause.squash(exit.cause);
-            if (error instanceof ORPCError) {
-              throw error;
-            }
-            throw errors.NOT_FOUND({
-              message: "Order not found",
-              data: { resource: "order", resourceId: input.id },
-            });
+        if (Exit.isFailure(exit)) {
+          const error = Cause.squash(exit.cause);
+          if (error instanceof ORPCError) {
+            throw error;
           }
+          throw errors.NOT_FOUND({
+            message: "Order not found",
+            data: { resource: "order", resourceId: input.id },
+          });
+        }
 
-          const order = exit.value;
+        const order = exit.value;
 
-          if (!order) {
-            throw errors.NOT_FOUND({
-              message: "Order not found",
-              data: { resource: "order", resourceId: input.id },
-            });
-          }
+        if (!order) {
+          throw errors.NOT_FOUND({
+            message: "Order not found",
+            data: { resource: "order", resourceId: input.id },
+          });
+        }
 
-          if (order.userId !== context.nearAccountId) {
-            throw errors.FORBIDDEN({
-              message: "You do not have permission to access this order",
-              data: { action: "read" },
-            });
-          }
+        if (order.userId !== context.nearAccountId) {
+          throw errors.FORBIDDEN({
+            message: "You do not have permission to access this order",
+            data: { action: "read" },
+          });
+        }
 
-          return { order };
-        }),
+        return { order };
+      }),
 
       getOrderByCheckoutSession: builder.getOrderByCheckoutSession
         .use(requireAuth)
-        .handler(
-        async ({ input }) => {
+        .handler(async ({ input }) => {
           const exit = await managedRuntime.runPromiseExit(
             Effect.gen(function* () {
               const store = yield* OrderStore;
@@ -905,98 +885,92 @@ export default createPlugin({
           }
 
           return { order: exit.value };
-        },
-      ),
+        }),
 
-      subscribeOrderStatus: builder.subscribeOrderStatus
-        .use(requireAuth)
-        .handler(
-        async function* ({ input, signal }) {
-          const TERMINAL_STATUSES = [
-            "shipped",
-            "delivered",
-            "cancelled",
-            "failed",
-            "returned",
-            "refunded",
-            "on_hold",
-            "partially_cancelled",
-          ];
-          const POLL_INTERVAL = 500;
+      subscribeOrderStatus: builder.subscribeOrderStatus.use(requireAuth).handler(async function* ({
+        input,
+        signal,
+      }) {
+        const TERMINAL_STATUSES = [
+          "shipped",
+          "delivered",
+          "cancelled",
+          "failed",
+          "returned",
+          "refunded",
+          "on_hold",
+          "partially_cancelled",
+        ];
+        const POLL_INTERVAL = 500;
 
-          let lastStatus: string | undefined;
-          let lastTrackingJson: string | undefined;
+        let lastStatus: string | undefined;
+        let lastTrackingJson: string | undefined;
 
-          while (!signal?.aborted) {
-            const order = await managedRuntime.runPromise(
-              Effect.gen(function* () {
-                const store = yield* OrderStore;
-                return yield* store.findByCheckoutSession(input.sessionId);
-              }),
-            );
-
-            if (!order) {
-              await new Promise((r) => setTimeout(r, POLL_INTERVAL));
-              continue;
-            }
-
-            const currentTrackingJson = JSON.stringify(
-              order.trackingInfo || [],
-            );
-            const hasStatusChange = order.status !== lastStatus;
-            const hasTrackingChange = currentTrackingJson !== lastTrackingJson;
-
-            if (hasStatusChange || hasTrackingChange) {
-              lastStatus = order.status;
-              lastTrackingJson = currentTrackingJson;
-
-              yield {
-                status: order.status,
-                trackingInfo: order.trackingInfo,
-                updatedAt: order.updatedAt,
-              };
-
-              if (TERMINAL_STATUSES.includes(order.status)) {
-                return;
-              }
-            }
-
-            await new Promise((r) => setTimeout(r, POLL_INTERVAL));
-          }
-        },
-      ),
-
-      getAllOrders: builder.getAllOrders
-        .use(requireAdmin)
-        .handler(async ({ input }) => {
-          const exit = await managedRuntime.runPromiseExit(
+        while (!signal?.aborted) {
+          const order = await managedRuntime.runPromise(
             Effect.gen(function* () {
               const store = yield* OrderStore;
-              return yield* store.findAll({
-                limit: input.limit,
-                offset: input.offset,
-                status: input.status,
-                search: input.search,
-              });
+              return yield* store.findByCheckoutSession(input.sessionId);
             }),
           );
 
-          if (Exit.isFailure(exit)) {
-            const error = Cause.squash(exit.cause);
-            if (error instanceof ORPCError) {
-              throw error;
-            }
-            throw new ORPCError("INTERNAL_SERVER_ERROR", {
-              message: error instanceof Error ? error.message : String(error),
-            });
+          if (!order) {
+            await new Promise((r) => setTimeout(r, POLL_INTERVAL));
+            continue;
           }
 
-          const result = exit.value;
-          return {
-            orders: result.orders,
-            total: result.total,
-          };
-        }),
+          const currentTrackingJson = JSON.stringify(order.trackingInfo || []);
+          const hasStatusChange = order.status !== lastStatus;
+          const hasTrackingChange = currentTrackingJson !== lastTrackingJson;
+
+          if (hasStatusChange || hasTrackingChange) {
+            lastStatus = order.status;
+            lastTrackingJson = currentTrackingJson;
+
+            yield {
+              status: order.status,
+              trackingInfo: order.trackingInfo,
+              updatedAt: order.updatedAt,
+            };
+
+            if (TERMINAL_STATUSES.includes(order.status)) {
+              return;
+            }
+          }
+
+          await new Promise((r) => setTimeout(r, POLL_INTERVAL));
+        }
+      }),
+
+      getAllOrders: builder.getAllOrders.use(requireAdmin).handler(async ({ input }) => {
+        const exit = await managedRuntime.runPromiseExit(
+          Effect.gen(function* () {
+            const store = yield* OrderStore;
+            return yield* store.findAll({
+              limit: input.limit,
+              offset: input.offset,
+              status: input.status,
+              search: input.search,
+            });
+          }),
+        );
+
+        if (Exit.isFailure(exit)) {
+          const error = Cause.squash(exit.cause);
+          if (error instanceof ORPCError) {
+            throw error;
+          }
+          throw new ORPCError("INTERNAL_SERVER_ERROR", {
+            message: error instanceof Error ? error.message : String(error),
+          });
+        }
+
+        const result = exit.value;
+        return {
+          orders: result.orders,
+          total: result.total,
+        };
+      }),
 
       getOrderAuditLog: builder.getOrderAuditLog
         .use(requireAuth)
@@ -1045,8 +1019,7 @@ export default createPlugin({
 
           if ("forbidden" in result && result.forbidden) {
             throw errors.FORBIDDEN({
-              message:
-                "You do not have permission to access this order's audit log",
+              message: "You do not have permission to access this order's audit log",
               data: { action: "read_audit_log" },
             });
           }
@@ -1056,9 +1029,7 @@ export default createPlugin({
           const filteredLogs = result.isAdmin
             ? logs
             : logs.filter(
-                (log) =>
-                  log.action === "status_change" ||
-                  log.action === "tracking_update",
+                (log) => log.action === "status_change" || log.action === "tracking_update",
               );
 
           return { logs: filteredLogs };
@@ -1122,79 +1093,77 @@ export default createPlugin({
           };
         }),
 
-      deleteOrders: builder.deleteOrders
-        .use(requireAdmin)
-        .handler(async ({ input, context }) => {
-          const actor = `admin:${context.nearAccountId || "unknown"}`;
-          const errors: { orderId: string; error: string }[] = [];
-          let deleted = 0;
+      deleteOrders: builder.deleteOrders.use(requireAdmin).handler(async ({ input, context }) => {
+        const actor = `admin:${context.nearAccountId || "unknown"}`;
+        const errors: { orderId: string; error: string }[] = [];
+        let deleted = 0;
 
-          for (const orderId of input.orderIds) {
-            try {
-              const order = await managedRuntime.runPromise(
-                Effect.gen(function* () {
-                  const store = yield* OrderStore;
-                  return yield* store.find(orderId);
-                }),
-              );
+        for (const orderId of input.orderIds) {
+          try {
+            const order = await managedRuntime.runPromise(
+              Effect.gen(function* () {
+                const store = yield* OrderStore;
+                return yield* store.find(orderId);
+              }),
+            );
 
-              if (!order) {
-                errors.push({ orderId, error: "Order not found" });
-                continue;
-              }
+            if (!order) {
+              errors.push({ orderId, error: "Order not found" });
+              continue;
+            }
 
-              if (order.draftOrderIds && Object.keys(order.draftOrderIds).length > 0) {
-                for (const [providerName, externalId] of Object.entries(order.draftOrderIds)) {
-                  if (providerName === "manual") continue;
+            if (order.draftOrderIds && Object.keys(order.draftOrderIds).length > 0) {
+              for (const [providerName, externalId] of Object.entries(order.draftOrderIds)) {
+                if (providerName === "manual") continue;
 
-                  const provider = runtime.getProvider(providerName);
-                  if (!provider) {
-                    console.warn(
-                      `[deleteOrders] Provider ${providerName} not found for order ${orderId}`,
-                    );
-                    continue;
-                  }
+                const provider = runtime.getProvider(providerName);
+                if (!provider) {
+                  console.warn(
+                    `[deleteOrders] Provider ${providerName} not found for order ${orderId}`,
+                  );
+                  continue;
+                }
 
-                  try {
-                    await provider.client.cancelOrder({ id: externalId as string });
-                    console.log(
-                      `[deleteOrders] Cancelled ${providerName} order ${externalId} for order ${orderId}`,
-                    );
-                  } catch (err) {
-                    console.warn(
-                      `[deleteOrders] Failed to cancel ${providerName} order ${externalId}:`,
-                      err instanceof Error ? err.message : String(err),
-                    );
-                  }
+                try {
+                  await provider.client.cancelOrder({ id: externalId as string });
+                  console.log(
+                    `[deleteOrders] Cancelled ${providerName} order ${externalId} for order ${orderId}`,
+                  );
+                } catch (err) {
+                  console.warn(
+                    `[deleteOrders] Failed to cancel ${providerName} order ${externalId}:`,
+                    err instanceof Error ? err.message : String(err),
+                  );
                 }
               }
-
-              const deleteResult = await managedRuntime.runPromise(
-                Effect.gen(function* () {
-                  const store = yield* OrderStore;
-                  return yield* store.deleteOrders([orderId], actor);
-                }),
-              );
-
-              if (deleteResult.deleted > 0) {
-                deleted++;
-            } else {
-                errors.push(...deleteResult.errors);
-              }
-            } catch (err) {
-              errors.push({
-                orderId,
-                error: err instanceof Error ? err.message : String(err),
-              });
             }
-          }
 
-          return {
-            success: true,
-            deleted,
-            errors,
-          };
-        }),
+            const deleteResult = await managedRuntime.runPromise(
+              Effect.gen(function* () {
+                const store = yield* OrderStore;
+                return yield* store.deleteOrders([orderId], actor);
+              }),
+            );
+
+            if (deleteResult.deleted > 0) {
+              deleted++;
+            } else {
+              errors.push(...deleteResult.errors);
+            }
+          } catch (err) {
+            errors.push({
+              orderId,
+              error: err instanceof Error ? err.message : String(err),
+            });
+          }
+        }
+
+        return {
+          success: true,
+          deleted,
+          errors,
+        };
+      }),
 
       stripeWebhook: builder.stripeWebhook.handler(async ({ input }) => {
         if (!stripeService) {
@@ -1233,8 +1202,8 @@ export default createPlugin({
               processPaymentSuccessEffect({
                 runtime,
                 order,
-                actor: 'service:stripe',
-                metadata: { sessionId: session.id, eventType: 'checkout.session.completed' },
+                actor: "service:stripe",
+                metadata: { sessionId: session.id, eventType: "checkout.session.completed" },
               }),
             );
           } catch (error) {
@@ -1247,8 +1216,7 @@ export default createPlugin({
                   "service:stripe",
                   "fulfillment:failed",
                   {
-                    error:
-                      error instanceof Error ? error.message : String(error),
+                    error: error instanceof Error ? error.message : String(error),
                   },
                 );
               }),
@@ -1259,127 +1227,119 @@ export default createPlugin({
         return { received: true };
       }),
 
-      printfulWebhook: builder.printfulWebhook.handler(
-        async ({ input, context }) => {
-          const signature =
-            context.reqHeaders?.get("x-pf-webhook-signature") || "";
-          const rawBody = await readWebhookBody({ input, getRawBody: context.getRawBody });
+      printfulWebhook: builder.printfulWebhook.handler(async ({ input, context }) => {
+        const signature = context.reqHeaders?.get("x-pf-webhook-signature") || "";
+        const rawBody = await readWebhookBody({ input, getRawBody: context.getRawBody });
 
-          try {
-            // Secret source of truth: DB (configured via admin UI). Env is a fallback.
-            const webhookSecret = await managedRuntime.runPromise(
-              Effect.gen(function* () {
-                const store = yield* ProviderConfigStore;
-                return (
-                  (yield* store.getSecretKey("printful")) ||
-                  secrets.PRINTFUL_WEBHOOK_SECRET
-                );
-              }),
-            );
+        try {
+          // Secret source of truth: DB (configured via admin UI). Env is a fallback.
+          const webhookSecret = await managedRuntime.runPromise(
+            Effect.gen(function* () {
+              const store = yield* ProviderConfigStore;
+              return (yield* store.getSecretKey("printful")) || secrets.PRINTFUL_WEBHOOK_SECRET;
+            }),
+          );
 
-            if (webhookSecret) {
-              verifyPrintfulWebhookSignature({
-                rawBody,
-                signature,
-                webhookSecretHex: webhookSecret,
-              });
-            }
-
-            const { eventType, externalId, catalogProductId, data } =
-              parsePrintfulWebhook(rawBody);
-
-            if (eventType === 'catalog_price_changed' && catalogProductId) {
-              console.log(
-                `[Printful Webhook] Catalog price changed for product: ${catalogProductId}`,
-              );
-              try {
-                const { PrintfulService: PFSvc } = await import('./services/fulfillment/printful/service');
-                const pfService = new PFSvc(
-                  secrets.PRINTFUL_API_KEY!,
-                  secrets.PRINTFUL_STORE_ID!,
-                );
-                const productStore = await managedRuntime.runPromise(
-                  Effect.gen(function* () {
-                    return yield* ProductStore;
-                  }),
-                );
-                await pfService.handleCatalogPriceChange(String(catalogProductId), productStore);
-              } catch (error) {
-                console.warn(
-                  `[Printful Webhook] Failed to handle catalog_price_changed: ${error instanceof Error ? error.message : String(error)}`,
-                );
-              }
-              return { received: true };
-            }
-
-            if (!externalId) {
-              return { received: true };
-            }
-
-            console.log(
-              `[Printful Webhook] Processing event: ${eventType}, external_id: ${externalId}`,
-            );
-
-            const order = await managedRuntime.runPromise(
-              findOrderByFulfillmentRefEffect(externalId),
-            );
-
-            if (!order) {
-              return { received: true };
-            }
-
-            await managedRuntime.runPromise(
-              processPrintfulWebhookEffect({
-                runtime,
-                order,
-                eventType,
-                data,
-                actor: 'service:printful',
-                metadata: { eventType, externalId, data },
-              }),
-            );
-          } catch (error) {
-            if (error instanceof ORPCError) {
-              console.error(`[Printful Webhook] ORPC error:`, error);
-              throw error;
-            }
-
-            // Log other errors but don't throw - return 200 to avoid webhook retries
-            logWebhookProcessingError({ provider: 'Printful', error });
+          if (webhookSecret) {
+            verifyPrintfulWebhookSignature({
+              rawBody,
+              signature,
+              webhookSecretHex: webhookSecret,
+            });
           }
 
-          return { received: true };
-        },
-      ),
+          const { eventType, externalId, catalogProductId, data } = parsePrintfulWebhook(rawBody);
+
+          if (eventType === "catalog_price_changed" && catalogProductId) {
+            console.log(
+              `[Printful Webhook] Catalog price changed for product: ${catalogProductId}`,
+            );
+            try {
+              const { PrintfulService: PFSvc } = await import(
+                "./services/fulfillment/printful/service"
+              );
+              const pfService = new PFSvc(secrets.PRINTFUL_API_KEY!, secrets.PRINTFUL_STORE_ID!);
+              const productStore = await managedRuntime.runPromise(
+                Effect.gen(function* () {
+                  return yield* ProductStore;
+                }),
+              );
+              await pfService.handleCatalogPriceChange(String(catalogProductId), productStore);
+            } catch (error) {
+              console.warn(
+                `[Printful Webhook] Failed to handle catalog_price_changed: ${error instanceof Error ? error.message : String(error)}`,
+              );
+            }
+            return { received: true };
+          }
+
+          if (!externalId) {
+            return { received: true };
+          }
+
+          console.log(
+            `[Printful Webhook] Processing event: ${eventType}, external_id: ${externalId}`,
+          );
+
+          const order = await managedRuntime.runPromise(
+            findOrderByFulfillmentRefEffect(externalId),
+          );
+
+          if (!order) {
+            return { received: true };
+          }
+
+          await managedRuntime.runPromise(
+            processPrintfulWebhookEffect({
+              runtime,
+              order,
+              eventType,
+              data,
+              actor: "service:printful",
+              metadata: { eventType, externalId, data },
+            }),
+          );
+        } catch (error) {
+          if (error instanceof ORPCError) {
+            console.error(`[Printful Webhook] ORPC error:`, error);
+            throw error;
+          }
+
+          // Log other errors but don't throw - return 200 to avoid webhook retries
+          logWebhookProcessingError({ provider: "Printful", error });
+        }
+
+        return { received: true };
+      }),
 
       luluWebhook: builder.luluWebhook.handler(async ({ input, context }) => {
-        const signature = context.reqHeaders?.get('Lulu-HMAC-SHA256') || '';
+        const signature = context.reqHeaders?.get("Lulu-HMAC-SHA256") || "";
         const rawBody = await readWebhookBody({ input, getRawBody: context.getRawBody });
-        
+
         let eventType: string | undefined;
         let externalId: string | undefined;
-        
+
         try {
-          const luluProvider = runtime.getProvider('lulu');
+          const luluProvider = runtime.getProvider("lulu");
           if (!luluProvider) {
-            console.error('[Lulu Webhook] Lulu provider not configured');
+            console.error("[Lulu Webhook] Lulu provider not configured");
             return { received: true };
           }
 
           // Import LuluService for webhook handling
-          const { LuluService } = await import('./services/fulfillment/lulu/service');
+          const { LuluService } = await import("./services/fulfillment/lulu/service");
           const luluService = new LuluService({
-            clientKey: secrets.LULU_CLIENT_KEY || '',
-            clientSecret: secrets.LULU_CLIENT_SECRET || '',
+            clientKey: secrets.LULU_CLIENT_KEY || "",
+            clientSecret: secrets.LULU_CLIENT_SECRET || "",
             environment: luluEnvironment,
           });
 
           const isValid = await managedRuntime.runPromise(
-            luluService.verifyWebhookSignature(rawBody, signature)
+            luluService.verifyWebhookSignature(rawBody, signature),
           );
           if (!isValid) {
-            console.error('[Lulu Webhook] Invalid signature');
-            throw new ORPCError('UNAUTHORIZED', { message: 'Invalid webhook signature' });
+            console.error("[Lulu Webhook] Invalid signature");
+            throw new ORPCError("UNAUTHORIZED", { message: "Invalid webhook signature" });
           }
 
           const { eventType: parsedEventType, data } = luluService.parseWebhookPayload(rawBody);
@@ -1394,7 +1354,7 @@ export default createPlugin({
 
           // Find the order by fulfillment reference
           const order = await managedRuntime.runPromise(
-            findOrderByFulfillmentRefEffect(externalId!)
+            findOrderByFulfillmentRefEffect(externalId!),
           );
 
           if (!order) {
@@ -1406,10 +1366,10 @@ export default createPlugin({
               order,
               eventType,
               data,
-              actor: 'service:lulu',
+              actor: "service:lulu",
               luluService,
               metadata: { eventType, externalId, data },
-            })
+            }),
           );
         } catch (error) {
           if (error instanceof ORPCError) {
@@ -1417,7 +1377,11 @@ export default createPlugin({
           }
 
           // Log error but return 200 to prevent webhook retries
-          logWebhookProcessingError({ provider: 'Lulu', error, details: { eventType, externalId } });
+          logWebhookProcessingError({
+            provider: "Lulu",
+            error,
+            details: { eventType, externalId },
+          });
         }
 
         return { received: true };
@@ -1455,14 +1419,14 @@ export default createPlugin({
           await managedRuntime.runPromise(
             processManualWebhookEffect({
               order,
-              actor: 'service:manual',
+              actor: "service:manual",
               status: parsed.status,
               trackingInfo: parsed.trackingInfo,
-              metadata: { eventType: 'ORDER_STATUS_CHANGED', ...(parsed.metadata ?? {}) },
+              metadata: { eventType: "ORDER_STATUS_CHANGED", ...(parsed.metadata ?? {}) },
             }),
           );
         } catch (error) {
-          logWebhookProcessingError({ provider: 'Manual', error, details: { orderId: order.id } });
+          logWebhookProcessingError({ provider: "Manual", error, details: { orderId: order.id } });
         }
 
         return { received: true };
@@ -1489,7 +1453,7 @@ export default createPlugin({
             throw error;
           }
 
-          throw new ORPCError('UNAUTHORIZED', {
+          throw new ORPCError("UNAUTHORIZED", {
             message: error instanceof Error ? error.message : String(error),
           });
         }
@@ -1512,40 +1476,42 @@ export default createPlugin({
             throw error;
           }
 
-          logWebhookProcessingError({ provider: 'PingPay', error, details: { signature: signature.substring(0, 20) + "...", timestamp } });
+          logWebhookProcessingError({
+            provider: "PingPay",
+            error,
+            details: { signature: signature.substring(0, 20) + "...", timestamp },
+          });
           return { received: true };
         }
       }),
 
-      cleanupAbandonedDrafts: builder.cleanupAbandonedDrafts.handler(
-        async ({ input, context }) => {
-          const cronSecret = context.reqHeaders?.get("x-cron-secret");
-          const expectedSecret = process.env.CRON_SECRET;
+      cleanupAbandonedDrafts: builder.cleanupAbandonedDrafts.handler(async ({ input, context }) => {
+        const cronSecret = context.reqHeaders?.get("x-cron-secret");
+        const expectedSecret = process.env.CRON_SECRET;
 
-          if (!expectedSecret || cronSecret !== expectedSecret) {
-            throw new ORPCError("UNAUTHORIZED", {
-              message: "Invalid or missing cron secret",
-            });
+        if (!expectedSecret || cronSecret !== expectedSecret) {
+          throw new ORPCError("UNAUTHORIZED", {
+            message: "Invalid or missing cron secret",
+          });
+        }
+
+        const maxAgeHours = input?.maxAgeHours || 24;
+        const exit = await managedRuntime.runPromiseExit(
+          cleanupAbandonedDrafts(runtime, maxAgeHours),
+        );
+
+        if (Exit.isFailure(exit)) {
+          const error = Cause.squash(exit.cause);
+          if (error instanceof ORPCError) {
+            throw error;
           }
+          throw new ORPCError("INTERNAL_SERVER_ERROR", {
+            message: error instanceof Error ? error.message : String(error),
+          });
+        }
 
-          const maxAgeHours = input?.maxAgeHours || 24;
-          const exit = await managedRuntime.runPromiseExit(
-            cleanupAbandonedDrafts(runtime, maxAgeHours),
-          );
-
-          if (Exit.isFailure(exit)) {
-            const error = Cause.squash(exit.cause);
-            if (error instanceof ORPCError) {
-              throw error;
-            }
-            throw new ORPCError("INTERNAL_SERVER_ERROR", {
-              message: error instanceof Error ? error.message : String(error),
-            });
-          }
-
-          return exit.value;
-        },
-      ),
+        return exit.value;
+      }),
 
       retryPendingConfirmations: builder.retryPendingConfirmations.handler(
         async ({ input, context }) => {
@@ -1577,280 +1543,273 @@ export default createPlugin({
         },
       ),
 
-      getProviderConfig: builder.getProviderConfig
-        .use(requireAdmin)
-        .handler(async ({ input }) => {
-          const exit = await managedRuntime.runPromiseExit(
-            Effect.gen(function* () {
-              const store = yield* ProviderConfigStore;
-              return yield* store.getConfig(input.provider);
-            }),
-          );
+      getProviderConfig: builder.getProviderConfig.use(requireAdmin).handler(async ({ input }) => {
+        const exit = await managedRuntime.runPromiseExit(
+          Effect.gen(function* () {
+            const store = yield* ProviderConfigStore;
+            return yield* store.getConfig(input.provider);
+          }),
+        );
 
-          if (Exit.isFailure(exit)) {
-            const error = Cause.squash(exit.cause);
-            if (error instanceof ORPCError) {
-              throw error;
-            }
-            throw new ORPCError("INTERNAL_SERVER_ERROR", {
-              message: error instanceof Error ? error.message : String(error),
-            });
+        if (Exit.isFailure(exit)) {
+          const error = Cause.squash(exit.cause);
+          if (error instanceof ORPCError) {
+            throw error;
           }
+          throw new ORPCError("INTERNAL_SERVER_ERROR", {
+            message: error instanceof Error ? error.message : String(error),
+          });
+        }
 
-          return { config: exit.value };
-        }),
+        return { config: exit.value };
+      }),
 
-      configureWebhook: builder.configureWebhook
-        .use(requireAdmin)
-        .handler(async ({ input }) => {
-          const webhookUrl = input.webhookUrlOverride || '';
+      configureWebhook: builder.configureWebhook.use(requireAdmin).handler(async ({ input }) => {
+        const webhookUrl = input.webhookUrlOverride || "";
 
-          let result: ConfigureWebhookOutput;
-          let providerSecretKey: string | null = null;
-          try {
-            if (input.provider === 'printful') {
-              const printfulProvider = runtime.getProvider('printful');
-              if (!printfulProvider) {
-                throw new ORPCError('BAD_REQUEST', { message: 'Printful provider not configured' });
-              }
-
-              const { PrintfulService } = await import('./services/fulfillment/printful/service');
-              const printfulService = new PrintfulService(
-                secrets.PRINTFUL_API_KEY!,
-                secrets.PRINTFUL_STORE_ID!
-              );
-
-              const printfulResult = await managedRuntime.runPromise(
-                printfulService.configureWebhooks({
-                  defaultUrl: webhookUrl,
-                  events: (input.events ?? []).filter((event): event is PrintfulWebhookEventType => event !== 'PRINT_JOB_STATUS_CHANGED'),
-                  expiresAt: input.expiresAt,
-                })
-              );
-              result = {
-                success: true,
-                webhookUrl: printfulResult.webhookUrl,
-                enabledEvents: printfulResult.enabledEvents as ProviderWebhookEventType[],
-                publicKey: printfulResult.publicKey,
-                expiresAt: printfulResult.expiresAt,
-              };
-              providerSecretKey = printfulResult.secretKey;
-            } else if (input.provider === 'lulu') {
-              const luluProvider = runtime.getProvider('lulu');
-              if (!luluProvider) {
-                throw new ORPCError('BAD_REQUEST', { message: 'Lulu provider not configured' });
-              }
-
-              if (!secrets.LULU_CLIENT_KEY || !secrets.LULU_CLIENT_SECRET) {
-                throw new ORPCError('BAD_REQUEST', { message: 'Lulu credentials are not configured' });
-              }
-
-              const { LuluService } = await import('./services/fulfillment/lulu/service');
-              const luluService = new LuluService({
-                clientKey: secrets.LULU_CLIENT_KEY,
-                clientSecret: secrets.LULU_CLIENT_SECRET,
-                environment: luluEnvironment,
-              });
-
-              const luluResult = await managedRuntime.runPromise(
-                luluService.configureWebhook(webhookUrl)
-              );
-              result = {
-                success: true,
-                webhookUrl: luluResult.webhookUrl,
-                enabledEvents: ['PRINT_JOB_STATUS_CHANGED'],
-                publicKey: luluResult.publicKey,
-                expiresAt: luluResult.expiresAt,
-              };
-            } else if (input.provider === 'manual') {
-              result = {
-                success: true,
-                webhookUrl: '',
-                enabledEvents: [],
-                publicKey: null,
-                expiresAt: null,
-                settings: input.settings,
-              };
-            } else {
-              throw new ORPCError('BAD_REQUEST', { message: `Unknown provider: ${input.provider}` });
+        let result: ConfigureWebhookOutput;
+        let providerSecretKey: string | null = null;
+        try {
+          if (input.provider === "printful") {
+            const printfulProvider = runtime.getProvider("printful");
+            if (!printfulProvider) {
+              throw new ORPCError("BAD_REQUEST", { message: "Printful provider not configured" });
             }
-          } catch (error) {
-            console.error(`[configureWebhook] Failed to configure ${input.provider} webhooks:`, error);
-            if (error instanceof ORPCError) throw error;
-            throw new ORPCError('INTERNAL_SERVER_ERROR', {
-              message: error instanceof Error ? error.message : 'Failed to configure webhook',
-            });
-          }
 
-          try {
-            await managedRuntime.runPromise(
-              Effect.gen(function* () {
-                const store = yield* ProviderConfigStore;
-                yield* store.upsertConfig({
-                  provider: input.provider,
-                  enabled: true,
-                  webhookUrl: result.webhookUrl,
-                  webhookUrlOverride: webhookUrl,
-                  enabledEvents: result.enabledEvents,
-                  publicKey: result.publicKey,
-                  secretKey: providerSecretKey,
-                  settings: result.settings ?? undefined,
-                  lastConfiguredAt: Date.now(),
-                  expiresAt: result.expiresAt,
-                });
+            const { PrintfulService } = await import("./services/fulfillment/printful/service");
+            const printfulService = new PrintfulService(
+              secrets.PRINTFUL_API_KEY!,
+              secrets.PRINTFUL_STORE_ID!,
+            );
+
+            const printfulResult = await managedRuntime.runPromise(
+              printfulService.configureWebhooks({
+                defaultUrl: webhookUrl,
+                events: (input.events ?? []).filter(
+                  (event): event is PrintfulWebhookEventType =>
+                    event !== "PRINT_JOB_STATUS_CHANGED",
+                ),
+                expiresAt: input.expiresAt,
               }),
             );
-          } catch (error) {
-            console.error(
-              "[configureWebhook] Failed to save webhook config:",
-              error,
-            );
-            throw new ORPCError("INTERNAL_SERVER_ERROR", {
-              message:
-                error instanceof Error
-                  ? error.message
-                  : "Failed to save webhook configuration",
+            result = {
+              success: true,
+              webhookUrl: printfulResult.webhookUrl,
+              enabledEvents: printfulResult.enabledEvents as ProviderWebhookEventType[],
+              publicKey: printfulResult.publicKey,
+              expiresAt: printfulResult.expiresAt,
+            };
+            providerSecretKey = printfulResult.secretKey;
+          } else if (input.provider === "lulu") {
+            const luluProvider = runtime.getProvider("lulu");
+            if (!luluProvider) {
+              throw new ORPCError("BAD_REQUEST", { message: "Lulu provider not configured" });
+            }
+
+            if (!secrets.LULU_CLIENT_KEY || !secrets.LULU_CLIENT_SECRET) {
+              throw new ORPCError("BAD_REQUEST", {
+                message: "Lulu credentials are not configured",
+              });
+            }
+
+            const { LuluService } = await import("./services/fulfillment/lulu/service");
+            const luluService = new LuluService({
+              clientKey: secrets.LULU_CLIENT_KEY,
+              clientSecret: secrets.LULU_CLIENT_SECRET,
+              environment: luluEnvironment,
             });
+
+            const luluResult = await managedRuntime.runPromise(
+              luluService.configureWebhook(webhookUrl),
+            );
+            result = {
+              success: true,
+              webhookUrl: luluResult.webhookUrl,
+              enabledEvents: ["PRINT_JOB_STATUS_CHANGED"],
+              publicKey: luluResult.publicKey,
+              expiresAt: luluResult.expiresAt,
+            };
+          } else if (input.provider === "manual") {
+            result = {
+              success: true,
+              webhookUrl: "",
+              enabledEvents: [],
+              publicKey: null,
+              expiresAt: null,
+              settings: input.settings,
+            };
+          } else {
+            throw new ORPCError("BAD_REQUEST", { message: `Unknown provider: ${input.provider}` });
+          }
+        } catch (error) {
+          console.error(
+            `[configureWebhook] Failed to configure ${input.provider} webhooks:`,
+            error,
+          );
+          if (error instanceof ORPCError) throw error;
+          throw new ORPCError("INTERNAL_SERVER_ERROR", {
+            message: error instanceof Error ? error.message : "Failed to configure webhook",
+          });
+        }
+
+        try {
+          await managedRuntime.runPromise(
+            Effect.gen(function* () {
+              const store = yield* ProviderConfigStore;
+              yield* store.upsertConfig({
+                provider: input.provider,
+                enabled: true,
+                webhookUrl: result.webhookUrl,
+                webhookUrlOverride: webhookUrl,
+                enabledEvents: result.enabledEvents,
+                publicKey: result.publicKey,
+                secretKey: providerSecretKey,
+                settings: result.settings ?? undefined,
+                lastConfiguredAt: Date.now(),
+                expiresAt: result.expiresAt,
+              });
+            }),
+          );
+        } catch (error) {
+          console.error("[configureWebhook] Failed to save webhook config:", error);
+          throw new ORPCError("INTERNAL_SERVER_ERROR", {
+            message:
+              error instanceof Error ? error.message : "Failed to save webhook configuration",
+          });
+        }
+
+        return {
+          success: true,
+          webhookUrl: result.webhookUrl,
+          enabledEvents: result.enabledEvents,
+          publicKey: result.publicKey,
+          expiresAt: result.expiresAt,
+        };
+      }),
+
+      disableWebhook: builder.disableWebhook.use(requireAdmin).handler(async ({ input }) => {
+        try {
+          if (input.provider === "printful") {
+            const printfulProvider = runtime.getProvider("printful");
+            if (!printfulProvider) {
+              throw new ORPCError("BAD_REQUEST", { message: "Printful provider not configured" });
+            }
+
+            const { PrintfulService } = await import("./services/fulfillment/printful/service");
+            const printfulService = new PrintfulService(
+              secrets.PRINTFUL_API_KEY!,
+              secrets.PRINTFUL_STORE_ID!,
+            );
+
+            await managedRuntime.runPromise(printfulService.disableWebhooks());
+          } else if (input.provider === "lulu") {
+            const luluProvider = runtime.getProvider("lulu");
+            if (!luluProvider || !secrets.LULU_CLIENT_KEY || !secrets.LULU_CLIENT_SECRET) {
+              throw new ORPCError("BAD_REQUEST", { message: "Lulu provider not configured" });
+            }
+
+            const existingConfig = await managedRuntime.runPromise(
+              Effect.gen(function* () {
+                const store = yield* ProviderConfigStore;
+                return yield* store.getConfig("lulu");
+              }),
+            );
+
+            const { LuluService } = await import("./services/fulfillment/lulu/service");
+            const luluService = new LuluService({
+              clientKey: secrets.LULU_CLIENT_KEY,
+              clientSecret: secrets.LULU_CLIENT_SECRET,
+              environment: luluEnvironment,
+            });
+
+            await managedRuntime.runPromise(
+              luluService.disableWebhooks(existingConfig?.webhookUrl),
+            );
+          } else if (input.provider === "manual") {
+            // Manual provider has no webhook to disable — no-op
+          } else {
+            throw new ORPCError("BAD_REQUEST", { message: `Unknown provider: ${input.provider}` });
+          }
+        } catch (error) {
+          console.error(`[disableWebhook] Failed to disable ${input.provider} webhooks:`, error);
+          if (error instanceof ORPCError) throw error;
+          throw new ORPCError("INTERNAL_SERVER_ERROR", {
+            message: error instanceof Error ? error.message : "Failed to disable webhook",
+          });
+        }
+
+        try {
+          await managedRuntime.runPromise(
+            Effect.gen(function* () {
+              const store = yield* ProviderConfigStore;
+              yield* store.clearWebhookConfig(input.provider);
+            }),
+          );
+        } catch (error) {
+          console.error("[disableWebhook] Failed to clear webhook config:", error);
+          throw new ORPCError("INTERNAL_SERVER_ERROR", {
+            message:
+              error instanceof Error ? error.message : "Failed to clear webhook configuration",
+          });
+        }
+
+        return { success: true };
+      }),
+
+      testProvider: builder.testProvider.use(requireAdmin).handler(async ({ input }) => {
+        try {
+          let result: { provider: string; status: string; timestamp: string };
+          if (input.provider === "printful") {
+            const printfulProvider = runtime.getProvider("printful");
+            if (!printfulProvider) {
+              throw new ORPCError("BAD_REQUEST", { message: "Printful provider not configured" });
+            }
+
+            const { PrintfulService } = await import("./services/fulfillment/printful/service");
+            const printfulService = new PrintfulService(
+              secrets.PRINTFUL_API_KEY!,
+              secrets.PRINTFUL_STORE_ID!,
+            );
+            result = await managedRuntime.runPromise(printfulService.ping());
+          } else if (input.provider === "lulu") {
+            if (
+              !runtime.getProvider("lulu") ||
+              !secrets.LULU_CLIENT_KEY ||
+              !secrets.LULU_CLIENT_SECRET
+            ) {
+              throw new ORPCError("BAD_REQUEST", { message: "Lulu provider not configured" });
+            }
+
+            const { LuluService } = await import("./services/fulfillment/lulu/service");
+            const luluService = new LuluService({
+              clientKey: secrets.LULU_CLIENT_KEY,
+              clientSecret: secrets.LULU_CLIENT_SECRET,
+              environment: luluEnvironment,
+            });
+            result = await managedRuntime.runPromise(luluService.ping());
+          } else if (input.provider === "manual") {
+            const manualProvider = runtime.getProvider("manual");
+            if (!manualProvider) {
+              throw new ORPCError("BAD_REQUEST", { message: "Manual provider not configured" });
+            }
+            result = await manualProvider.client.ping();
+          } else {
+            throw new ORPCError("BAD_REQUEST", { message: `Unknown provider: ${input.provider}` });
           }
 
           return {
             success: true,
-            webhookUrl: result.webhookUrl,
-            enabledEvents: result.enabledEvents,
-            publicKey: result.publicKey,
-            expiresAt: result.expiresAt,
+            timestamp: result.timestamp,
+            message: `${result.provider}: ${result.status}`,
           };
-        }),
-
-      disableWebhook: builder.disableWebhook
-        .use(requireAdmin)
-        .handler(async ({ input }) => {
-          try {
-            if (input.provider === 'printful') {
-              const printfulProvider = runtime.getProvider('printful');
-              if (!printfulProvider) {
-                throw new ORPCError('BAD_REQUEST', { message: 'Printful provider not configured' });
-              }
-
-              const { PrintfulService } = await import('./services/fulfillment/printful/service');
-              const printfulService = new PrintfulService(
-                secrets.PRINTFUL_API_KEY!,
-                secrets.PRINTFUL_STORE_ID!
-              );
-
-              await managedRuntime.runPromise(printfulService.disableWebhooks());
-            } else if (input.provider === 'lulu') {
-              const luluProvider = runtime.getProvider('lulu');
-              if (!luluProvider || !secrets.LULU_CLIENT_KEY || !secrets.LULU_CLIENT_SECRET) {
-                throw new ORPCError('BAD_REQUEST', { message: 'Lulu provider not configured' });
-              }
-
-              const existingConfig = await managedRuntime.runPromise(
-                Effect.gen(function* () {
-                  const store = yield* ProviderConfigStore;
-                  return yield* store.getConfig('lulu');
-                })
-              );
-
-              const { LuluService } = await import('./services/fulfillment/lulu/service');
-              const luluService = new LuluService({
-                clientKey: secrets.LULU_CLIENT_KEY,
-                clientSecret: secrets.LULU_CLIENT_SECRET,
-                environment: luluEnvironment,
-              });
-
-              await managedRuntime.runPromise(luluService.disableWebhooks(existingConfig?.webhookUrl));
-            } else if (input.provider === 'manual') {
-              // Manual provider has no webhook to disable — no-op
-            } else {
-              throw new ORPCError('BAD_REQUEST', { message: `Unknown provider: ${input.provider}` });
-            }
-          } catch (error) {
-            console.error(`[disableWebhook] Failed to disable ${input.provider} webhooks:`, error);
-            if (error instanceof ORPCError) throw error;
-            throw new ORPCError('INTERNAL_SERVER_ERROR', {
-              message: error instanceof Error ? error.message : 'Failed to disable webhook',
-            });
-          }
-
-          try {
-            await managedRuntime.runPromise(
-              Effect.gen(function* () {
-                const store = yield* ProviderConfigStore;
-                yield* store.clearWebhookConfig(input.provider);
-              }),
-            );
-          } catch (error) {
-            console.error(
-              "[disableWebhook] Failed to clear webhook config:",
-              error,
-            );
-            throw new ORPCError("INTERNAL_SERVER_ERROR", {
-              message:
-                error instanceof Error
-                  ? error.message
-                  : "Failed to clear webhook configuration",
-            });
-          }
-
-          return { success: true };
-        }),
-
-      testProvider: builder.testProvider
-        .use(requireAdmin)
-        .handler(async ({ input }) => {
-          try {
-            let result: { provider: string; status: string; timestamp: string };
-            if (input.provider === 'printful') {
-              const printfulProvider = runtime.getProvider('printful');
-              if (!printfulProvider) {
-                throw new ORPCError('BAD_REQUEST', { message: 'Printful provider not configured' });
-              }
-
-              const { PrintfulService } = await import('./services/fulfillment/printful/service');
-              const printfulService = new PrintfulService(
-                secrets.PRINTFUL_API_KEY!,
-                secrets.PRINTFUL_STORE_ID!
-              );
-              result = await managedRuntime.runPromise(printfulService.ping());
-            } else if (input.provider === 'lulu') {
-              if (!runtime.getProvider('lulu') || !secrets.LULU_CLIENT_KEY || !secrets.LULU_CLIENT_SECRET) {
-                throw new ORPCError('BAD_REQUEST', { message: 'Lulu provider not configured' });
-              }
-
-              const { LuluService } = await import('./services/fulfillment/lulu/service');
-              const luluService = new LuluService({
-                clientKey: secrets.LULU_CLIENT_KEY,
-                clientSecret: secrets.LULU_CLIENT_SECRET,
-                environment: luluEnvironment,
-              });
-              result = await managedRuntime.runPromise(luluService.ping());
-} else if (input.provider === 'manual') {
-               const manualProvider = runtime.getProvider('manual');
-               if (!manualProvider) {
-                 throw new ORPCError('BAD_REQUEST', { message: 'Manual provider not configured' });
-               }
-               result = await manualProvider.client.ping();
-            } else {
-              throw new ORPCError('BAD_REQUEST', { message: `Unknown provider: ${input.provider}` });
-            }
-
-            return {
-              success: true,
-              timestamp: result.timestamp,
-              message: `${result.provider}: ${result.status}`,
-            };
-          } catch (error) {
-            return {
-              success: false,
-              message:
-                error instanceof Error
-                  ? error.message
-                  : "Connection test failed",
-              timestamp: new Date().toISOString(),
-            };
-          }
-        }),
+        } catch (error) {
+          return {
+            success: false,
+            message: error instanceof Error ? error.message : "Connection test failed",
+            timestamp: new Date().toISOString(),
+          };
+        }
+      }),
 
       getProviderTestState: builder.getProviderTestState
         .use(requireAdmin)
@@ -1867,7 +1826,7 @@ export default createPlugin({
             if (error instanceof ORPCError) {
               throw error;
             }
-            throw new ORPCError('INTERNAL_SERVER_ERROR', {
+            throw new ORPCError("INTERNAL_SERVER_ERROR", {
               message: error instanceof Error ? error.message : String(error),
             });
           }
@@ -1892,7 +1851,7 @@ export default createPlugin({
             if (error instanceof ORPCError) {
               throw error;
             }
-            throw new ORPCError('INTERNAL_SERVER_ERROR', {
+            throw new ORPCError("INTERNAL_SERVER_ERROR", {
               message: error instanceof Error ? error.message : String(error),
             });
           }
@@ -1918,7 +1877,7 @@ export default createPlugin({
             if (error instanceof ORPCError) {
               throw error;
             }
-            throw new ORPCError('INTERNAL_SERVER_ERROR', {
+            throw new ORPCError("INTERNAL_SERVER_ERROR", {
               message: error instanceof Error ? error.message : String(error),
             });
           }
@@ -1929,9 +1888,9 @@ export default createPlugin({
       getProviderFieldConfigs: builder.getProviderFieldConfigs
         .use(requireAdmin)
         .handler(async ({ input }) => {
-          const { PRINTFUL_PROVIDER_FIELDS } = await import('./services/fulfillment/printful');
-          const { LULU_PROVIDER_FIELDS } = await import('./services/fulfillment/lulu');
-          const { MANUAL_PROVIDER_FIELDS } = await import('./services/fulfillment/manual');
+          const { PRINTFUL_PROVIDER_FIELDS } = await import("./services/fulfillment/printful");
+          const { LULU_PROVIDER_FIELDS } = await import("./services/fulfillment/lulu");
+          const { MANUAL_PROVIDER_FIELDS } = await import("./services/fulfillment/manual");
 
           const allConfigs = {
             printful: PRINTFUL_PROVIDER_FIELDS,
@@ -1946,39 +1905,38 @@ export default createPlugin({
           return allConfigs;
         }),
 
-      syncProducts: builder.syncProducts
-        .use(requireAdmin)
-        .handler(
-          async function* ({ input, signal }) {
-            const provider = runtime.getProvider(input.provider);
-            if (!provider) {
-              throw new ORPCError('BAD_REQUEST', {
-                message: `Provider ${input.provider} not configured`,
-              });
-            }
+      syncProducts: builder.syncProducts.use(requireAdmin).handler(async function* ({
+        input,
+        signal,
+      }) {
+        const provider = runtime.getProvider(input.provider);
+        if (!provider) {
+          throw new ORPCError("BAD_REQUEST", {
+            message: `Provider ${input.provider} not configured`,
+          });
+        }
 
-            if (!provider.service) {
-              throw new ORPCError('BAD_REQUEST', {
-                message: `Provider ${input.provider} does not support sync`,
-              });
-            }
+        if (!provider.service) {
+          throw new ORPCError("BAD_REQUEST", {
+            message: `Provider ${input.provider} does not support sync`,
+          });
+        }
 
-            const upsertProduct = async (product: any, syncedAt?: Date) => {
-              return await managedRuntime.runPromise(
-                Effect.gen(function* () {
-                  const store = yield* ProductStore;
-                  return yield* store.upsert(product, syncedAt);
-                })
-              );
-            };
+        const upsertProduct = async (product: any, syncedAt?: Date) => {
+          return await managedRuntime.runPromise(
+            Effect.gen(function* () {
+              const store = yield* ProductStore;
+              return yield* store.upsert(product, syncedAt);
+            }),
+          );
+        };
 
-            const syncGenerator = provider.service.syncProducts(upsertProduct, signal);
+        const syncGenerator = provider.service.syncProducts(upsertProduct, signal);
 
-            for await (const event of syncGenerator) {
-              yield event;
-            }
-          },
-        ),
+        for await (const event of syncGenerator) {
+          yield event;
+        }
+      }),
 
       getCategories: builder.getCategories.handler(async () => {
         const exit = await managedRuntime.runPromiseExit(
@@ -2001,9 +1959,7 @@ export default createPlugin({
         return exit.value;
       }),
 
-      createCategory: builder.createCategory
-        .use(requireAdmin)
-        .handler(async ({ input }) => {
+      createCategory: builder.createCategory.use(requireAdmin).handler(async ({ input }) => {
         const exit = await managedRuntime.runPromiseExit(
           Effect.gen(function* () {
             const service = yield* ProductService;
@@ -2024,9 +1980,7 @@ export default createPlugin({
         return exit.value;
       }),
 
-      deleteCategory: builder.deleteCategory
-        .use(requireAdmin)
-        .handler(async ({ input }) => {
+      deleteCategory: builder.deleteCategory.use(requireAdmin).handler(async ({ input }) => {
         const exit = await managedRuntime.runPromiseExit(
           Effect.gen(function* () {
             const service = yield* ProductService;
@@ -2049,15 +2003,11 @@ export default createPlugin({
 
       updateProductCategories: builder.updateProductCategories
         .use(requireAdmin)
-        .handler(
-        async ({ input }) => {
+        .handler(async ({ input }) => {
           const exit = await managedRuntime.runPromiseExit(
             Effect.gen(function* () {
               const service = yield* ProductService;
-              return yield* service.updateProductCollections(
-                input.id,
-                input.categoryIds,
-              );
+              return yield* service.updateProductCollections(input.id, input.categoryIds);
             }),
           );
 
@@ -2072,45 +2022,36 @@ export default createPlugin({
           }
 
           return exit.value;
-        },
-      ),
+        }),
 
-      updateProductTags: builder.updateProductTags
-        .use(requireAdmin)
-        .handler(
-        async ({ input }) => {
-          const exit = await managedRuntime.runPromiseExit(
-            Effect.gen(function* () {
-              const service = yield* ProductService;
-              return yield* service.updateProductTags(input.id, input.tags);
-            }),
-          );
+      updateProductTags: builder.updateProductTags.use(requireAdmin).handler(async ({ input }) => {
+        const exit = await managedRuntime.runPromiseExit(
+          Effect.gen(function* () {
+            const service = yield* ProductService;
+            return yield* service.updateProductTags(input.id, input.tags);
+          }),
+        );
 
-          if (Exit.isFailure(exit)) {
-            const error = Cause.squash(exit.cause);
-            if (error instanceof ORPCError) {
-              throw error;
-            }
-            throw new ORPCError("INTERNAL_SERVER_ERROR", {
-              message: error instanceof Error ? error.message : String(error),
-            });
+        if (Exit.isFailure(exit)) {
+          const error = Cause.squash(exit.cause);
+          if (error instanceof ORPCError) {
+            throw error;
           }
+          throw new ORPCError("INTERNAL_SERVER_ERROR", {
+            message: error instanceof Error ? error.message : String(error),
+          });
+        }
 
-          return exit.value;
-        },
-      ),
+        return exit.value;
+      }),
 
       updateProductFeatured: builder.updateProductFeatured
         .use(requireAdmin)
-        .handler(
-        async ({ input }) => {
+        .handler(async ({ input }) => {
           const exit = await managedRuntime.runPromiseExit(
             Effect.gen(function* () {
               const service = yield* ProductService;
-              return yield* service.updateProductFeatured(
-                input.id,
-                input.featured,
-              );
+              return yield* service.updateProductFeatured(input.id, input.featured);
             }),
           );
 
@@ -2125,88 +2066,40 @@ export default createPlugin({
           }
 
           return exit.value;
-        },
-      ),
+        }),
 
-      updateProductType: builder.updateProductType
-        .use(requireAdmin)
-        .handler(
-        async ({ input }) => {
-          const exit = await managedRuntime.runPromiseExit(
-            Effect.gen(function* () {
-              const productStore = yield* ProductStore;
-              const product = yield* productStore.updateProductType(
-                input.id,
-                input.productTypeSlug,
-              );
-              if (!product) {
-                return { success: false };
-              }
-              return { success: true, product };
-            }),
-          );
-
-          if (Exit.isFailure(exit)) {
-            const error = Cause.squash(exit.cause);
-            if (error instanceof ORPCError) {
-              throw error;
+      updateProductType: builder.updateProductType.use(requireAdmin).handler(async ({ input }) => {
+        const exit = await managedRuntime.runPromiseExit(
+          Effect.gen(function* () {
+            const productStore = yield* ProductStore;
+            const product = yield* productStore.updateProductType(input.id, input.productTypeSlug);
+            if (!product) {
+              return { success: false };
             }
-            throw new ORPCError("INTERNAL_SERVER_ERROR", {
-              message: error instanceof Error ? error.message : String(error),
-            });
-          }
+            return { success: true, product };
+          }),
+        );
 
-          return exit.value;
-        },
-      ),
+        if (Exit.isFailure(exit)) {
+          const error = Cause.squash(exit.cause);
+          if (error instanceof ORPCError) {
+            throw error;
+          }
+          throw new ORPCError("INTERNAL_SERVER_ERROR", {
+            message: error instanceof Error ? error.message : String(error),
+          });
+        }
+
+        return exit.value;
+      }),
 
       updateProductMetadata: builder.updateProductMetadata
-        .use(requireAdmin)
-        .handler(
-        async ({ input }) => {
-          const exit = await managedRuntime.runPromiseExit(
-            Effect.gen(function* () {
-              const productStore = yield* ProductStore;
-              const product = yield* productStore.updateMetadata(
-                input.id,
-                input.metadata,
-              );
-              if (!product) {
-                return { success: false };
-              }
-              return { success: true, product };
-            }),
-          );
-
-          if (Exit.isFailure(exit)) {
-            const error = Cause.squash(exit.cause);
-            if (error instanceof ORPCError) {
-              throw error;
-            }
-            throw new ORPCError("INTERNAL_SERVER_ERROR", {
-              message: error instanceof Error ? error.message : String(error),
-            });
-          }
-
-          return exit.value;
-        },
-      ),
-
-      updateProduct: builder.updateProduct
         .use(requireAdmin)
         .handler(async ({ input }) => {
           const exit = await managedRuntime.runPromiseExit(
             Effect.gen(function* () {
               const productStore = yield* ProductStore;
-              const product = yield* productStore.updateProduct(input.id, {
-                name: input.name,
-                description: input.description,
-                price: input.price,
-                priceLocked: input.priceLocked,
-                variants: input.variants,
-                images: input.images,
-                thumbnailImage: input.thumbnailImage,
-              });
+              const product = yield* productStore.updateMetadata(input.id, input.metadata);
               if (!product) {
                 return { success: false };
               }
@@ -2227,16 +2120,44 @@ export default createPlugin({
           return exit.value;
         }),
 
-      checkPurchaseGateAccess: builder.checkPurchaseGateAccess.handler(
-        async ({ input }) => {
-          const hasAccess = await checkPurchaseGateAccess(
-            input.pluginId,
-            input.nearAccountId,
-          );
+      updateProduct: builder.updateProduct.use(requireAdmin).handler(async ({ input }) => {
+        const exit = await managedRuntime.runPromiseExit(
+          Effect.gen(function* () {
+            const productStore = yield* ProductStore;
+            const product = yield* productStore.updateProduct(input.id, {
+              name: input.name,
+              description: input.description,
+              price: input.price,
+              priceLocked: input.priceLocked,
+              variants: input.variants,
+              images: input.images,
+              thumbnailImage: input.thumbnailImage,
+            });
+            if (!product) {
+              return { success: false };
+            }
+            return { success: true, product };
+          }),
+        );
 
-          return { hasAccess };
-        },
-      ),
+        if (Exit.isFailure(exit)) {
+          const error = Cause.squash(exit.cause);
+          if (error instanceof ORPCError) {
+            throw error;
+          }
+          throw new ORPCError("INTERNAL_SERVER_ERROR", {
+            message: error instanceof Error ? error.message : String(error),
+          });
+        }
+
+        return exit.value;
+      }),
+
+      checkPurchaseGateAccess: builder.checkPurchaseGateAccess.handler(async ({ input }) => {
+        const hasAccess = await checkPurchaseGateAccess(input.pluginId, input.nearAccountId);
+
+        return { hasAccess };
+      }),
 
       getProductTypes: builder.getProductTypes.handler(async () => {
         const exit = await managedRuntime.runPromiseExit(
@@ -2260,36 +2181,31 @@ export default createPlugin({
         return exit.value;
       }),
 
-      createProductType: builder.createProductType
-        .use(requireAdmin)
-        .handler(
-        async ({ input }) => {
-          const exit = await managedRuntime.runPromiseExit(
-            Effect.gen(function* () {
-              const store = yield* ProductTypeStore;
-              const productType = yield* store.create(input);
-              return { productType };
-            }),
-          );
+      createProductType: builder.createProductType.use(requireAdmin).handler(async ({ input }) => {
+        const exit = await managedRuntime.runPromiseExit(
+          Effect.gen(function* () {
+            const store = yield* ProductTypeStore;
+            const productType = yield* store.create(input);
+            return { productType };
+          }),
+        );
 
-          if (Exit.isFailure(exit)) {
-            const error = Cause.squash(exit.cause);
-            if (error instanceof ORPCError) {
-              throw error;
-            }
-            throw new ORPCError("INTERNAL_SERVER_ERROR", {
-              message: error instanceof Error ? error.message : String(error),
-            });
+        if (Exit.isFailure(exit)) {
+          const error = Cause.squash(exit.cause);
+          if (error instanceof ORPCError) {
+            throw error;
           }
+          throw new ORPCError("INTERNAL_SERVER_ERROR", {
+            message: error instanceof Error ? error.message : String(error),
+          });
+        }
 
-          return exit.value;
-        },
-      ),
+        return exit.value;
+      }),
 
       updateProductTypeItem: builder.updateProductTypeItem
         .use(requireAdmin)
-        .handler(
-        async ({ input }) => {
+        .handler(async ({ input }) => {
           const exit = await managedRuntime.runPromiseExit(
             Effect.gen(function* () {
               const store = yield* ProductTypeStore;
@@ -2313,34 +2229,29 @@ export default createPlugin({
           }
 
           return exit.value;
-        },
-      ),
+        }),
 
-      deleteProductType: builder.deleteProductType
-        .use(requireAdmin)
-        .handler(
-        async ({ input }) => {
-          const exit = await managedRuntime.runPromiseExit(
-            Effect.gen(function* () {
-              const store = yield* ProductTypeStore;
-              const success = yield* store.delete(input.slug);
-              return { success };
-            }),
-          );
+      deleteProductType: builder.deleteProductType.use(requireAdmin).handler(async ({ input }) => {
+        const exit = await managedRuntime.runPromiseExit(
+          Effect.gen(function* () {
+            const store = yield* ProductTypeStore;
+            const success = yield* store.delete(input.slug);
+            return { success };
+          }),
+        );
 
-          if (Exit.isFailure(exit)) {
-            const error = Cause.squash(exit.cause);
-            if (error instanceof ORPCError) {
-              throw error;
-            }
-            throw new ORPCError("INTERNAL_SERVER_ERROR", {
-              message: error instanceof Error ? error.message : String(error),
-            });
+        if (Exit.isFailure(exit)) {
+          const error = Cause.squash(exit.cause);
+          if (error instanceof ORPCError) {
+            throw error;
           }
+          throw new ORPCError("INTERNAL_SERVER_ERROR", {
+            message: error instanceof Error ? error.message : String(error),
+          });
+        }
 
-          return exit.value;
-        },
-      ),
+        return exit.value;
+      }),
 
       // ─── Admin: Catalog Browsing ───
 
@@ -2349,7 +2260,7 @@ export default createPlugin({
         .handler(async ({ input }) => {
           const provider = runtime.getProvider(input.provider);
           if (!provider) {
-            throw new ORPCError('NOT_FOUND', {
+            throw new ORPCError("NOT_FOUND", {
               message: `Provider ${input.provider} not configured`,
             });
           }
@@ -2364,7 +2275,7 @@ export default createPlugin({
         .handler(async ({ input, errors }) => {
           const provider = runtime.getProvider(input.provider);
           if (!provider) {
-            throw new ORPCError('NOT_FOUND', {
+            throw new ORPCError("NOT_FOUND", {
               message: `Provider ${input.provider} not configured`,
             });
           }
@@ -2373,7 +2284,7 @@ export default createPlugin({
           } catch {
             throw errors.NOT_FOUND({
               message: `Catalog product ${input.id} not found`,
-              data: { resource: 'catalog_product', resourceId: input.id },
+              data: { resource: "catalog_product", resourceId: input.id },
             });
           }
         }),
@@ -2383,7 +2294,7 @@ export default createPlugin({
         .handler(async ({ input }) => {
           const provider = runtime.getProvider(input.provider);
           if (!provider) {
-            throw new ORPCError('NOT_FOUND', {
+            throw new ORPCError("NOT_FOUND", {
               message: `Provider ${input.provider} not configured`,
             });
           }
@@ -2395,12 +2306,14 @@ export default createPlugin({
         .handler(async ({ input }) => {
           const provider = runtime.getProvider(input.provider);
           if (!provider) {
-            throw new ORPCError('NOT_FOUND', {
+            throw new ORPCError("NOT_FOUND", {
               message: `Provider ${input.provider} not configured`,
             });
           }
           try {
-            const result = await provider.client.getPlacements({ providerConfig: { catalogProductId: input.catalogProductId } });
+            const result = await provider.client.getPlacements({
+              providerConfig: { catalogProductId: input.catalogProductId },
+            });
             return { placements: result.placements };
           } catch {
             return { placements: [] };
@@ -2414,8 +2327,8 @@ export default createPlugin({
         .handler(async ({ input }) => {
           const storageProvider = runtime.getStorageProvider();
           if (!storageProvider) {
-            throw new ORPCError('INTERNAL_SERVER_ERROR', {
-              message: 'Storage provider not configured',
+            throw new ORPCError("INTERNAL_SERVER_ERROR", {
+              message: "Storage provider not configured",
             });
           }
           return await storageProvider.client.requestUpload(input);
@@ -2427,8 +2340,12 @@ export default createPlugin({
           const exit = await managedRuntime.runPromiseExit(
             Effect.gen(function* () {
               const service = yield* AssetService;
-              const contentType = input.contentType || 'image/png';
-              const assetType = contentType.startsWith('image/') ? 'image' : contentType === 'application/pdf' ? 'pdf' : 'file';
+              const contentType = input.contentType || "image/png";
+              const assetType = contentType.startsWith("image/")
+                ? "image"
+                : contentType === "application/pdf"
+                  ? "pdf"
+                  : "file";
               return yield* service.create({
                 id: input.assetId,
                 url: input.publicUrl,
@@ -2441,121 +2358,118 @@ export default createPlugin({
           );
           if (Exit.isFailure(exit)) {
             const error = Cause.squash(exit.cause);
-            throw new ORPCError('INTERNAL_SERVER_ERROR', {
+            throw new ORPCError("INTERNAL_SERVER_ERROR", {
               message: error instanceof Error ? error.message : String(error),
             });
           }
           return exit.value;
         }),
 
-      getAssetSignedUrl: builder.getAssetSignedUrl
-        .use(requireAdmin)
-        .handler(async ({ input }) => {
-          const exit = await managedRuntime.runPromiseExit(
-            Effect.gen(function* () {
-              const service = yield* AssetService;
-              const asset = yield* service.get(input.id);
-              if (!asset) {
-                return yield* Effect.fail(new Error('Asset not found'));
-              }
-              if (!asset.storageKey) {
-                return yield* Effect.fail(new Error('Asset has no storage key'));
-              }
-              const storageProvider = runtime.getStorageProvider();
-              if (!storageProvider) {
-                return yield* Effect.fail(new Error('Storage provider not configured'));
-              }
-              const storageKey = asset.storageKey;
-              return yield* Effect.tryPromise(async () =>
-                storageProvider.client.getSignedUrl({ key: storageKey, expiresIn: input.expiresIn ?? 3600 })
-              );
-            }),
+      getAssetSignedUrl: builder.getAssetSignedUrl.use(requireAdmin).handler(async ({ input }) => {
+        const exit = await managedRuntime.runPromiseExit(
+          Effect.gen(function* () {
+            const service = yield* AssetService;
+            const asset = yield* service.get(input.id);
+            if (!asset) {
+              return yield* Effect.fail(new Error("Asset not found"));
+            }
+            if (!asset.storageKey) {
+              return yield* Effect.fail(new Error("Asset has no storage key"));
+            }
+            const storageProvider = runtime.getStorageProvider();
+            if (!storageProvider) {
+              return yield* Effect.fail(new Error("Storage provider not configured"));
+            }
+            const storageKey = asset.storageKey;
+            return yield* Effect.tryPromise(async () =>
+              storageProvider.client.getSignedUrl({
+                key: storageKey,
+                expiresIn: input.expiresIn ?? 3600,
+              }),
+            );
+          }),
+        );
+        if (Exit.isFailure(exit)) {
+          const error = Cause.squash(exit.cause);
+          console.error(
+            "[confirmAssetUpload] Failed:",
+            error instanceof Error ? error.message : String(error),
+            error instanceof Error ? error.cause : "",
           );
-          if (Exit.isFailure(exit)) {
-            const error = Cause.squash(exit.cause);
-            console.error('[confirmAssetUpload] Failed:', error instanceof Error ? error.message : String(error), error instanceof Error ? error.cause : '');
-            throw new ORPCError('INTERNAL_SERVER_ERROR', {
-              message: `Failed to create asset: ${error instanceof Error ? error.message : String(error)}`,
-            });
-          }
-          return exit.value;
-        }),
+          throw new ORPCError("INTERNAL_SERVER_ERROR", {
+            message: `Failed to create asset: ${error instanceof Error ? error.message : String(error)}`,
+          });
+        }
+        return exit.value;
+      }),
 
-      createAsset: builder.createAsset
-        .use(requireAdmin)
-        .handler(async ({ input }) => {
-          const exit = await managedRuntime.runPromiseExit(
-            Effect.gen(function* () {
-              const service = yield* AssetService;
-              return yield* service.create(input);
-            }),
-          );
-          if (Exit.isFailure(exit)) {
-            const error = Cause.squash(exit.cause);
-            throw new ORPCError('INTERNAL_SERVER_ERROR', {
-              message: error instanceof Error ? error.message : String(error),
-            });
-          }
-          return exit.value;
-        }),
+      createAsset: builder.createAsset.use(requireAdmin).handler(async ({ input }) => {
+        const exit = await managedRuntime.runPromiseExit(
+          Effect.gen(function* () {
+            const service = yield* AssetService;
+            return yield* service.create(input);
+          }),
+        );
+        if (Exit.isFailure(exit)) {
+          const error = Cause.squash(exit.cause);
+          throw new ORPCError("INTERNAL_SERVER_ERROR", {
+            message: error instanceof Error ? error.message : String(error),
+          });
+        }
+        return exit.value;
+      }),
 
-      listAssets: builder.listAssets
-        .use(requireAdmin)
-        .handler(async ({ input }) => {
-          const exit = await managedRuntime.runPromiseExit(
-            Effect.gen(function* () {
-              const service = yield* AssetService;
-              return yield* service.list(input);
-            }),
-          );
-          if (Exit.isFailure(exit)) {
-            const error = Cause.squash(exit.cause);
-            throw new ORPCError('INTERNAL_SERVER_ERROR', {
-              message: error instanceof Error ? error.message : String(error),
-            });
-          }
-          return exit.value;
-        }),
+      listAssets: builder.listAssets.use(requireAdmin).handler(async ({ input }) => {
+        const exit = await managedRuntime.runPromiseExit(
+          Effect.gen(function* () {
+            const service = yield* AssetService;
+            return yield* service.list(input);
+          }),
+        );
+        if (Exit.isFailure(exit)) {
+          const error = Cause.squash(exit.cause);
+          throw new ORPCError("INTERNAL_SERVER_ERROR", {
+            message: error instanceof Error ? error.message : String(error),
+          });
+        }
+        return exit.value;
+      }),
 
-      deleteAsset: builder.deleteAsset
-        .use(requireAdmin)
-        .handler(async ({ input }) => {
-          const exit = await managedRuntime.runPromiseExit(
-            Effect.gen(function* () {
-              const service = yield* AssetService;
-              yield* service.delete(input.id);
-              return { success: true };
-            }),
-          );
-          if (Exit.isFailure(exit)) {
-            const error = Cause.squash(exit.cause);
-            throw new ORPCError('INTERNAL_SERVER_ERROR', {
-              message: error instanceof Error ? error.message : String(error),
-            });
-          }
-          return exit.value;
-        }),
+      deleteAsset: builder.deleteAsset.use(requireAdmin).handler(async ({ input }) => {
+        const exit = await managedRuntime.runPromiseExit(
+          Effect.gen(function* () {
+            const service = yield* AssetService;
+            yield* service.delete(input.id);
+            return { success: true };
+          }),
+        );
+        if (Exit.isFailure(exit)) {
+          const error = Cause.squash(exit.cause);
+          throw new ORPCError("INTERNAL_SERVER_ERROR", {
+            message: error instanceof Error ? error.message : String(error),
+          });
+        }
+        return exit.value;
+      }),
 
       // ─── Admin: Product Builder ───
 
-      buildProduct: builder.buildProduct
-        .use(requireAdmin)
-        .handler(async ({ input }) => {
-          const exit = await managedRuntime.runPromiseExit(
-            Effect.gen(function* () {
-              const service = yield* ProductBuilderService;
-              return yield* service.build(input);
-            }),
-          );
-          if (Exit.isFailure(exit)) {
-            const error = Cause.squash(exit.cause);
-            if (error instanceof ORPCError) throw error;
-            throw new ORPCError('BAD_REQUEST', {
-              message: error instanceof Error ? error.message : String(error),
-            });
-          }
-          return exit.value;
-        }),
+      buildProduct: builder.buildProduct.use(requireAdmin).handler(async ({ input }) => {
+        const exit = await managedRuntime.runPromiseExit(
+          Effect.gen(function* () {
+            const service = yield* ProductBuilderService;
+            return yield* service.build(input);
+          }),
+        );
+        if (Exit.isFailure(exit)) {
+          const error = Cause.squash(exit.cause);
+          if (error instanceof ORPCError) throw error;
+          throw new ORPCError("BAD_REQUEST", {
+            message: error instanceof Error ? error.message : String(error),
+          });
+        }
+        return exit.value;
+      }),
 
       generateProductMockups: builder.generateProductMockups
         .use(requireAdmin)
@@ -2571,7 +2485,7 @@ export default createPlugin({
             if (error instanceof ORPCError) throw error;
             throw errors.NOT_FOUND({
               message: error instanceof Error ? error.message : String(error),
-              data: { resource: 'product', resourceId: input.id },
+              data: { resource: "product", resourceId: input.id },
             });
           }
           return exit.value;

@@ -1,6 +1,6 @@
-import { Effect } from 'every-plugin/effect';
-import Stripe from 'stripe';
-import type { CheckoutSessionInput, CheckoutSessionOutput } from './schema';
+import { Effect } from "every-plugin/effect";
+import Stripe from "stripe";
+import type { CheckoutSessionInput, CheckoutSessionOutput } from "./schema";
 
 export class StripePaymentService {
   private stripe: any;
@@ -8,7 +8,7 @@ export class StripePaymentService {
 
   constructor(secretKey: string, webhookSecret: string) {
     this.stripe = new (Stripe as any)(secretKey, {
-      apiVersion: '2026-02-25.clover',
+      apiVersion: "2026-02-25.clover",
     });
     this.webhookSecret = webhookSecret;
   }
@@ -17,7 +17,7 @@ export class StripePaymentService {
     return Effect.tryPromise({
       try: async () => {
         const session = await this.stripe.checkout.sessions.create({
-          payment_method_types: ['card'],
+          payment_method_types: ["card"],
           line_items: input.items.map((item: any) => ({
             price_data: {
               currency: input.currency.toLowerCase(),
@@ -30,7 +30,7 @@ export class StripePaymentService {
             },
             quantity: item.quantity,
           })),
-          mode: 'payment',
+          mode: "payment",
           success_url: `${input.successUrl}?sessionId={CHECKOUT_SESSION_ID}`,
           cancel_url: input.cancelUrl,
           customer_email: input.customerEmail,
@@ -46,21 +46,23 @@ export class StripePaymentService {
         };
       },
       catch: (error: unknown) =>
-        new Error(`Stripe checkout failed: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Stripe checkout failed: ${error instanceof Error ? error.message : String(error)}`,
+        ),
     });
   }
 
   verifyWebhook(body: string, signature: string) {
     return Effect.tryPromise({
       try: async () => {
-        const event = await this.stripe.webhooks.constructEventAsync(
+        const event = (await this.stripe.webhooks.constructEventAsync(
           body,
           signature,
-          this.webhookSecret
-        ) as any;
+          this.webhookSecret,
+        )) as any;
 
         let orderId: string | undefined;
-        if (event.type === 'checkout.session.completed') {
+        if (event.type === "checkout.session.completed") {
           const session = event.data.object as { metadata?: Record<string, string> };
           orderId = session.metadata?.orderId;
         }
@@ -71,18 +73,22 @@ export class StripePaymentService {
         };
       },
       catch: (error: unknown) =>
-        new Error(`Webhook verification failed: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Webhook verification failed: ${error instanceof Error ? error.message : String(error)}`,
+        ),
     });
   }
 
   getSession(sessionId: string) {
     return Effect.tryPromise({
       try: async () => {
-        const session = await this.stripe.checkout.sessions.retrieve(sessionId) as any;
+        const session = (await this.stripe.checkout.sessions.retrieve(sessionId)) as any;
         return session;
       },
       catch: (error: unknown) =>
-        new Error(`Failed to retrieve session: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Failed to retrieve session: ${error instanceof Error ? error.message : String(error)}`,
+        ),
     });
   }
 }

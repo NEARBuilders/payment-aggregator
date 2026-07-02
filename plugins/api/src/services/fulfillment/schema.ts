@@ -1,4 +1,4 @@
-import { z } from 'every-plugin/zod';
+import { z } from "every-plugin/zod";
 
 // ─── Fulfillment Files (universal) ───
 
@@ -12,7 +12,7 @@ export const FulfillmentFileSchema = z.object({
 export const ProviderDownloadSchema = z.object({
   url: z.string().url(),
   label: z.string().optional(),
-  kind: z.enum(['free', 'paid']).default('free'),
+  kind: z.enum(["free", "paid"]).default("free"),
   fileName: z.string().optional(),
 });
 
@@ -90,7 +90,7 @@ export const GenerateMockupsInputSchema = z.object({
   files: z.array(FulfillmentFileSchema),
   variantRefs: z.array(z.string()).optional(),
   mockupStyleIds: z.array(z.number()).optional(),
-  format: z.enum(['jpg', 'png']).default('jpg'),
+  format: z.enum(["jpg", "png"]).default("jpg"),
 });
 
 export const MockupImageSchema = z.object({
@@ -101,13 +101,13 @@ export const MockupImageSchema = z.object({
 });
 
 export const GenerateMockupsOutputSchema = z.object({
-  status: z.enum(['completed', 'pending', 'unsupported']),
+  status: z.enum(["completed", "pending", "unsupported"]),
   images: z.array(MockupImageSchema),
   taskId: z.string().optional(),
 });
 
 export const GetMockupResultOutputSchema = z.object({
-  status: z.enum(['completed', 'pending', 'failed', 'unsupported']),
+  status: z.enum(["completed", "pending", "failed", "unsupported"]),
   images: z.array(MockupImageSchema),
   error: z.string().optional(),
 });
@@ -148,15 +148,15 @@ export const OrderResultSchema = z.object({
 });
 
 export const FulfillmentOrderStatusSchema = z.enum([
-  'draft',
-  'pending',
-  'processing',
-  'onhold',
-  'printing',
-  'shipped',
-  'delivered',
-  'cancelled',
-  'failed',
+  "draft",
+  "pending",
+  "processing",
+  "onhold",
+  "printing",
+  "shipped",
+  "delivered",
+  "cancelled",
+  "failed",
 ]);
 
 export const FulfillmentShipmentSchema = z.object({
@@ -214,13 +214,15 @@ export const TaxQuoteInputSchema = z.object({
     zip: z.string(),
     stateCode: z.string().optional(),
   }),
-  items: z.array(z.object({
-    providerConfig: z.record(z.string(), z.unknown()),
-    quantity: z.number().int().positive(),
-    files: z.array(FulfillmentFileSchema).optional(),
-  })),
+  items: z.array(
+    z.object({
+      providerConfig: z.record(z.string(), z.unknown()),
+      quantity: z.number().int().positive(),
+      files: z.array(FulfillmentFileSchema).optional(),
+    }),
+  ),
   currency: z.string().optional(),
-  mode: z.enum(['quote', 'checkout']).optional(),
+  mode: z.enum(["quote", "checkout"]).optional(),
 });
 
 export const TaxQuoteOutputSchema = z.object({
@@ -246,7 +248,7 @@ export const GetPlacementsOutputSchema = z.object({
 
 export const PingOutputSchema = z.object({
   provider: z.string(),
-  status: z.literal('ok'),
+  status: z.literal("ok"),
   timestamp: z.string().datetime(),
 });
 
@@ -318,8 +320,8 @@ export type GetPlacementsOutput = z.infer<typeof GetPlacementsOutputSchema>;
 // ─── Sync Progress ───
 
 export const SyncProgressEventSchema = z.object({
-  status: z.enum(['idle', 'syncing', 'completed', 'error']),
-  phase: z.enum(['listing', 'fetching', 'saving', 'complete', 'error']).optional(),
+  status: z.enum(["idle", "syncing", "completed", "error"]),
+  phase: z.enum(["listing", "fetching", "saving", "complete", "error"]).optional(),
   totalSynced: z.number().default(0),
   totalUpdated: z.number().default(0),
   totalFailed: z.number().default(0),

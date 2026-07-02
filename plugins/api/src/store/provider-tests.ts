@@ -1,10 +1,10 @@
-import { eq } from 'drizzle-orm';
-import { Context, Effect, Layer } from 'every-plugin/effect';
-import * as schema from '../db/schema';
-import type { ProviderName, ProviderTestScenario, ProviderTestState } from '../schema';
-import { Database } from './database';
+import { eq } from "drizzle-orm";
+import { Context, Effect, Layer } from "every-plugin/effect";
+import * as schema from "../db/schema";
+import type { ProviderName, ProviderTestScenario, ProviderTestState } from "../schema";
+import { Database } from "./database";
 
-export class ProviderTestStateStore extends Context.Tag('ProviderTestStateStore')<
+export class ProviderTestStateStore extends Context.Tag("ProviderTestStateStore")<
   ProviderTestStateStore,
   {
     readonly getState: (provider: ProviderName) => Effect.Effect<ProviderTestState | null, Error>;
@@ -71,12 +71,21 @@ export const ProviderTestStateStoreLive = Layer.effect(
               await db
                 .update(schema.providerTestStates)
                 .set({
-                  testProductId: input.testProductId !== undefined ? input.testProductId : row.testProductId,
-                  selectedRates: input.selectedRates !== undefined ? input.selectedRates : row.selectedRates,
+                  testProductId:
+                    input.testProductId !== undefined ? input.testProductId : row.testProductId,
+                  selectedRates:
+                    input.selectedRates !== undefined ? input.selectedRates : row.selectedRates,
                   scenario: input.scenario !== undefined ? input.scenario : row.scenario,
-                  latestOrderId: input.latestOrderId !== undefined ? input.latestOrderId : row.latestOrderId,
-                  latestStepResults: input.latestStepResults !== undefined ? input.latestStepResults : row.latestStepResults,
-                  latestWebhookPayloads: input.latestWebhookPayloads !== undefined ? input.latestWebhookPayloads : row.latestWebhookPayloads,
+                  latestOrderId:
+                    input.latestOrderId !== undefined ? input.latestOrderId : row.latestOrderId,
+                  latestStepResults:
+                    input.latestStepResults !== undefined
+                      ? input.latestStepResults
+                      : row.latestStepResults,
+                  latestWebhookPayloads:
+                    input.latestWebhookPayloads !== undefined
+                      ? input.latestWebhookPayloads
+                      : row.latestWebhookPayloads,
                   updatedAt: now,
                 })
                 .where(eq(schema.providerTestStates.provider, input.provider));
@@ -101,7 +110,7 @@ export const ProviderTestStateStoreLive = Layer.effect(
               .limit(1);
 
             if (results.length === 0) {
-              throw new Error('Failed to persist provider test state');
+              throw new Error("Failed to persist provider test state");
             }
 
             return rowToState(results[0]!);

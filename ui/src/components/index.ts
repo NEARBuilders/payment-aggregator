@@ -5,8 +5,6 @@ export {
   type ApiKeyRevealProps,
 } from "./api-key-manager";
 export { ConfirmDialog, useConfirmDialog } from "./confirm-dialog";
-export { InvitationCard, MemberCard } from "./member-card";
-export { OrgSwitcher } from "./org-switcher";
 export { Badge } from "./ui/badge";
 export { Button } from "./ui/button";
 export {

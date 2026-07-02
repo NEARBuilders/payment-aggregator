@@ -1,23 +1,38 @@
-import { createPlugin } from 'every-plugin';
-import { Effect } from 'every-plugin/effect';
-import { ORPCError } from 'every-plugin/orpc';
-import { z } from 'every-plugin/zod';
-import { StorageContract } from '../contract';
-import { StorageError } from '../errors';
-import { R2StorageService } from './service';
+import { createPlugin } from "every-plugin";
+import { Effect } from "every-plugin/effect";
+import { ORPCError } from "every-plugin/orpc";
+import { z } from "every-plugin/zod";
+import { StorageContract } from "../contract";
+import type { StorageError } from "../errors";
+import { R2StorageService } from "./service";
 
 const mapStorageErrorToORPC = (error: StorageError) => {
   switch (error.code) {
-    case 'NOT_FOUND':
-      return new ORPCError('NOT_FOUND', { message: error.message, data: { provider: error.provider } });
-    case 'UPLOAD_FAILED':
-      return new ORPCError('BAD_REQUEST', { message: error.message, data: { provider: error.provider } });
-    case 'AUTHENTICATION_FAILED':
-      return new ORPCError('UNAUTHORIZED', { message: error.message, data: { provider: error.provider } });
-    case 'SERVICE_UNAVAILABLE':
-      return new ORPCError('SERVICE_UNAVAILABLE', { message: error.message, data: { provider: error.provider } });
+    case "NOT_FOUND":
+      return new ORPCError("NOT_FOUND", {
+        message: error.message,
+        data: { provider: error.provider },
+      });
+    case "UPLOAD_FAILED":
+      return new ORPCError("BAD_REQUEST", {
+        message: error.message,
+        data: { provider: error.provider },
+      });
+    case "AUTHENTICATION_FAILED":
+      return new ORPCError("UNAUTHORIZED", {
+        message: error.message,
+        data: { provider: error.provider },
+      });
+    case "SERVICE_UNAVAILABLE":
+      return new ORPCError("SERVICE_UNAVAILABLE", {
+        message: error.message,
+        data: { provider: error.provider },
+      });
     default:
-      return new ORPCError('INTERNAL_SERVER_ERROR', { message: error.message, data: { provider: error.provider } });
+      return new ORPCError("INTERNAL_SERVER_ERROR", {
+        message: error.message,
+        data: { provider: error.provider },
+      });
   }
 };
 
@@ -39,7 +54,7 @@ export default createPlugin({
   contract: StorageContract,
 
   initialize: (config) =>
-    Effect.gen(function* () {
+    Effect.sync(() => {
       const endpoint = config.variables.endpoint;
 
       const service = new R2StorageService({
@@ -50,7 +65,7 @@ export default createPlugin({
         publicUrl: config.variables.publicUrl,
       });
 
-      console.log('[R2 Storage Plugin] Initialized successfully');
+      console.log("[R2 Storage Plugin] Initialized successfully");
 
       return { service };
     }),
@@ -64,19 +79,19 @@ export default createPlugin({
       ping: builder.ping.handler(async () => wrapHandler(service.ping())),
 
       requestUpload: builder.requestUpload.handler(async ({ input }) =>
-        wrapHandler(service.requestUpload(input))
+        wrapHandler(service.requestUpload(input)),
       ),
 
       getSignedUrl: builder.getSignedUrl.handler(async ({ input }) =>
-        wrapHandler(service.getSignedUrl(input))
+        wrapHandler(service.getSignedUrl(input)),
       ),
 
       deleteFile: builder.deleteFile.handler(async ({ input }) =>
-        wrapHandler(service.deleteFile(input))
+        wrapHandler(service.deleteFile(input)),
       ),
     };
   },
 });
 
-export { R2StorageService } from './service';
-export { R2ConfigSchema, type R2Config } from './types';
+export { R2StorageService } from "./service";
+export { type R2Config, R2ConfigSchema } from "./types";

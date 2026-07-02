@@ -2,38 +2,103 @@ import { and, desc, eq, like, or, sql } from "drizzle-orm";
 import { Context, Effect, Layer } from "every-plugin/effect";
 import { customAlphabet } from "nanoid";
 import * as schema from "../db/schema";
-import type { CreateOrderInput, DeliveryEstimate, OrderAuditLog, OrderItem, OrderStatus, OrderWithItems, ShippingAddress, TrackingInfo } from "../schema";
+import type {
+  CreateOrderInput,
+  DeliveryEstimate,
+  OrderAuditLog,
+  OrderItem,
+  OrderStatus,
+  OrderWithItems,
+  ShippingAddress,
+  TrackingInfo,
+} from "../schema";
 import { Database } from "./database";
 
-const makeFulfillmentReferenceId = customAlphabet(
-  "0123456789abcdefghijklmnopqrstuvwxyz",
-  15
-);
+const makeFulfillmentReferenceId = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 15);
 
 export class OrderStore extends Context.Tag("OrderStore")<
   OrderStore,
   {
     readonly create: (input: CreateOrderInput) => Effect.Effect<OrderWithItems, Error>;
     readonly find: (id: string) => Effect.Effect<OrderWithItems | null, Error>;
-    readonly findAll: (options: { limit?: number; offset?: number; status?: OrderStatus; search?: string; includeDeleted?: boolean }) => Effect.Effect<{ orders: OrderWithItems[]; total: number }, Error>;
-    readonly findByUser: (userId: string, options: { limit?: number; offset?: number; includeDeleted?: boolean }) => Effect.Effect<{ orders: OrderWithItems[]; total: number }, Error>;
-    readonly findByCheckoutSession: (checkoutSessionId: string) => Effect.Effect<OrderWithItems | null, Error>;
-    readonly findByFulfillmentRef: (fulfillmentReferenceId: string) => Effect.Effect<OrderWithItems | null, Error>;
-    readonly findAbandonedDrafts: (olderThanHours: number) => Effect.Effect<OrderWithItems[], Error>;
-    readonly findPendingConfirmation: (olderThanMinutes?: number) => Effect.Effect<OrderWithItems[], Error>;
-    readonly updateCheckout: (orderId: string, checkoutSessionId: string, checkoutProvider: 'stripe' | 'near' | 'pingpay') => Effect.Effect<OrderWithItems, Error>;
-    readonly updateDraftOrderIds: (orderId: string, draftOrderIds: Record<string, string>) => Effect.Effect<OrderWithItems, Error>;
-    readonly updatePaymentDetails: (orderId: string, paymentDetails: Record<string, unknown>) => Effect.Effect<OrderWithItems, Error>;
-    readonly updateStatus: (orderId: string, status: OrderStatus, actor?: string, reason?: string, metadata?: Record<string, unknown>) => Effect.Effect<OrderWithItems, Error>;
-    readonly updateShipping: (orderId: string, shippingAddress: ShippingAddress) => Effect.Effect<OrderWithItems, Error>;
-    readonly updateFulfillment: (orderId: string, fulfillmentOrderId: string, actor?: string) => Effect.Effect<OrderWithItems, Error>;
-    readonly updateTracking: (orderId: string, trackingInfo: TrackingInfo[], actor?: string, metadata?: Record<string, unknown>) => Effect.Effect<OrderWithItems, Error>;
-    readonly updateDeliveryEstimate: (orderId: string, deliveryEstimate: DeliveryEstimate) => Effect.Effect<OrderWithItems, Error>;
+    readonly findAll: (options: {
+      limit?: number;
+      offset?: number;
+      status?: OrderStatus;
+      search?: string;
+      includeDeleted?: boolean;
+    }) => Effect.Effect<{ orders: OrderWithItems[]; total: number }, Error>;
+    readonly findByUser: (
+      userId: string,
+      options: { limit?: number; offset?: number; includeDeleted?: boolean },
+    ) => Effect.Effect<{ orders: OrderWithItems[]; total: number }, Error>;
+    readonly findByCheckoutSession: (
+      checkoutSessionId: string,
+    ) => Effect.Effect<OrderWithItems | null, Error>;
+    readonly findByFulfillmentRef: (
+      fulfillmentReferenceId: string,
+    ) => Effect.Effect<OrderWithItems | null, Error>;
+    readonly findAbandonedDrafts: (
+      olderThanHours: number,
+    ) => Effect.Effect<OrderWithItems[], Error>;
+    readonly findPendingConfirmation: (
+      olderThanMinutes?: number,
+    ) => Effect.Effect<OrderWithItems[], Error>;
+    readonly updateCheckout: (
+      orderId: string,
+      checkoutSessionId: string,
+      checkoutProvider: "stripe" | "near" | "pingpay",
+    ) => Effect.Effect<OrderWithItems, Error>;
+    readonly updateDraftOrderIds: (
+      orderId: string,
+      draftOrderIds: Record<string, string>,
+    ) => Effect.Effect<OrderWithItems, Error>;
+    readonly updatePaymentDetails: (
+      orderId: string,
+      paymentDetails: Record<string, unknown>,
+    ) => Effect.Effect<OrderWithItems, Error>;
+    readonly updateStatus: (
+      orderId: string,
+      status: OrderStatus,
+      actor?: string,
+      reason?: string,
+      metadata?: Record<string, unknown>,
+    ) => Effect.Effect<OrderWithItems, Error>;
+    readonly updateShipping: (
+      orderId: string,
+      shippingAddress: ShippingAddress,
+    ) => Effect.Effect<OrderWithItems, Error>;
+    readonly updateFulfillment: (
+      orderId: string,
+      fulfillmentOrderId: string,
+      actor?: string,
+    ) => Effect.Effect<OrderWithItems, Error>;
+    readonly updateTracking: (
+      orderId: string,
+      trackingInfo: TrackingInfo[],
+      actor?: string,
+      metadata?: Record<string, unknown>,
+    ) => Effect.Effect<OrderWithItems, Error>;
+    readonly updateDeliveryEstimate: (
+      orderId: string,
+      deliveryEstimate: DeliveryEstimate,
+    ) => Effect.Effect<OrderWithItems, Error>;
     readonly getAuditLog: (orderId: string) => Effect.Effect<OrderAuditLog[], Error>;
-    readonly deleteOrders: (orderIds: string[], actor: string) => Effect.Effect<{ deleted: number; errors: { orderId: string; error: string }[] }, Error>;
-    readonly createAuditLog: (input: { orderId: string; actor: string; action: string; field?: string; oldValue?: string; newValue?: string; metadata?: Record<string, unknown> }) => Effect.Effect<void, Error>;
+    readonly deleteOrders: (
+      orderIds: string[],
+      actor: string,
+    ) => Effect.Effect<{ deleted: number; errors: { orderId: string; error: string }[] }, Error>;
+    readonly createAuditLog: (input: {
+      orderId: string;
+      actor: string;
+      action: string;
+      field?: string;
+      oldValue?: string;
+      newValue?: string;
+      metadata?: Record<string, unknown>;
+    }) => Effect.Effect<void, Error>;
   }
->() { }
+>() {}
 
 export const OrderStoreLive = Layer.effect(
   OrderStore,
@@ -65,16 +130,18 @@ export const OrderStoreLive = Layer.effect(
       const logs = await db
         .select()
         .from(schema.orderAuditLogs)
-        .where(and(
-          eq(schema.orderAuditLogs.orderId, orderId),
-          eq(schema.orderAuditLogs.action, 'status_change'),
-          eq(schema.orderAuditLogs.newValue, status),
-        ))
+        .where(
+          and(
+            eq(schema.orderAuditLogs.orderId, orderId),
+            eq(schema.orderAuditLogs.action, "status_change"),
+            eq(schema.orderAuditLogs.newValue, status),
+          ),
+        )
         .orderBy(desc(schema.orderAuditLogs.createdAt));
 
       const noteLog = logs.find((log) => {
         const reason = log.metadata?.reason;
-        return typeof reason === 'string' && reason.trim().length > 0;
+        return typeof reason === "string" && reason.trim().length > 0;
       });
 
       if (!noteLog) {
@@ -111,9 +178,12 @@ export const OrderStoreLive = Layer.effect(
         totalAmount: row.totalAmount / 100,
         currency: row.currency,
         checkoutSessionId: row.checkoutSessionId || undefined,
-        checkoutProvider: row.checkoutProvider === 'stripe' || row.checkoutProvider === 'near' || row.checkoutProvider === 'pingpay'
-          ? row.checkoutProvider 
-          : undefined,
+        checkoutProvider:
+          row.checkoutProvider === "stripe" ||
+          row.checkoutProvider === "near" ||
+          row.checkoutProvider === "pingpay"
+            ? row.checkoutProvider
+            : undefined,
         draftOrderIds: row.draftOrderIds || undefined,
         paymentDetails: row.paymentDetails || undefined,
         shippingMethod: row.shippingMethod || undefined,
@@ -153,9 +223,10 @@ export const OrderStoreLive = Layer.effect(
             await db.insert(schema.orders).values({
               id: orderId,
               userId: input.userId,
-              status: 'pending',
+              status: "pending",
               subtotal: input.subtotal !== undefined ? Math.round(input.subtotal * 100) : null,
-              shippingCost: input.shippingCost !== undefined ? Math.round(input.shippingCost * 100) : null,
+              shippingCost:
+                input.shippingCost !== undefined ? Math.round(input.shippingCost * 100) : null,
               taxAmount: input.taxAmount !== undefined ? Math.round(input.taxAmount * 100) : null,
               vatAmount: input.vatAmount !== undefined ? Math.round(input.vatAmount * 100) : null,
               taxRequired: input.taxRequired ?? null,
@@ -187,13 +258,13 @@ export const OrderStoreLive = Layer.effect(
                   fulfillmentProvider: item.fulfillmentProvider || null,
                   fulfillmentConfig: item.fulfillmentConfig || null,
                   createdAt: now,
-                }))
+                })),
               );
             }
 
             const order = await findOrderById(orderId);
             if (!order) {
-              throw new Error('Failed to create order');
+              throw new Error("Failed to create order");
             }
             return order;
           },
@@ -226,8 +297,8 @@ export const OrderStoreLive = Layer.effect(
               conditions.push(
                 or(
                   like(schema.orders.id, `%${search}%`),
-                  like(schema.orders.userId, `%${search}%`)
-                )
+                  like(schema.orders.userId, `%${search}%`),
+                ),
               );
             }
 
@@ -331,13 +402,12 @@ export const OrderStoreLive = Layer.effect(
             const results = await db
               .select()
               .from(schema.orders)
-              .where(and(
-                eq(schema.orders.status, 'draft_created'),
-                eq(schema.orders.isDeleted, false)
-              ))
+              .where(
+                and(eq(schema.orders.status, "draft_created"), eq(schema.orders.isDeleted, false)),
+              )
               .orderBy(desc(schema.orders.createdAt));
 
-            const abandoned = results.filter(order => order.createdAt < cutoffTime);
+            const abandoned = results.filter((order) => order.createdAt < cutoffTime);
 
             return await Promise.all(abandoned.map(rowToOrder));
           },
@@ -352,13 +422,15 @@ export const OrderStoreLive = Layer.effect(
             const results = await db
               .select()
               .from(schema.orders)
-              .where(and(
-                eq(schema.orders.status, 'paid_pending_fulfillment'),
-                eq(schema.orders.isDeleted, false)
-              ))
+              .where(
+                and(
+                  eq(schema.orders.status, "paid_pending_fulfillment"),
+                  eq(schema.orders.isDeleted, false),
+                ),
+              )
               .orderBy(desc(schema.orders.createdAt));
 
-            const pending = results.filter(order => order.createdAt < cutoffTime);
+            const pending = results.filter((order) => order.createdAt < cutoffTime);
 
             return await Promise.all(pending.map(rowToOrder));
           },
@@ -379,7 +451,7 @@ export const OrderStoreLive = Layer.effect(
 
             const order = await findOrderById(orderId);
             if (!order) {
-              throw new Error('Order not found');
+              throw new Error("Order not found");
             }
             return order;
           },
@@ -399,7 +471,7 @@ export const OrderStoreLive = Layer.effect(
 
             const order = await findOrderById(orderId);
             if (!order) {
-              throw new Error('Order not found');
+              throw new Error("Order not found");
             }
             return order;
           },
@@ -419,7 +491,7 @@ export const OrderStoreLive = Layer.effect(
 
             const order = await findOrderById(orderId);
             if (!order) {
-              throw new Error('Order not found');
+              throw new Error("Order not found");
             }
             return order;
           },
@@ -442,7 +514,7 @@ export const OrderStoreLive = Layer.effect(
               .where(eq(schema.orders.id, orderId));
 
             // Create audit log entry
-            const auditActor = actor || 'system';
+            const auditActor = actor || "system";
             const auditMetadata = metadata || {};
             if (reason) {
               auditMetadata.reason = reason;
@@ -452,8 +524,8 @@ export const OrderStoreLive = Layer.effect(
               id: crypto.randomUUID(),
               orderId,
               actor: auditActor,
-              action: 'status_change',
-              field: 'status',
+              action: "status_change",
+              field: "status",
               oldValue: oldStatus,
               newValue: status,
               metadata: auditMetadata,
@@ -462,7 +534,7 @@ export const OrderStoreLive = Layer.effect(
 
             const order = await findOrderById(orderId);
             if (!order) {
-              throw new Error('Order not found');
+              throw new Error("Order not found");
             }
             return order;
           },
@@ -482,7 +554,7 @@ export const OrderStoreLive = Layer.effect(
 
             const order = await findOrderById(orderId);
             if (!order) {
-              throw new Error('Order not found');
+              throw new Error("Order not found");
             }
             return order;
           },
@@ -498,7 +570,7 @@ export const OrderStoreLive = Layer.effect(
               .update(schema.orders)
               .set({
                 fulfillmentOrderId,
-                status: 'processing',
+                status: "processing",
                 updatedAt: new Date(),
               })
               .where(eq(schema.orders.id, orderId));
@@ -507,9 +579,9 @@ export const OrderStoreLive = Layer.effect(
             await db.insert(schema.orderAuditLogs).values({
               id: crypto.randomUUID(),
               orderId,
-              actor: actor || 'system',
-              action: 'fulfillment_update',
-              field: 'fulfillmentOrderId',
+              actor: actor || "system",
+              action: "fulfillment_update",
+              field: "fulfillmentOrderId",
               oldValue: oldFulfillmentId || null,
               newValue: fulfillmentOrderId,
               metadata: {},
@@ -518,7 +590,7 @@ export const OrderStoreLive = Layer.effect(
 
             const order = await findOrderById(orderId);
             if (!order) {
-              throw new Error('Order not found');
+              throw new Error("Order not found");
             }
             return order;
           },
@@ -534,7 +606,7 @@ export const OrderStoreLive = Layer.effect(
               .update(schema.orders)
               .set({
                 trackingInfo,
-                status: 'shipped',
+                status: "shipped",
                 updatedAt: new Date(),
               })
               .where(eq(schema.orders.id, orderId));
@@ -543,9 +615,9 @@ export const OrderStoreLive = Layer.effect(
             await db.insert(schema.orderAuditLogs).values({
               id: crypto.randomUUID(),
               orderId,
-              actor: actor || 'system',
-              action: 'tracking_update',
-              field: 'trackingInfo',
+              actor: actor || "system",
+              action: "tracking_update",
+              field: "trackingInfo",
               oldValue: oldTracking ? JSON.stringify(oldTracking) : null,
               newValue: JSON.stringify(trackingInfo),
               metadata: metadata || {},
@@ -554,7 +626,7 @@ export const OrderStoreLive = Layer.effect(
 
             const order = await findOrderById(orderId);
             if (!order) {
-              throw new Error('Order not found');
+              throw new Error("Order not found");
             }
             return order;
           },
@@ -574,7 +646,7 @@ export const OrderStoreLive = Layer.effect(
 
             const order = await findOrderById(orderId);
             if (!order) {
-              throw new Error('Order not found');
+              throw new Error("Order not found");
             }
             return order;
           },
@@ -608,11 +680,11 @@ export const OrderStoreLive = Layer.effect(
               .where(eq(schema.orderAuditLogs.orderId, orderId))
               .orderBy(desc(schema.orderAuditLogs.createdAt));
 
-            return results.map(row => ({
+            return results.map((row) => ({
               id: row.id,
               orderId: row.orderId,
               actor: row.actor,
-              action: row.action as OrderAuditLog['action'],
+              action: row.action as OrderAuditLog["action"],
               field: row.field || undefined,
               oldValue: row.oldValue || undefined,
               newValue: row.newValue || undefined,
@@ -633,11 +705,11 @@ export const OrderStoreLive = Layer.effect(
               try {
                 const order = await findOrderById(orderId);
                 if (!order) {
-                  errors.push({ orderId, error: 'Order not found' });
+                  errors.push({ orderId, error: "Order not found" });
                   continue;
                 }
 
-                const isDraft = order.status === 'draft_created' || order.status === 'pending';
+                const isDraft = order.status === "draft_created" || order.status === "pending";
 
                 if (isDraft) {
                   // Hard delete drafts
@@ -657,10 +729,10 @@ export const OrderStoreLive = Layer.effect(
                     id: crypto.randomUUID(),
                     orderId,
                     actor,
-                    action: 'delete',
-                    field: 'isDeleted',
-                    oldValue: 'false',
-                    newValue: 'true',
+                    action: "delete",
+                    field: "isDeleted",
+                    oldValue: "false",
+                    newValue: "true",
                     metadata: { status: order.status, hardDelete: false },
                     createdAt: new Date(),
                   });
@@ -677,7 +749,7 @@ export const OrderStoreLive = Layer.effect(
           catch: (error) => new Error(`Failed to delete orders: ${error}`),
         }),
     };
-  })
+  }),
 );
 
 export type { OrderItem };

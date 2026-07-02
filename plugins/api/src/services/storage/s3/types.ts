@@ -1,8 +1,8 @@
-import { z } from 'every-plugin/zod';
+import { z } from "every-plugin/zod";
 
 export const S3ConfigSchema = z.object({
   bucket: z.string(),
-  region: z.string().default('us-east-1'),
+  region: z.string().default("us-east-1"),
   publicUrl: z.string().optional(),
   endpoint: z.string().optional(),
 });

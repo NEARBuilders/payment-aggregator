@@ -1,12 +1,14 @@
-import { Context, Effect, Layer } from 'every-plugin/effect';
-import type { MarketplaceRuntime } from '../runtime';
-import type { Collection, Product, ProductCriteria } from '../schema';
-import { ProductStore, CollectionStore, type ProductWithImages } from '../store';
+import { Context, Effect, Layer } from "every-plugin/effect";
+import type { MarketplaceRuntime } from "../runtime";
+import type { Collection, Product, ProductCriteria } from "../schema";
+import { CollectionStore, ProductStore, type ProductWithImages } from "../store";
 
-export class ProductService extends Context.Tag('ProductService')<
+export class ProductService extends Context.Tag("ProductService")<
   ProductService,
   {
-    readonly getProducts: (options: ProductCriteria) => Effect.Effect<{ products: Product[]; total: number }, Error>;
+    readonly getProducts: (
+      options: ProductCriteria,
+    ) => Effect.Effect<{ products: Product[]; total: number }, Error>;
     readonly getProduct: (id: string) => Effect.Effect<{ product: Product }, Error>;
     readonly searchProducts: (options: {
       query: string;
@@ -15,7 +17,7 @@ export class ProductService extends Context.Tag('ProductService')<
     readonly getFeaturedProducts: (limit?: number) => Effect.Effect<{ products: Product[] }, Error>;
     readonly getCollections: () => Effect.Effect<{ collections: Collection[] }, Error>;
     readonly getCollection: (
-      slug: string
+      slug: string,
     ) => Effect.Effect<{ collection: Collection; products: Product[] }, Error>;
     readonly getCarouselCollections: () => Effect.Effect<{ collections: Collection[] }, Error>;
     readonly updateCollection: (
@@ -29,27 +31,27 @@ export class ProductService extends Context.Tag('ProductService')<
         carouselDescription?: string;
         showInCarousel?: boolean;
         carouselOrder?: number;
-      }
+      },
     ) => Effect.Effect<{ collection: Collection | null }, Error>;
     readonly updateCollectionFeaturedProduct: (
       slug: string,
-      productId: string | null
+      productId: string | null,
     ) => Effect.Effect<{ collection: Collection | null }, Error>;
     readonly updateProductListing: (
       id: string,
-      listed: boolean
+      listed: boolean,
     ) => Effect.Effect<{ success: boolean; product?: Product }, Error>;
     readonly updateProductTags: (
       id: string,
-      tags: string[]
+      tags: string[],
     ) => Effect.Effect<{ success: boolean; product?: Product }, Error>;
     readonly updateProductFeatured: (
       id: string,
-      featured: boolean
+      featured: boolean,
     ) => Effect.Effect<{ success: boolean; product?: Product }, Error>;
     readonly updateProductCollections: (
       id: string,
-      collectionSlugs: string[]
+      collectionSlugs: string[],
     ) => Effect.Effect<{ success: boolean; product?: Product }, Error>;
     readonly getCategories: () => Effect.Effect<{ categories: Collection[] }, Error>;
     readonly createCategory: (data: {
@@ -61,18 +63,18 @@ export class ProductService extends Context.Tag('ProductService')<
     readonly deleteCategory: (slug: string) => Effect.Effect<{ success: boolean }, Error>;
     readonly createProduct: (product: ProductWithImages) => Effect.Effect<Product, Error>;
     readonly deleteProduct: (id: string) => Effect.Effect<void, Error>;
-      readonly updateProduct: (
-        id: string,
-        data: {
-          name?: string;
-          description?: string | null;
-          price?: number;
-          priceLocked?: boolean;
-          variants?: Array<{ id: string; price: number }>;
-          images?: import('../schema').ProductImage[];
-          thumbnailImage?: string | null;
-        },
-      ) => Effect.Effect<Product | null, Error>;
+    readonly updateProduct: (
+      id: string,
+      data: {
+        name?: string;
+        description?: string | null;
+        price?: number;
+        priceLocked?: boolean;
+        variants?: Array<{ id: string; price: number }>;
+        images?: import("../schema").ProductImage[];
+        thumbnailImage?: string | null;
+      },
+    ) => Effect.Effect<Product | null, Error>;
   }
 >() {}
 
@@ -86,8 +88,24 @@ export const ProductServiceLive = (runtime: MarketplaceRuntime) =>
       return {
         getProducts: (options) =>
           Effect.gen(function* () {
-            const { productTypeSlug, collectionSlugs, tags, featured, limit = 50, offset = 0, includeUnlisted = false } = options;
-            return yield* store.findMany({ productTypeSlug, collectionSlugs, tags, featured, limit, offset, includeUnlisted });
+            const {
+              productTypeSlug,
+              collectionSlugs,
+              tags,
+              featured,
+              limit = 50,
+              offset = 0,
+              includeUnlisted = false,
+            } = options;
+            return yield* store.findMany({
+              productTypeSlug,
+              collectionSlugs,
+              tags,
+              featured,
+              limit,
+              offset,
+              includeUnlisted,
+            });
           }),
 
         getProduct: (identifier) =>
@@ -108,7 +126,12 @@ export const ProductServiceLive = (runtime: MarketplaceRuntime) =>
 
         getFeaturedProducts: (limit = 12) =>
           Effect.gen(function* () {
-            const result = yield* store.findMany({ featured: true, limit, offset: 0, includeUnlisted: false });
+            const result = yield* store.findMany({
+              featured: true,
+              limit,
+              offset: 0,
+              includeUnlisted: false,
+            });
             if (result.products.length === 0) {
               const fallback = yield* store.findMany({ limit, offset: 0, includeUnlisted: false });
               return { products: fallback.products };

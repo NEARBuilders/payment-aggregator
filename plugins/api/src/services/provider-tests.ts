@@ -1,37 +1,42 @@
-import { Effect } from 'every-plugin/effect';
-import type { MarketplaceRuntime } from '../runtime';
+import { Effect } from "every-plugin/effect";
+import type { MarketplaceRuntime } from "../runtime";
 import type {
-  OrderWithItems,
   OrderStatus,
+  OrderWithItems,
+  Product,
+  ProductImage,
+  ProductWithImages,
   ProviderName,
   ProviderTestRun,
   ProviderTestScenario,
   ProviderTestState,
   ProviderTestStep,
-  Product,
-  ProductImage,
-  ProductWithImages,
   QuoteItemInput,
   ShippingAddress,
-} from '../schema';
-import { CheckoutService } from './checkout';
-import { EmailService } from './email';
-import { parsePrintfulWebhook } from './fulfillment/printful/webhook';
-import { LuluService } from './fulfillment/lulu/service';
-import { processLuluWebhookEffect, processPrintfulWebhookEffect } from './fulfillment/webhook';
-import { processPaymentSuccessEffect } from './payments/payment-success';
-import { OrderStore, ProductStore, ProviderConfigStore, ProviderTestStateStore } from '../store';
-import { processManualWebhookEffect } from './webhooks/manual';
+} from "../schema";
+import {
+  OrderStore,
+  ProductStore,
+  type ProviderConfigStore,
+  ProviderTestStateStore,
+} from "../store";
+import { CheckoutService } from "./checkout";
+import type { EmailService } from "./email";
+import { LuluService } from "./fulfillment/lulu/service";
+import { parsePrintfulWebhook } from "./fulfillment/printful/webhook";
+import { processLuluWebhookEffect, processPrintfulWebhookEffect } from "./fulfillment/webhook";
+import { processPaymentSuccessEffect } from "./payments/payment-success";
+import { processManualWebhookEffect } from "./webhooks/manual";
 
 const DEFAULT_ADDRESS: ShippingAddress = {
-  firstName: 'Test',
-  lastName: 'Customer',
-  addressLine1: '123 Test St',
-  city: 'Portland',
-  state: 'OR',
-  postCode: '97201',
-  country: 'US',
-  email: 'test@example.com',
+  firstName: "Test",
+  lastName: "Customer",
+  addressLine1: "123 Test St",
+  city: "Portland",
+  state: "OR",
+  postCode: "97201",
+  country: "US",
+  email: "test@example.com",
 };
 
 type ProviderTestProductStore = {
@@ -75,24 +80,32 @@ function testSource(provider: ProviderName) {
   return `provider-test:${provider}`;
 }
 
-function normalizeScenario(provider: ProviderName, scenario?: ProviderTestScenario | null): ProviderTestScenario {
+function normalizeScenario(
+  provider: ProviderName,
+  scenario?: ProviderTestScenario | null,
+): ProviderTestScenario {
   return {
     quantity: scenario?.quantity ?? 1,
     shippingAddress: scenario?.shippingAddress ?? DEFAULT_ADDRESS,
     selectedRates: scenario?.selectedRates,
-    successUrl: scenario?.successUrl ?? `https://nearmerch.com/admin/providers?provider=${provider}`,
+    successUrl:
+      scenario?.successUrl ?? `https://nearmerch.com/admin/providers?provider=${provider}`,
     cancelUrl: scenario?.cancelUrl ?? `https://nearmerch.com/admin/providers?provider=${provider}`,
     product: scenario?.product ?? {},
     requestOverrides: scenario?.requestOverrides ?? {},
     payloadOverrides: scenario?.payloadOverrides ?? {},
-    paymentProvider: (scenario as Record<string, unknown> | undefined)?.paymentProvider as 'stripe' | 'pingpay' | undefined,
+    paymentProvider: (scenario as Record<string, unknown> | undefined)?.paymentProvider as
+      | "stripe"
+      | "pingpay"
+      | undefined,
   };
 }
 
 function defaultProduct(provider: ProviderName, scenario: ProviderTestScenario): ProductWithImages {
   const productOverrides = scenario.product ?? {};
-  const price = typeof productOverrides.price === 'number' ? productOverrides.price : 25;
-  const currency = typeof productOverrides.currency === 'string' ? productOverrides.currency : 'USD';
+  const price = typeof productOverrides.price === "number" ? productOverrides.price : 25;
+  const currency =
+    typeof productOverrides.currency === "string" ? productOverrides.currency : "USD";
   const productId = `${testSlug(provider)}-product`;
   const variantId = `${testSlug(provider)}-variant`;
 
@@ -110,25 +123,24 @@ function defaultProduct(provider: ProviderName, scenario: ProviderTestScenario):
     options: productOverrides.options ?? [],
     images: productOverrides.images ?? [],
     thumbnailImage: productOverrides.images?.[0]?.url,
-    variants:
-      productOverrides.variants ?? [
-        {
-          id: variantId,
-          name: `${provider} default variant`,
-          price,
-          currency,
-          attributes: [],
-          fulfillmentConfig:
-            provider === 'manual'
-              ? undefined
-              : {
-                  providerName: provider,
-                  providerConfig: {},
-                  files: productOverrides.designFiles ?? [],
-                },
-          inStock: true,
-        },
-      ],
+    variants: productOverrides.variants ?? [
+      {
+        id: variantId,
+        name: `${provider} default variant`,
+        price,
+        currency,
+        attributes: [],
+        fulfillmentConfig:
+          provider === "manual"
+            ? undefined
+            : {
+                providerName: provider,
+                providerConfig: {},
+                files: productOverrides.designFiles ?? [],
+              },
+        inStock: true,
+      },
+    ],
     designFiles: productOverrides.designFiles ?? [],
     fulfillmentProvider: productOverrides.fulfillmentProvider ?? provider,
     externalProductId: productOverrides.externalProductId,
@@ -142,20 +154,27 @@ function defaultProduct(provider: ProviderName, scenario: ProviderTestScenario):
 
 function getQuoteItems(product: Product, scenario: ProviderTestScenario): QuoteItemInput[] {
   const variantId = product.variants[0]?.id;
-  return [{
-    productId: product.slug,
-    ...(variantId ? { variantId } : {}),
-    quantity: scenario.quantity ?? 1,
-  }];
+  return [
+    {
+      productId: product.slug,
+      ...(variantId ? { variantId } : {}),
+      quantity: scenario.quantity ?? 1,
+    },
+  ];
 }
 
 export function deriveSelectedRates(
-  providerBreakdown: Array<{ provider: string; selectedShipping: { rateId: string }; availableRates?: Array<{ rateId: string }> }>,
+  providerBreakdown: Array<{
+    provider: string;
+    selectedShipping: { rateId: string };
+    availableRates?: Array<{ rateId: string }>;
+  }>,
   scenarioSelectedRates?: Record<string, string>,
 ) {
-  const normalizedSelectedRates = scenarioSelectedRates && Object.keys(scenarioSelectedRates).length > 0
-    ? scenarioSelectedRates
-    : undefined;
+  const normalizedSelectedRates =
+    scenarioSelectedRates && Object.keys(scenarioSelectedRates).length > 0
+      ? scenarioSelectedRates
+      : undefined;
 
   if (normalizedSelectedRates) {
     for (const [providerName, selectedRateId] of Object.entries(normalizedSelectedRates)) {
@@ -166,7 +185,9 @@ export function deriveSelectedRates(
 
       const matchingRate = breakdown.availableRates?.find((rate) => rate.rateId === selectedRateId);
       if (!matchingRate) {
-        throw new Error(`Selected rate ${selectedRateId} is no longer available for provider ${providerName}`);
+        throw new Error(
+          `Selected rate ${selectedRateId} is no longer available for provider ${providerName}`,
+        );
       }
     }
 
@@ -188,7 +209,9 @@ export function deriveSelectedRates(
 export function assertOwnedTestProduct(product: Product, provider: ProviderName) {
   const expectedSource = testSource(provider);
   if (product.source !== expectedSource) {
-    throw new Error(`Refusing to use non-test product ${product.id} for ${provider} provider tests`);
+    throw new Error(
+      `Refusing to use non-test product ${product.id} for ${provider} provider tests`,
+    );
   }
 }
 
@@ -199,14 +222,20 @@ export async function resolveTestProduct(options: {
   stateStore: ProviderTestStateStoreLike;
 }) {
   const { provider, scenario, productStore, stateStore } = options;
-  const currentState = (await Effect.runPromise(stateStore.getState(provider))) as ProviderTestState | null;
+  const currentState = (await Effect.runPromise(
+    stateStore.getState(provider),
+  )) as ProviderTestState | null;
   const existingId = currentState?.testProductId;
   const baseProduct = defaultProduct(provider, scenario);
 
   const persistNewProduct = async (product: ProductWithImages) => {
-    const created = (await Effect.runPromise(productStore.upsert(product))) as Product & { isNew: boolean };
+    const created = (await Effect.runPromise(productStore.upsert(product))) as Product & {
+      isNew: boolean;
+    };
     await Effect.runPromise(productStore.updateListing(created.id, false));
-    await Effect.runPromise(stateStore.upsertState({ provider, testProductId: created.id, scenario }));
+    await Effect.runPromise(
+      stateStore.upsertState({ provider, testProductId: created.id, scenario }),
+    );
     return created;
   };
 
@@ -228,25 +257,31 @@ export async function resolveTestProduct(options: {
     }
 
     await Effect.runPromise(productStore.updateListing(updated.id, false));
-    await Effect.runPromise(stateStore.upsertState({ provider, testProductId: updated.id, scenario }));
+    await Effect.runPromise(
+      stateStore.upsertState({ provider, testProductId: updated.id, scenario }),
+    );
     return updated;
   };
 
   if (existingId) {
-    const existing = await Effect.runPromise(productStore.findById(existingId)) as Product | null;
+    const existing = (await Effect.runPromise(productStore.findById(existingId))) as Product | null;
     if (existing) {
       assertOwnedTestProduct(existing, provider);
       return await syncExistingProduct(existing.id);
     }
   }
 
-  const bySource = await Effect.runPromise(productStore.findBySource(testSource(provider))) as Product | null;
+  const bySource = (await Effect.runPromise(
+    productStore.findBySource(testSource(provider)),
+  )) as Product | null;
   if (bySource) {
     assertOwnedTestProduct(bySource, provider);
     return await syncExistingProduct(bySource.id);
   }
 
-  const slugCollision = await Effect.runPromise(productStore.findBySlug(testSlug(provider))) as Product | null;
+  const slugCollision = (await Effect.runPromise(
+    productStore.findBySlug(testSlug(provider)),
+  )) as Product | null;
   if (slugCollision) {
     assertOwnedTestProduct(slugCollision, provider);
     return await syncExistingProduct(slugCollision.id);
@@ -255,21 +290,35 @@ export async function resolveTestProduct(options: {
   return await persistNewProduct(baseProduct);
 }
 
-function mergeStepResults(state: ProviderTestState | null, step: ProviderTestStep, payload: unknown) {
+function mergeStepResults(
+  state: ProviderTestState | null,
+  step: ProviderTestStep,
+  payload: unknown,
+) {
   return {
     ...(state?.latestStepResults ?? {}),
     [step]: payload,
   };
 }
 
-function mergeWebhookPayloads(state: ProviderTestState | null, step: ProviderTestStep, payload: unknown) {
+function mergeWebhookPayloads(
+  state: ProviderTestState | null,
+  step: ProviderTestStep,
+  payload: unknown,
+) {
   return {
     ...(state?.latestWebhookPayloads ?? {}),
     [step]: payload,
   };
 }
 
-function toRun(provider: ProviderName, step: ProviderTestStep, state: ProviderTestState | null, result?: Record<string, unknown>, error?: string): ProviderTestRun {
+function toRun(
+  provider: ProviderName,
+  step: ProviderTestStep,
+  state: ProviderTestState | null,
+  result?: Record<string, unknown>,
+  error?: string,
+): ProviderTestRun {
   return {
     provider,
     step,
@@ -283,44 +332,48 @@ function toRun(provider: ProviderName, step: ProviderTestStep, state: ProviderTe
 
 function makeManualWebhookPayload(order: OrderWithItems, scenario: ProviderTestScenario) {
   return {
-    type: 'ORDER_STATUS_CHANGED',
+    type: "ORDER_STATUS_CHANGED",
     orderId: order.id,
-    status: (scenario.payloadOverrides?.provider_webhook as { status?: string } | undefined)?.status ?? 'processing',
+    status:
+      (scenario.payloadOverrides?.provider_webhook as { status?: string } | undefined)?.status ??
+      "processing",
   };
 }
 
 function makePrintfulWebhookPayload(order: OrderWithItems, scenario: ProviderTestScenario) {
-  const override = (scenario.payloadOverrides?.provider_webhook as Record<string, unknown> | undefined) || {};
+  const override =
+    (scenario.payloadOverrides?.provider_webhook as Record<string, unknown> | undefined) || {};
   return {
-    type: (override.type as string) ?? 'order_updated',
+    type: (override.type as string) ?? "order_updated",
     data: {
       order: {
         external_id: order.fulfillmentReferenceId ?? order.id,
-        status: (override as { status?: string }).status ?? 'fulfilled',
+        status: (override as { status?: string }).status ?? "fulfilled",
       },
       shipment: {
-        tracking_number: 'TEST-TRACKING',
-        tracking_url: 'https://tracking.example.com/test',
-        service: 'Standard',
+        tracking_number: "TEST-TRACKING",
+        tracking_url: "https://tracking.example.com/test",
+        service: "Standard",
       },
     },
   };
 }
 
 function makeLuluWebhookPayload(order: OrderWithItems, scenario: ProviderTestScenario) {
-  const override = (scenario.payloadOverrides?.provider_webhook as Record<string, unknown> | undefined) || {};
+  const override =
+    (scenario.payloadOverrides?.provider_webhook as Record<string, unknown> | undefined) || {};
   return {
-    topic: (override.topic as string) ?? 'PRINT_JOB_STATUS_CHANGED',
+    topic: (override.topic as string) ?? "PRINT_JOB_STATUS_CHANGED",
     data: {
       id: order.fulfillmentOrderId ?? order.id,
       external_id: order.fulfillmentReferenceId ?? order.id,
-      status: (override.status as string) ?? 'SHIPPED',
+      status: (override.status as string) ?? "SHIPPED",
       created_at: new Date().toISOString(),
       line_items: [
         {
-          tracking_id: 'TEST-TRACKING',
-          tracking_urls: ['https://tracking.example.com/test'],
-          carrier_name: 'Test Carrier',
+          tracking_id: "TEST-TRACKING",
+          tracking_urls: ["https://tracking.example.com/test"],
+          carrier_name: "Test Carrier",
         },
       ],
       shipping_address: {
@@ -338,7 +391,16 @@ export function runProviderTestStepEffect(options: {
   runtime: MarketplaceRuntime;
   provider: ProviderName;
   step: ProviderTestStep;
-}): Effect.Effect<ProviderTestRun, unknown, OrderStore | ProductStore | ProviderTestStateStore | CheckoutService | ProviderConfigStore | EmailService> {
+}): Effect.Effect<
+  ProviderTestRun,
+  unknown,
+  | OrderStore
+  | ProductStore
+  | ProviderTestStateStore
+  | CheckoutService
+  | ProviderConfigStore
+  | EmailService
+> {
   const { runtime, provider, step } = options;
 
   return Effect.gen(function* () {
@@ -355,12 +417,14 @@ export function runProviderTestStepEffect(options: {
     });
     const product = (yield* productEffect) as Product;
 
-    const baseState = existingState ?? (yield* stateStore.upsertState({ provider, testProductId: product.id, scenario }));
+    const baseState =
+      existingState ??
+      (yield* stateStore.upsertState({ provider, testProductId: product.id, scenario }));
     const persistedSelectedRates = getScenarioSelectedRates(baseState, scenario);
 
     try {
       switch (step) {
-        case 'connection': {
+        case "connection": {
           const providerRuntime = runtime.getProvider(provider);
           if (!providerRuntime) {
             throw new Error(`Provider ${provider} is not configured`);
@@ -388,11 +452,14 @@ export function runProviderTestStepEffect(options: {
           return toRun(provider, step, state, result);
         }
 
-        case 'quote': {
+        case "quote": {
           const items = getQuoteItems(product, scenario);
           const address = scenario.shippingAddress ?? DEFAULT_ADDRESS;
           const quote = yield* checkoutService.getQuote(items, address);
-          const selectedRates = deriveSelectedRates(quote.providerBreakdown, scenario.selectedRates);
+          const selectedRates = deriveSelectedRates(
+            quote.providerBreakdown,
+            scenario.selectedRates,
+          );
           const result = {
             request: { items, shippingAddress: address },
             response: quote,
@@ -416,10 +483,10 @@ export function runProviderTestStepEffect(options: {
           return toRun(provider, step, state, result);
         }
 
-        case 'checkout': {
+        case "checkout": {
           if (baseState?.latestOrderId) {
             try {
-              yield* orderStore.deleteOrders([baseState.latestOrderId], 'admin:provider-test');
+              yield* orderStore.deleteOrders([baseState.latestOrderId], "admin:provider-test");
             } catch {
               // ignore stale order cleanup failures
             }
@@ -428,17 +495,22 @@ export function runProviderTestStepEffect(options: {
           const items = getQuoteItems(product, scenario);
           const address = scenario.shippingAddress ?? DEFAULT_ADDRESS;
           const quote = yield* checkoutService.getQuote(items, address);
-          const selectedRates = deriveSelectedRates(quote.providerBreakdown, persistedSelectedRates);
+          const selectedRates = deriveSelectedRates(
+            quote.providerBreakdown,
+            persistedSelectedRates,
+          );
 
           const checkout = yield* checkoutService.createCheckout({
-            userId: 'provider-test',
+            userId: "provider-test",
             items,
             address,
             selectedRates,
             shippingCost: quote.shippingCost,
-            successUrl: scenario.successUrl ?? `https://nearmerch.com/admin/providers?provider=${provider}`,
-            cancelUrl: scenario.cancelUrl ?? `https://nearmerch.com/admin/providers?provider=${provider}`,
-            paymentProvider: scenario.paymentProvider ?? 'pingpay',
+            successUrl:
+              scenario.successUrl ?? `https://nearmerch.com/admin/providers?provider=${provider}`,
+            cancelUrl:
+              scenario.cancelUrl ?? `https://nearmerch.com/admin/providers?provider=${provider}`,
+            paymentProvider: scenario.paymentProvider ?? "pingpay",
           });
 
           const order = yield* orderStore.find(checkout.orderId);
@@ -466,19 +538,19 @@ export function runProviderTestStepEffect(options: {
           return toRun(provider, step, state, result);
         }
 
-        case 'payment_webhook': {
+        case "payment_webhook": {
           const orderId = baseState?.latestOrderId;
           if (!orderId) {
-            throw new Error('No test order exists yet');
+            throw new Error("No test order exists yet");
           }
 
           const order = yield* orderStore.find(orderId);
           if (!order) {
-            throw new Error('Test order not found');
+            throw new Error("Test order not found");
           }
 
           const payload = {
-            eventType: 'payment.success',
+            eventType: "payment.success",
             orderId: order.id,
             sessionId: order.checkoutSessionId ?? order.id,
           };
@@ -486,7 +558,7 @@ export function runProviderTestStepEffect(options: {
           const paidResult = yield* processPaymentSuccessEffect({
             runtime,
             order,
-            actor: 'admin:provider-test',
+            actor: "admin:provider-test",
             metadata: { simulated: true, payload },
           });
 
@@ -515,21 +587,21 @@ export function runProviderTestStepEffect(options: {
           return toRun(provider, step, state, result);
         }
 
-        case 'provider_webhook': {
+        case "provider_webhook": {
           const orderId = baseState?.latestOrderId;
           if (!orderId) {
-            throw new Error('No test order exists yet');
+            throw new Error("No test order exists yet");
           }
 
           const order = yield* orderStore.find(orderId);
           if (!order) {
-            throw new Error('Test order not found');
+            throw new Error("Test order not found");
           }
 
           let payload: Record<string, unknown>;
           let updatedOrder = order;
 
-          if (provider === 'printful') {
+          if (provider === "printful") {
             const rawPayload = makePrintfulWebhookPayload(order, scenario);
             payload = rawPayload as Record<string, unknown>;
             const parsed = parsePrintfulWebhook(JSON.stringify(rawPayload));
@@ -538,20 +610,24 @@ export function runProviderTestStepEffect(options: {
               order,
               eventType: parsed.eventType,
               data: parsed.data,
-              actor: 'admin:provider-test',
+              actor: "admin:provider-test",
               metadata: { simulated: true, payload: rawPayload },
             });
             updatedOrder = result.order;
-          } else if (provider === 'lulu') {
+          } else if (provider === "lulu") {
             const rawPayload = makeLuluWebhookPayload(order, scenario);
             payload = rawPayload as Record<string, unknown>;
-            const luluService = new LuluService({ clientKey: '', clientSecret: '', environment: 'sandbox' });
+            const luluService = new LuluService({
+              clientKey: "",
+              clientSecret: "",
+              environment: "sandbox",
+            });
             const parsed = luluService.parseWebhookPayload(JSON.stringify(rawPayload));
             const result = yield* processLuluWebhookEffect({
               order,
               eventType: parsed.eventType,
               data: parsed.data,
-              actor: 'admin:provider-test',
+              actor: "admin:provider-test",
               luluService,
               metadata: { simulated: true, payload: rawPayload },
             });
@@ -561,7 +637,7 @@ export function runProviderTestStepEffect(options: {
             payload = rawPayload;
             const manualResult = yield* processManualWebhookEffect({
               order,
-              actor: 'admin:provider-test',
+              actor: "admin:provider-test",
               status: rawPayload.status as OrderStatus,
               metadata: { simulated: true, payload: rawPayload },
             });
@@ -595,11 +671,19 @@ export function runProviderTestStepEffect(options: {
         selectedRates: baseState?.selectedRates ?? persistedSelectedRates,
         scenario,
         latestOrderId: baseState?.latestOrderId ?? null,
-        latestStepResults: mergeStepResults(baseState, step, { error: error instanceof Error ? error.message : String(error) }),
+        latestStepResults: mergeStepResults(baseState, step, {
+          error: error instanceof Error ? error.message : String(error),
+        }),
         latestWebhookPayloads: baseState?.latestWebhookPayloads,
       });
 
-      return toRun(provider, step, state, undefined, error instanceof Error ? error.message : String(error));
+      return toRun(
+        provider,
+        step,
+        state,
+        undefined,
+        error instanceof Error ? error.message : String(error),
+      );
     }
   });
 }

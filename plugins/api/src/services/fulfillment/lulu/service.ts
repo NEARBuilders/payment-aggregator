@@ -1,5 +1,6 @@
-import { Effect, Schedule } from 'every-plugin/effect';
-import crypto from 'crypto';
+import crypto from "crypto";
+import { Effect, Schedule } from "every-plugin/effect";
+import { FulfillmentError } from "../errors";
 import type {
   CreateOrderInput,
   FulfillmentOrder,
@@ -7,9 +8,8 @@ import type {
   ProviderProduct,
   ShippingQuoteInput,
   ShippingQuoteOutput,
-} from '../schema';
-import { FulfillmentError } from '../errors';
-import { LuluClient } from './client';
+} from "../schema";
+import { LuluClient } from "./client";
 import {
   LULU_STATUS_MAP,
   type LuluBookConfig,
@@ -20,28 +20,30 @@ import {
   type LuluProviderData,
   type LuluShippingOption,
   type LuluWebhookPayload,
-} from './types';
+} from "./types";
 
 function parseLuluApiError(error: unknown): string {
   const errorMessage = error instanceof Error ? error.message : String(error);
-  
+
   const unsupportedDestinationMatch = errorMessage.match(
-    /shipping.*not (available|supported|possible)|no shipping (options|rates)|cannot ship|destination not (supported|serviced)/i
+    /shipping.*not (available|supported|possible)|no shipping (options|rates)|cannot ship|destination not (supported|serviced)/i,
   );
   if (unsupportedDestinationMatch) {
-    return 'Shipping is not available to this destination';
+    return "Shipping is not available to this destination";
   }
-  
-  const countryMatch = errorMessage.match(/country.*not (supported|valid|recognized)|invalid country/i);
+
+  const countryMatch = errorMessage.match(
+    /country.*not (supported|valid|recognized)|invalid country/i,
+  );
   if (countryMatch) {
-    return 'Shipping is not available to this destination';
+    return "Shipping is not available to this destination";
   }
-  
+
   const addressMatch = errorMessage.match(/invalid.*address|address.*not (valid|found|supported)/i);
   if (addressMatch) {
-    return 'Shipping is not available to this destination';
+    return "Shipping is not available to this destination";
   }
-  
+
   return errorMessage;
 }
 
@@ -49,7 +51,7 @@ interface LuluConfig {
   clientKey: string;
   clientSecret: string;
   baseUrl?: string;
-  environment?: 'sandbox' | 'production';
+  environment?: "sandbox" | "production";
   books?: LuluBookConfig[];
 }
 
@@ -63,20 +65,23 @@ export class LuluService {
   }
 
   private toProviderProduct(book: LuluBookConfig): ProviderProduct {
-    const files = book.files.length > 0
-      ? book.files
-      : book.thumbnailUrl
-        ? [{ type: 'preview', url: book.thumbnailUrl, previewUrl: book.thumbnailUrl }]
-        : undefined;
+    const files =
+      book.files.length > 0
+        ? book.files
+        : book.thumbnailUrl
+          ? [{ type: "preview", url: book.thumbnailUrl, previewUrl: book.thumbnailUrl }]
+          : undefined;
     const downloads = book.downloadUrl
-      ? [{
-          url: book.downloadUrl,
-          label: book.downloadLabel || 'Download for Free',
-          kind: 'free' as const,
-        }]
+      ? [
+          {
+            url: book.downloadUrl,
+            label: book.downloadLabel || "Download for Free",
+            kind: "free" as const,
+          },
+        ]
       : undefined;
 
-    const format = book.variantName || 'Paperback';
+    const format = book.variantName || "Paperback";
 
     return {
       id: book.id,
@@ -92,7 +97,11 @@ export class LuluService {
           retailPrice: book.retailPrice,
           currency: book.currency,
           sku: book.sku,
-          files: files?.map(f => ({ assetId: `lulu-${book.id}-${f.type}`, url: f.url || '', slot: f.type })),
+          files: files?.map((f) => ({
+            assetId: `lulu-${book.id}-${f.type}`,
+            url: f.url || "",
+            slot: f.type,
+          })),
           providerData: {
             sku: book.sku,
             podPackageId: book.podPackageId,
@@ -112,21 +121,24 @@ export class LuluService {
     };
   }
 
-  private getProviderData(item: { providerConfig: Record<string, unknown> }, index: number): LuluProviderData {
+  private getProviderData(
+    item: { providerConfig: Record<string, unknown> },
+    index: number,
+  ): LuluProviderData {
     const providerData = item.providerConfig as unknown as LuluProviderData | undefined;
 
     if (!providerData?.podPackageId || !providerData?.pageCount) {
       throw new FulfillmentError({
         message: `Missing required Lulu provider data for item ${index}`,
-        code: 'INVALID_REQUEST',
-        provider: 'lulu',
+        code: "INVALID_REQUEST",
+        provider: "lulu",
       });
     }
 
     return providerData;
   }
 
-  private buildShippingOptionsAddress(recipient: CreateOrderInput['recipient']) {
+  private buildShippingOptionsAddress(recipient: CreateOrderInput["recipient"]) {
     return {
       country: recipient.countryCode,
       city: recipient.city,
@@ -140,7 +152,9 @@ export class LuluService {
     };
   }
 
-  private buildCostCalculationAddress(recipient: CreateOrderInput['recipient']): LuluCostCalculationAddress {
+  private buildCostCalculationAddress(
+    recipient: CreateOrderInput["recipient"],
+  ): LuluCostCalculationAddress {
     return {
       city: recipient.city,
       country_code: recipient.countryCode,
@@ -156,7 +170,7 @@ export class LuluService {
     };
   }
 
-  private buildPrintJobAddress(recipient: CreateOrderInput['recipient']) {
+  private buildPrintJobAddress(recipient: CreateOrderInput["recipient"]) {
     return {
       city: recipient.city,
       country_code: recipient.countryCode,
@@ -171,8 +185,8 @@ export class LuluService {
     };
   }
 
-  private parseStatus(status: LuluPrintJobResponse['status']): LuluPrintJobStatus | null {
-    const raw = typeof status === 'string' ? status : status?.name;
+  private parseStatus(status: LuluPrintJobResponse["status"]): LuluPrintJobStatus | null {
+    const raw = typeof status === "string" ? status : status?.name;
     if (!raw) return null;
     return raw in LULU_STATUS_MAP ? (raw as LuluPrintJobStatus) : null;
   }
@@ -180,14 +194,16 @@ export class LuluService {
   private selectRate(options: LuluShippingOption[]): LuluShippingOption | null {
     if (options.length === 0) return null;
 
-    const withCost = options.filter((option) => Number.isFinite(parseFloat(option.cost_excl_tax || '')));
+    const withCost = options.filter((option) =>
+      Number.isFinite(parseFloat(option.cost_excl_tax || "")),
+    );
     if (withCost.length === 0) {
       return options[0] || null;
     }
 
     return withCost.reduce((cheapest, current) => {
-      const cheapestCost = parseFloat(cheapest.cost_excl_tax || '0');
-      const currentCost = parseFloat(current.cost_excl_tax || '0');
+      const cheapestCost = parseFloat(cheapest.cost_excl_tax || "0");
+      const currentCost = parseFloat(current.cost_excl_tax || "0");
       return currentCost < cheapestCost ? current : cheapest;
     });
   }
@@ -222,9 +238,9 @@ export class LuluService {
       try: async () => {
         if (input.items.length === 0) {
           throw new FulfillmentError({
-            message: 'Lulu order requires at least one item',
-            code: 'INVALID_REQUEST',
-            provider: 'lulu',
+            message: "Lulu order requires at least one item",
+            code: "INVALID_REQUEST",
+            provider: "lulu",
           });
         }
 
@@ -233,8 +249,8 @@ export class LuluService {
           if (!providerData.coverPdfUrl || !providerData.interiorPdfUrl) {
             throw new FulfillmentError({
               message: `Missing Lulu PDF URLs for item ${index}`,
-              code: 'INVALID_REQUEST',
-              provider: 'lulu',
+              code: "INVALID_REQUEST",
+              provider: "lulu",
             });
           }
 
@@ -254,7 +270,7 @@ export class LuluService {
         const requestBody: LuluPrintJobRequest = {
           external_id: input.externalId,
           contact_email: input.recipient.email,
-          shipping_level: firstProviderData.shippingLevel || 'MAIL',
+          shipping_level: firstProviderData.shippingLevel || "MAIL",
           shipping_address: this.buildPrintJobAddress(input.recipient),
           line_items: lineItems,
         };
@@ -264,7 +280,7 @@ export class LuluService {
 
         return {
           id: String(result.id),
-          status: status ? LULU_STATUS_MAP[status] : 'pending',
+          status: status ? LULU_STATUS_MAP[status] : "pending",
         };
       },
       catch: (error) =>
@@ -272,16 +288,16 @@ export class LuluService {
           ? error
           : new FulfillmentError({
               message: `Failed to create Lulu order: ${error instanceof Error ? error.message : String(error)}`,
-              code: 'UNKNOWN',
-              provider: 'lulu',
+              code: "UNKNOWN",
+              provider: "lulu",
               cause: error,
             }),
     }).pipe(
       Effect.retry({
         times: 2,
-        schedule: Schedule.exponential('500 millis'),
-        while: (error: unknown) => error instanceof FulfillmentError && error.code === 'RATE_LIMIT',
-      })
+        schedule: Schedule.exponential("500 millis"),
+        while: (error: unknown) => error instanceof FulfillmentError && error.code === "RATE_LIMIT",
+      }),
     );
   }
 
@@ -295,18 +311,18 @@ export class LuluService {
         const order: FulfillmentOrder = {
           id: String(data.id),
           externalId: data.external_id,
-          status: status ? LULU_STATUS_MAP[status] : 'pending',
+          status: status ? LULU_STATUS_MAP[status] : "pending",
           created: new Date(data.created_at).getTime(),
           updated: new Date(data.modified_at || data.updated_at || data.created_at).getTime(),
           recipient: {
-            name: address.name || '',
-            address1: address.street1 || '',
+            name: address.name || "",
+            address1: address.street1 || "",
             address2: address.street2,
-            city: address.city || '',
+            city: address.city || "",
             stateCode: address.state_code,
-            countryCode: address.country_code || '',
-            zip: address.postcode || '',
-            email: address.email || 'no-reply@example.com',
+            countryCode: address.country_code || "",
+            zip: address.postcode || "",
+            email: address.email || "no-reply@example.com",
             phone: address.phone_number,
           },
           shipments:
@@ -314,11 +330,11 @@ export class LuluService {
               ?.filter((item) => item.tracking_id)
               .map((item, index) => ({
                 id: `${data.id}-${index + 1}`,
-                carrier: item.carrier_name || 'Lulu',
-                service: 'Standard',
-                trackingNumber: item.tracking_id || '',
-                trackingUrl: item.tracking_urls?.[0] || '',
-                status: 'shipped',
+                carrier: item.carrier_name || "Lulu",
+                service: "Standard",
+                trackingNumber: item.tracking_id || "",
+                trackingUrl: item.tracking_urls?.[0] || "",
+                status: "shipped",
               })) || undefined,
         };
 
@@ -329,8 +345,8 @@ export class LuluService {
           ? error
           : new FulfillmentError({
               message: `Failed to get Lulu order: ${error instanceof Error ? error.message : String(error)}`,
-              code: 'UNKNOWN',
-              provider: 'lulu',
+              code: "UNKNOWN",
+              provider: "lulu",
               cause: error,
             }),
     });
@@ -340,15 +356,15 @@ export class LuluService {
     return Effect.tryPromise({
       try: async () => {
         await this.client.cancelPrintJob(orderId);
-        return { id: orderId, status: 'cancelled' };
+        return { id: orderId, status: "cancelled" };
       },
       catch: (error) =>
         error instanceof FulfillmentError
           ? error
           : new FulfillmentError({
               message: `Failed to cancel Lulu order: ${error instanceof Error ? error.message : String(error)}`,
-              code: 'UNKNOWN',
-              provider: 'lulu',
+              code: "UNKNOWN",
+              provider: "lulu",
               cause: error,
             }),
     });
@@ -358,7 +374,7 @@ export class LuluService {
     return Effect.tryPromise({
       try: async () => {
         if (input.items.length === 0) {
-          return { rates: [], currency: input.currency || 'USD' };
+          return { rates: [], currency: input.currency || "USD" };
         }
 
         const lineItems = input.items.map((item, index) => {
@@ -371,14 +387,14 @@ export class LuluService {
         });
 
         const shippingOptions = await this.client.getShippingOptions({
-          currency: input.currency || 'USD',
+          currency: input.currency || "USD",
           line_items: lineItems,
           shipping_address: this.buildShippingOptionsAddress(input.recipient),
         });
 
         const selectedOption = this.selectRate(shippingOptions);
         if (!selectedOption) {
-          throw new Error('Shipping is not available to this destination');
+          throw new Error("Shipping is not available to this destination");
         }
 
         const costCalculation = await this.client.calculatePrintJobCost({
@@ -391,10 +407,10 @@ export class LuluService {
           rates: [
             {
               id: selectedOption.level,
-              name: selectedOption.level.replace(/_/g, ' '),
+              name: selectedOption.level.replace(/_/g, " "),
               rate: parseFloat(costCalculation.shipping_cost.total_cost_excl_tax),
               currency: costCalculation.currency,
-              taxAmount: parseFloat(costCalculation.total_tax || '0'),
+              taxAmount: parseFloat(costCalculation.total_tax || "0"),
               vat: 0,
               minDeliveryDays: selectedOption.total_days_min,
               maxDeliveryDays: selectedOption.total_days_max,
@@ -414,9 +430,9 @@ export class LuluService {
     }).pipe(
       Effect.retry({
         times: 2,
-        schedule: Schedule.exponential('500 millis'),
-        while: (error: unknown) => error instanceof FulfillmentError && error.code === 'RATE_LIMIT',
-      })
+        schedule: Schedule.exponential("500 millis"),
+        while: (error: unknown) => error instanceof FulfillmentError && error.code === "RATE_LIMIT",
+      }),
     );
   }
 
@@ -427,14 +443,17 @@ export class LuluService {
     });
   }
 
-  calculateTax(_input: any): Effect.Effect<{
-    required: boolean;
-    rate: number;
-    shippingTaxable: boolean;
-    exempt: boolean;
-    taxAmount: number;
-    vat: number;
-  }, Error> {
+  calculateTax(_input: any): Effect.Effect<
+    {
+      required: boolean;
+      rate: number;
+      shippingTaxable: boolean;
+      exempt: boolean;
+      taxAmount: number;
+      vat: number;
+    },
+    Error
+  > {
     return Effect.succeed({
       required: false,
       rate: 0,
@@ -446,15 +465,20 @@ export class LuluService {
   }
 
   browseCatalog(_input: { limit?: number; offset?: number }) {
-    const products = this.books.map(book => ({
+    const products = this.books.map((book) => ({
       id: `lulu-${book.id}`,
       name: book.title,
-      providerName: 'lulu',
+      providerName: "lulu",
       description: book.description ?? null,
       image: book.thumbnailUrl ?? null,
       slots: [
-        { name: 'cover', label: 'Cover', required: true, acceptedFormats: ['application/pdf'] },
-        { name: 'interior', label: 'Interior', required: true, acceptedFormats: ['application/pdf'] },
+        { name: "cover", label: "Cover", required: true, acceptedFormats: ["application/pdf"] },
+        {
+          name: "interior",
+          label: "Interior",
+          required: true,
+          acceptedFormats: ["application/pdf"],
+        },
       ],
     }));
     return Effect.succeed({
@@ -464,19 +488,31 @@ export class LuluService {
   }
 
   getCatalogProduct(input: { id: string }) {
-    const bookId = input.id.replace('lulu-', '');
-    const book = this.books.find(b => b.id === bookId);
-    if (!book) return Effect.fail(new FulfillmentError({ message: `Book ${input.id} not found`, code: 'NOT_FOUND', provider: 'lulu' }));
+    const bookId = input.id.replace("lulu-", "");
+    const book = this.books.find((b) => b.id === bookId);
+    if (!book)
+      return Effect.fail(
+        new FulfillmentError({
+          message: `Book ${input.id} not found`,
+          code: "NOT_FOUND",
+          provider: "lulu",
+        }),
+      );
     return Effect.succeed({
       product: {
         id: `lulu-${book.id}`,
         name: book.title,
-        providerName: 'lulu',
+        providerName: "lulu",
         description: book.description ?? null,
         image: book.thumbnailUrl ?? null,
         slots: [
-          { name: 'cover', label: 'Cover', required: true, acceptedFormats: ['application/pdf'] },
-          { name: 'interior', label: 'Interior', required: true, acceptedFormats: ['application/pdf'] },
+          { name: "cover", label: "Cover", required: true, acceptedFormats: ["application/pdf"] },
+          {
+            name: "interior",
+            label: "Interior",
+            required: true,
+            acceptedFormats: ["application/pdf"],
+          },
         ],
       },
     });
@@ -491,18 +527,18 @@ export class LuluService {
   }
 
   generateMockups(_input: any) {
-    return Effect.succeed({ status: 'unsupported' as const, images: [] });
+    return Effect.succeed({ status: "unsupported" as const, images: [] });
   }
 
   getMockupResult(_taskId: string) {
-    return Effect.succeed({ status: 'unsupported' as const, images: [] });
+    return Effect.succeed({ status: "unsupported" as const, images: [] });
   }
 
   getPlacements(_input: { providerConfig: Record<string, unknown> }) {
     return Effect.succeed({
       placements: [
-        { name: 'cover', label: 'Cover', required: true, acceptedFormats: ['pdf'] },
-        { name: 'interior', label: 'Interior', required: true, acceptedFormats: ['pdf'] },
+        { name: "cover", label: "Cover", required: true, acceptedFormats: ["pdf"] },
+        { name: "interior", label: "Interior", required: true, acceptedFormats: ["pdf"] },
       ],
     });
   }
@@ -512,17 +548,18 @@ export class LuluService {
       try: async () => {
         await this.client.ping();
         return {
-          provider: 'lulu',
-          status: 'ok' as const,
+          provider: "lulu",
+          status: "ok" as const,
           timestamp: new Date().toISOString(),
         };
       },
-      catch: (error) => new FulfillmentError({
-        message: `Lulu connection test failed: ${error instanceof Error ? error.message : String(error)}`,
-        code: 'SERVICE_UNAVAILABLE',
-        provider: 'lulu',
-        cause: error,
-      }),
+      catch: (error) =>
+        new FulfillmentError({
+          message: `Lulu connection test failed: ${error instanceof Error ? error.message : String(error)}`,
+          code: "SERVICE_UNAVAILABLE",
+          provider: "lulu",
+          cause: error,
+        }),
     });
   }
 
@@ -530,9 +567,9 @@ export class LuluService {
     return Effect.sync(() => {
       if (!signature) return false;
       const calculatedSignature = crypto
-        .createHmac('sha256', this.config.clientSecret)
+        .createHmac("sha256", this.config.clientSecret)
         .update(body)
-        .digest('hex');
+        .digest("hex");
 
       try {
         return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(calculatedSignature));
@@ -565,7 +602,10 @@ export class LuluService {
           expiresAt: null,
         };
       },
-      catch: (error) => new Error(`Failed to configure Lulu webhook: ${error instanceof Error ? error.message : String(error)}`),
+      catch: (error) =>
+        new Error(
+          `Failed to configure Lulu webhook: ${error instanceof Error ? error.message : String(error)}`,
+        ),
     });
   }
 
@@ -576,7 +616,10 @@ export class LuluService {
         const matches = webhooks.filter((webhook) => !webhookUrl || webhook.url === webhookUrl);
         await Promise.all(matches.map((webhook) => this.client.deleteWebhook(webhook.id)));
       },
-      catch: (error) => new Error(`Failed to disable Lulu webhooks: ${error instanceof Error ? error.message : String(error)}`),
+      catch: (error) =>
+        new Error(
+          `Failed to disable Lulu webhooks: ${error instanceof Error ? error.message : String(error)}`,
+        ),
     });
   }
 
@@ -598,11 +641,14 @@ export class LuluService {
           publicKey: webhook.id,
         };
       },
-      catch: (error) => new Error(`Failed to get Lulu webhook config: ${error instanceof Error ? error.message : String(error)}`),
+      catch: (error) =>
+        new Error(
+          `Failed to get Lulu webhook config: ${error instanceof Error ? error.message : String(error)}`,
+        ),
     });
   }
 }
 
 function rawStatusToInternal(status: string): FulfillmentOrderStatus {
-  return (LULU_STATUS_MAP[status as LuluPrintJobStatus] || 'pending') as FulfillmentOrderStatus;
+  return (LULU_STATUS_MAP[status as LuluPrintJobStatus] || "pending") as FulfillmentOrderStatus;
 }

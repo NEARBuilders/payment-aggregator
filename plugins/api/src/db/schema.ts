@@ -1,20 +1,20 @@
 import {
+  boolean,
   index,
   integer,
+  jsonb,
   pgTable,
   primaryKey,
   text,
   timestamp,
-  boolean,
-  jsonb,
 } from "drizzle-orm/pg-core";
 import type {
   Attribute,
-  ProviderWebhookEventType,
-  ProviderTestScenario,
-  ProductOption,
-  ProductMetadata,
   ManualProviderSettings as ManualProviderSettingsType,
+  ProductMetadata,
+  ProductOption,
+  ProviderTestScenario,
+  ProviderWebhookEventType,
 } from "../schema";
 import type { FulfillmentFile } from "../services/fulfillment/schema";
 
@@ -34,12 +34,8 @@ export const assets = pgTable(
     storageKey: text("storage_key"),
     size: integer("size"),
     metadata: jsonb("metadata").$type<Record<string, unknown>>(),
-    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
   },
   (table) => [
     index("assets_type_idx").on(table.type),
@@ -53,12 +49,8 @@ export const productTypes = pgTable("product_types", {
   label: text("label").notNull(),
   description: text("description"),
   displayOrder: integer("display_order").notNull().default(0),
-  createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
-    .notNull()
-    .defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" })
-    .notNull()
-    .defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
 });
 
 export const products = pgTable(
@@ -72,10 +64,9 @@ export const products = pgTable(
     price: integer("price").notNull(),
     currency: text("currency").notNull().default("USD"),
     brand: text("brand"),
-    productTypeSlug: text("product_type_slug").references(
-      () => productTypes.slug,
-      { onDelete: "set null" },
-    ),
+    productTypeSlug: text("product_type_slug").references(() => productTypes.slug, {
+      onDelete: "set null",
+    }),
     tags: jsonb("tags").$type<string[]>().notNull().default([]),
     options: jsonb("options").$type<ProductOption[]>(),
     thumbnailImage: text("thumbnail_image"),
@@ -93,12 +84,8 @@ export const products = pgTable(
     listed: boolean("listed").notNull().default(true),
     priceLocked: boolean("price_locked").notNull().default(false),
 
-    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
   },
   (table) => [
     index("source_idx").on(table.source),
@@ -107,10 +94,7 @@ export const products = pgTable(
     index("listed_idx").on(table.listed),
     index("public_key_idx").on(table.publicKey),
     index("slug_idx").on(table.slug),
-    index("external_provider_idx").on(
-      table.externalProductId,
-      table.fulfillmentProvider,
-    ),
+    index("external_provider_idx").on(table.externalProductId, table.fulfillmentProvider),
     index("products_type_slug_idx").on(table.productTypeSlug),
     index("featured_idx").on(table.featured),
   ],
@@ -129,14 +113,9 @@ export const productImages = pgTable(
     style: text("style"),
     variantIds: jsonb("variant_ids").$type<string[]>(),
     order: integer("order").notNull().default(0),
-    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
   },
-  (table) => [
-    index("product_id_idx").on(table.productId),
-    index("type_idx").on(table.type),
-  ],
+  (table) => [index("product_id_idx").on(table.productId), index("type_idx").on(table.type)],
 );
 
 export const productVariants = pgTable(
@@ -156,9 +135,7 @@ export const productVariants = pgTable(
     fulfillmentConfig: jsonb("fulfillment_config").$type<FulfillmentConfig>(),
 
     inStock: boolean("in_stock").notNull().default(true),
-    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
   },
   (table) => [
     index("variant_product_idx").on(table.productId),
@@ -175,27 +152,17 @@ export const collections = pgTable(
     description: text("description"),
     image: text("image"),
     badge: text("badge"),
-    featuredProductId: text("featured_product_id").references(
-      () => products.id,
-      { onDelete: "set null" },
-    ),
+    featuredProductId: text("featured_product_id").references(() => products.id, {
+      onDelete: "set null",
+    }),
     carouselTitle: text("carousel_title"),
     carouselDescription: text("carousel_description"),
     showInCarousel: boolean("show_in_carousel").notNull().default(true),
     carouselOrder: integer("carousel_order").notNull().default(0),
-    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
   },
-  (table) => [
-    index("collections_carousel_idx").on(
-      table.showInCarousel,
-      table.carouselOrder,
-    ),
-  ],
+  (table) => [index("collections_carousel_idx").on(table.showInCarousel, table.carouselOrder)],
 );
 
 export const productCollections = pgTable(
@@ -233,9 +200,7 @@ export const syncState = pgTable(
       withTimezone: true,
       mode: "date",
     }),
-    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" })
-      .notNull()
-      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
     errorData: jsonb("error_data").$type<Record<string, any>>(),
   },
   (table) => [
@@ -279,12 +244,8 @@ export const orders = pgTable(
 
     isDeleted: boolean("is_deleted").notNull().default(false),
 
-    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
   },
   (table) => [
     index("orders_user_idx").on(table.userId),
@@ -315,9 +276,7 @@ export const orderItems = pgTable(
     fulfillmentProvider: text("fulfillment_provider"),
     fulfillmentConfig: jsonb("fulfillment_config").$type<FulfillmentConfig>(),
 
-    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
   },
   (table) => [
     index("order_items_order_idx").on(table.orderId),
@@ -339,9 +298,7 @@ export const orderAuditLogs = pgTable(
     oldValue: text("old_value"), // previous value (nullable)
     newValue: text("new_value"), // new value (nullable)
     metadata: jsonb("metadata").$type<Record<string, unknown>>(), // additional context (webhook payload, etc.)
-    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
   },
   (table) => [
     index("audit_order_idx").on(table.orderId),
@@ -395,12 +352,8 @@ export const providerConfigs = pgTable("provider_configs", {
     mode: "date",
   }),
   expiresAt: timestamp("expires_at", { withTimezone: true, mode: "date" }),
-  createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
-    .notNull()
-    .defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" })
-    .notNull()
-    .defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
 });
 
 export const providerTestStates = pgTable(
@@ -413,19 +366,11 @@ export const providerTestStates = pgTable(
     latestOrderId: text("latest_order_id"),
     latestStepResults: jsonb("latest_step_results").$type<Record<string, unknown>>(),
     latestWebhookPayloads: jsonb("latest_webhook_payloads").$type<Record<string, unknown>>(),
-    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
   },
-  (table) => [
-    index("provider_test_states_updated_idx").on(table.updatedAt),
-  ],
+  (table) => [index("provider_test_states_updated_idx").on(table.updatedAt)],
 );
-
-
 
 export const newsletterSubscriptions = pgTable(
   "newsletter_subscriptions",
@@ -433,9 +378,7 @@ export const newsletterSubscriptions = pgTable(
     id: text("id").primaryKey(),
     email: text("email").notNull().unique(),
     active: boolean("active").notNull().default(true),
-    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
   },
   (table) => [
     index("newsletter_email_idx").on(table.email),

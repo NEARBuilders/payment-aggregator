@@ -1,7 +1,7 @@
 import { drizzle } from "drizzle-orm/postgres-js";
+import { Context, Effect, Layer } from "every-plugin/effect";
 import pg from "postgres";
 import * as schema from "./schema";
-import { Context, Effect, Layer } from "every-plugin/effect";
 
 type DrizzleDatabase = ReturnType<typeof drizzle<typeof schema>>;
 type SqlClient = import("postgres").Sql<Record<string, never>>;
@@ -34,8 +34,8 @@ export const DatabaseLive = (url: string) =>
             client.end();
             clientMap.delete(db);
           }
-        })
-    )
+        }),
+    ),
   );
 
 export const createDatabase = (url: string): DrizzleDatabase => {

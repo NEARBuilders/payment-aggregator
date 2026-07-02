@@ -1,62 +1,62 @@
-import { describe, expect, it, vi } from 'vitest';
-import { Effect, Layer } from 'every-plugin/effect';
-import { handleOrderPaidEffect } from '@/services/order-paid';
-import { EmailService } from '@/services/email';
-import { OrderStore, ProviderConfigStore } from '@/store';
-import type { OrderWithItems } from '@/schema';
-import type { MarketplaceRuntime } from '@/runtime';
+import { Effect, Layer } from "every-plugin/effect";
+import { describe, expect, it, vi } from "vitest";
+import type { MarketplaceRuntime } from "@/runtime";
+import type { OrderWithItems } from "@/schema";
+import { EmailService } from "@/services/email";
+import { handleOrderPaidEffect } from "@/services/order-paid";
+import { OrderStore, ProviderConfigStore } from "@/store";
 
 function createOrder(): OrderWithItems {
   return {
-    id: 'order_123',
-    userId: 'buyer.near',
-    status: 'paid',
+    id: "order_123",
+    userId: "buyer.near",
+    status: "paid",
     totalAmount: 42,
-    currency: 'usd',
+    currency: "usd",
     draftOrderIds: {
-      manual: 'manual_draft_123',
-      printful: 'printful_draft_123',
+      manual: "manual_draft_123",
+      printful: "printful_draft_123",
     },
     shippingAddress: {
-      firstName: 'John',
-      lastName: 'Doe',
-      email: 'john@example.com',
-      addressLine1: '123 Main St',
-      city: 'Los Angeles',
-      state: 'CA',
-      postCode: '90001',
-      country: 'US',
+      firstName: "John",
+      lastName: "Doe",
+      email: "john@example.com",
+      addressLine1: "123 Main St",
+      city: "Los Angeles",
+      state: "CA",
+      postCode: "90001",
+      country: "US",
     },
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     items: [
       {
-        id: 'order_123-item-1',
-        orderId: 'order_123',
-        productId: 'manual_product',
-        productName: 'Manual Product',
+        id: "order_123-item-1",
+        orderId: "order_123",
+        productId: "manual_product",
+        productName: "Manual Product",
         quantity: 1,
         unitPrice: 42,
-        fulfillmentProvider: 'manual',
+        fulfillmentProvider: "manual",
         fulfillmentConfig: {
-          providerName: 'manual',
+          providerName: "manual",
           providerConfig: {
             manualNotification: {
-              notificationEmails: ['artist@nearmerch.com'],
-              ownerAccountIds: ['creator.near'],
+              notificationEmails: ["artist@nearmerch.com"],
+              ownerAccountIds: ["creator.near"],
             },
           },
           files: [],
         },
       },
       {
-        id: 'order_123-item-2',
-        orderId: 'order_123',
-        productId: 'printful_product',
-        productName: 'Printful Product',
+        id: "order_123-item-2",
+        orderId: "order_123",
+        productId: "printful_product",
+        productName: "Printful Product",
         quantity: 1,
         unitPrice: 10,
-        fulfillmentProvider: 'printful',
+        fulfillmentProvider: "printful",
       },
     ],
   };
@@ -68,19 +68,19 @@ function createRuntime(confirmOrder: ReturnType<typeof vi.fn>): MarketplaceRunti
     paymentProviders: [],
     exclusiveCheckProviders: [],
     storageProviders: [],
-    hostUrl: 'https://nearmerch.com',
+    hostUrl: "https://nearmerch.com",
     fulfillmentConfig: {
       manual: {
-        fromEmail: 'orders@nearmerch.com',
+        fromEmail: "orders@nearmerch.com",
       },
     },
     getProvider: (name: string) => {
-      if (name !== 'printful') {
+      if (name !== "printful") {
         return null;
       }
 
       return {
-        name: 'printful',
+        name: "printful",
         client: {
           confirmOrder,
         },
@@ -94,9 +94,9 @@ function createRuntime(confirmOrder: ReturnType<typeof vi.fn>): MarketplaceRunti
   };
 }
 
-describe('handleOrderPaidEffect', () => {
-  it('confirms non-manual drafts and sends manual notifications to global and product recipients', async () => {
-    const confirmOrder = vi.fn().mockResolvedValue({ id: 'printful_draft_123' });
+describe("handleOrderPaidEffect", () => {
+  it("confirms non-manual drafts and sends manual notifications to global and product recipients", async () => {
+    const confirmOrder = vi.fn().mockResolvedValue({ id: "printful_draft_123" });
     const auditLogs: Array<Record<string, unknown>> = [];
     const notifications: Array<{
       to: string[];
@@ -115,7 +115,7 @@ describe('handleOrderPaidEffect', () => {
       Layer.succeed(ProviderConfigStore, {
         getConfig: () =>
           Effect.succeed({
-            provider: 'manual',
+            provider: "manual",
             enabled: true,
             webhookUrl: null,
             webhookUrlOverride: null,
@@ -123,9 +123,9 @@ describe('handleOrderPaidEffect', () => {
             publicKey: null,
             secretKey: null,
             settings: {
-              notificationEmails: ['ops@nearmerch.com'],
-              ownerAccountIds: ['owner.near'],
-              replyToEmail: 'support@nearmerch.com',
+              notificationEmails: ["ops@nearmerch.com"],
+              ownerAccountIds: ["owner.near"],
+              replyToEmail: "support@nearmerch.com",
             },
             lastConfiguredAt: null,
             expiresAt: null,
@@ -148,7 +148,7 @@ describe('handleOrderPaidEffect', () => {
       }).pipe(Effect.provide(layer)),
     );
 
-    expect(confirmOrder).toHaveBeenCalledWith({ id: 'printful_draft_123' });
+    expect(confirmOrder).toHaveBeenCalledWith({ id: "printful_draft_123" });
     expect(result).toEqual({
       allProviderConfirmationsSucceeded: true,
       confirmationResults: {
@@ -160,29 +160,31 @@ describe('handleOrderPaidEffect', () => {
     expect(notifications).toHaveLength(1);
     expect(notifications[0]).toMatchObject({
       to: [
-        'ops@nearmerch.com',
-        'owner.near@near.email',
-        'artist@nearmerch.com',
-        'creator.near@near.email',
+        "ops@nearmerch.com",
+        "owner.near@near.email",
+        "artist@nearmerch.com",
+        "creator.near@near.email",
       ],
-      subject: 'New order received: order_123',
-      replyTo: 'support@nearmerch.com',
+      subject: "New order received: order_123",
+      replyTo: "support@nearmerch.com",
     });
-    expect(notifications[0]?.body).toContain('Manual Product x1');
-    expect(notifications[0]?.body).toContain('https://nearmerch.com/dashboard/orders?orderId=order_123');
-    expect(notifications[0]?.body).not.toContain('123 Main St');
-    expect(notifications[0]?.body).not.toContain('john@example.com');
+    expect(notifications[0]?.body).toContain("Manual Product x1");
+    expect(notifications[0]?.body).toContain(
+      "https://nearmerch.com/dashboard/orders?orderId=order_123",
+    );
+    expect(notifications[0]?.body).not.toContain("123 Main St");
+    expect(notifications[0]?.body).not.toContain("john@example.com");
     expect(auditLogs).toHaveLength(1);
     expect(auditLogs[0]).toMatchObject({
-      actor: 'service:order-paid',
-      action: 'notification',
-      field: 'manualNotification',
-      newValue: 'sent',
+      actor: "service:order-paid",
+      action: "notification",
+      field: "manualNotification",
+      newValue: "sent",
     });
   });
 
-  it('does not send manual notifications when the manual provider is disabled', async () => {
-    const confirmOrder = vi.fn().mockResolvedValue({ id: 'printful_draft_123' });
+  it("does not send manual notifications when the manual provider is disabled", async () => {
+    const confirmOrder = vi.fn().mockResolvedValue({ id: "printful_draft_123" });
     const auditLogs: Array<Record<string, unknown>> = [];
     const notifications: Array<{
       to: string[];
@@ -201,7 +203,7 @@ describe('handleOrderPaidEffect', () => {
       Layer.succeed(ProviderConfigStore, {
         getConfig: () =>
           Effect.succeed({
-            provider: 'manual',
+            provider: "manual",
             enabled: false,
             webhookUrl: null,
             webhookUrlOverride: null,
@@ -209,9 +211,9 @@ describe('handleOrderPaidEffect', () => {
             publicKey: null,
             secretKey: null,
             settings: {
-              notificationEmails: ['ops@nearmerch.com'],
-              ownerAccountIds: ['owner.near'],
-              replyToEmail: 'support@nearmerch.com',
+              notificationEmails: ["ops@nearmerch.com"],
+              ownerAccountIds: ["owner.near"],
+              replyToEmail: "support@nearmerch.com",
             },
             lastConfiguredAt: null,
             expiresAt: null,
@@ -234,7 +236,7 @@ describe('handleOrderPaidEffect', () => {
       }).pipe(Effect.provide(layer)),
     );
 
-    expect(confirmOrder).toHaveBeenCalledWith({ id: 'printful_draft_123' });
+    expect(confirmOrder).toHaveBeenCalledWith({ id: "printful_draft_123" });
     expect(result).toEqual({
       allProviderConfirmationsSucceeded: false,
       confirmationResults: {
@@ -245,15 +247,15 @@ describe('handleOrderPaidEffect', () => {
     expect(notifications).toHaveLength(0);
     expect(auditLogs).toHaveLength(1);
     expect(auditLogs[0]).toMatchObject({
-      actor: 'service:order-paid',
-      action: 'notification',
-      field: 'manualNotification',
-      newValue: 'skipped_disabled',
+      actor: "service:order-paid",
+      action: "notification",
+      field: "manualNotification",
+      newValue: "skipped_disabled",
     });
   });
 
-  it('fails the paid-order result when manual notification sending fails', async () => {
-    const confirmOrder = vi.fn().mockResolvedValue({ id: 'printful_draft_123' });
+  it("fails the paid-order result when manual notification sending fails", async () => {
+    const confirmOrder = vi.fn().mockResolvedValue({ id: "printful_draft_123" });
     const auditLogs: Array<Record<string, unknown>> = [];
 
     const layer = Layer.mergeAll(
@@ -266,7 +268,7 @@ describe('handleOrderPaidEffect', () => {
       Layer.succeed(ProviderConfigStore, {
         getConfig: () =>
           Effect.succeed({
-            provider: 'manual',
+            provider: "manual",
             enabled: true,
             webhookUrl: null,
             webhookUrlOverride: null,
@@ -274,9 +276,9 @@ describe('handleOrderPaidEffect', () => {
             publicKey: null,
             secretKey: null,
             settings: {
-              notificationEmails: ['ops@nearmerch.com'],
-              ownerAccountIds: ['owner.near'],
-              replyToEmail: 'support@nearmerch.com',
+              notificationEmails: ["ops@nearmerch.com"],
+              ownerAccountIds: ["owner.near"],
+              replyToEmail: "support@nearmerch.com",
             },
             lastConfiguredAt: null,
             expiresAt: null,
@@ -285,7 +287,7 @@ describe('handleOrderPaidEffect', () => {
           }),
       } as any),
       Layer.succeed(EmailService, {
-        sendNotification: () => Effect.fail(new Error('resend unavailable')),
+        sendNotification: () => Effect.fail(new Error("resend unavailable")),
       }),
     );
 
@@ -296,7 +298,7 @@ describe('handleOrderPaidEffect', () => {
       }).pipe(Effect.provide(layer)),
     );
 
-    expect(confirmOrder).toHaveBeenCalledWith({ id: 'printful_draft_123' });
+    expect(confirmOrder).toHaveBeenCalledWith({ id: "printful_draft_123" });
     expect(result).toEqual({
       allProviderConfirmationsSucceeded: false,
       confirmationResults: {
@@ -306,10 +308,10 @@ describe('handleOrderPaidEffect', () => {
     });
     expect(auditLogs).toHaveLength(1);
     expect(auditLogs[0]).toMatchObject({
-      actor: 'service:order-paid',
-      action: 'notification',
-      field: 'manualNotification',
-      newValue: 'failed',
+      actor: "service:order-paid",
+      action: "notification",
+      field: "manualNotification",
+      newValue: "failed",
     });
   });
 });

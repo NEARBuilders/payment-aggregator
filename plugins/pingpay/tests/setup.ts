@@ -29,7 +29,7 @@ let port = 0;
 
 export async function getPluginClient() {
   if (!server) {
-    const { router } = await runtime.usePlugin(TEST_PLUGIN_ID, TEST_CONFIG) as any;
+    const { router } = (await runtime.usePlugin(TEST_PLUGIN_ID, TEST_CONFIG)) as any;
     const rpcHandler = new RPCHandler(router);
 
     port = 3000 + Math.floor(Math.random() * 1000);

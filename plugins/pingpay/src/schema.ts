@@ -1,4 +1,4 @@
-import { z } from 'every-plugin/zod';
+import { z } from "every-plugin/zod";
 
 export const FeeConfigSchema = z.object({
   type: z.string(),
@@ -18,7 +18,7 @@ export const PaymentLineItemSchema = z.object({
 export const CheckoutSessionInputSchema = z.object({
   orderId: z.string(),
   amount: z.number().positive(),
-  currency: z.string().default('USD'),
+  currency: z.string().default("USD"),
   items: z.array(PaymentLineItemSchema),
   customerEmail: z.string().email().optional(),
   successUrl: z.string().url(),
@@ -61,22 +61,26 @@ export const GetSessionOutputSchema = z.object({
 });
 
 export const PingWebhookPayloadSchema = z.object({
-  type: z.enum(['payment.success', 'payment.failed', 'checkout.session.completed']),
+  type: z.enum(["payment.success", "payment.failed", "checkout.session.completed"]),
   sessionId: z.string().optional(),
-  metadata: z.object({
-    orderId: z.string().optional(),
-  }).optional(),
-  data: z.object({
-    sessionId: z.string().optional(),
-    paymentId: z.string().optional(),
-    status: z.string().optional(),
-    amount: z.string().optional(),
-    assetId: z.string().optional(),
-    payerAddress: z.string().optional(),
-    recipientAddress: z.string().optional(),
-    merchantId: z.string().optional(),
-    metadata: z.record(z.string(), z.unknown()).optional(),
-  }).optional(),
+  metadata: z
+    .object({
+      orderId: z.string().optional(),
+    })
+    .optional(),
+  data: z
+    .object({
+      sessionId: z.string().optional(),
+      paymentId: z.string().optional(),
+      status: z.string().optional(),
+      amount: z.string().optional(),
+      assetId: z.string().optional(),
+      payerAddress: z.string().optional(),
+      recipientAddress: z.string().optional(),
+      merchantId: z.string().optional(),
+      metadata: z.record(z.string(), z.unknown()).optional(),
+    })
+    .optional(),
 });
 
 export const PingWebhookResultSchema = z.object({

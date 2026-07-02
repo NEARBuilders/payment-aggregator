@@ -1,4 +1,4 @@
-import { z } from 'every-plugin/zod';
+import { z } from "every-plugin/zod";
 
 export const R2ConfigSchema = z.object({
   bucket: z.string(),

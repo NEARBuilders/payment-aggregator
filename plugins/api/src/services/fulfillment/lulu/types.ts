@@ -1,5 +1,5 @@
-import { z } from 'every-plugin/zod';
-import type { FulfillmentOrderStatus } from '../schema';
+import { z } from "every-plugin/zod";
+import type { FulfillmentOrderStatus } from "../schema";
 
 export const LuluBookConfigSchema = z.object({
   id: z.string(),
@@ -8,15 +8,19 @@ export const LuluBookConfigSchema = z.object({
   thumbnailUrl: z.string().url().optional(),
   downloadUrl: z.string().url().optional(),
   downloadLabel: z.string().optional(),
-  files: z.array(z.object({
-    id: z.number().optional(),
-    type: z.string(),
-    url: z.string().url(),
-    previewUrl: z.string().url().optional(),
-  })).default([]),
+  files: z
+    .array(
+      z.object({
+        id: z.number().optional(),
+        type: z.string(),
+        url: z.string().url(),
+        previewUrl: z.string().url().optional(),
+      }),
+    )
+    .default([]),
   retailPrice: z.number().positive(),
-  currency: z.string().default('USD'),
-  variantName: z.string().default('Paperback'),
+  currency: z.string().default("USD"),
+  variantName: z.string().default("Paperback"),
   sku: z.string(),
   podPackageId: z.string(),
   pageCount: z.number().int().positive(),
@@ -34,38 +38,38 @@ export const LuluProviderDetailsSchema = z.object({
 export type LuluProviderDetails = z.infer<typeof LuluProviderDetailsSchema>;
 
 export const LULU_PROVIDER_FIELDS = {
-  pageCount: { label: 'Pages', order: 1 },
-  format: { label: 'Format', order: 2 },
+  pageCount: { label: "Pages", order: 1 },
+  format: { label: "Format", order: 2 },
 } as const;
 
 export type LuluProviderFields = typeof LULU_PROVIDER_FIELDS;
 
 export const LuluPrintJobStatusSchema = z.enum([
-  'CREATED',
-  'UNPAID',
-  'PAYMENT_IN_PROGRESS',
-  'PRODUCTION_DELAYED',
-  'PRODUCTION_READY',
-  'IN_PRODUCTION',
-  'SHIPPED',
-  'REJECTED',
-  'CANCELED',
-  'ERROR',
+  "CREATED",
+  "UNPAID",
+  "PAYMENT_IN_PROGRESS",
+  "PRODUCTION_DELAYED",
+  "PRODUCTION_READY",
+  "IN_PRODUCTION",
+  "SHIPPED",
+  "REJECTED",
+  "CANCELED",
+  "ERROR",
 ]);
 
 export type LuluPrintJobStatus = z.infer<typeof LuluPrintJobStatusSchema>;
 
 export const LULU_STATUS_MAP: Record<LuluPrintJobStatus, FulfillmentOrderStatus> = {
-  CREATED: 'pending',
-  UNPAID: 'pending',
-  PAYMENT_IN_PROGRESS: 'pending',
-  PRODUCTION_DELAYED: 'processing',
-  PRODUCTION_READY: 'processing',
-  IN_PRODUCTION: 'printing',
-  SHIPPED: 'shipped',
-  REJECTED: 'failed',
-  CANCELED: 'cancelled',
-  ERROR: 'failed',
+  CREATED: "pending",
+  UNPAID: "pending",
+  PAYMENT_IN_PROGRESS: "pending",
+  PRODUCTION_DELAYED: "processing",
+  PRODUCTION_READY: "processing",
+  IN_PRODUCTION: "printing",
+  SHIPPED: "shipped",
+  REJECTED: "failed",
+  CANCELED: "cancelled",
+  ERROR: "failed",
 };
 
 export interface LuluTokenResponse {
@@ -111,7 +115,7 @@ export interface LuluLineItemCalculation {
 
 export interface LuluShippingOption {
   id: number;
-  level: 'MAIL' | 'PRIORITY_MAIL' | 'GROUND_HD' | 'GROUND_BUS' | 'GROUND' | 'EXPEDITED' | 'EXPRESS';
+  level: "MAIL" | "PRIORITY_MAIL" | "GROUND_HD" | "GROUND_BUS" | "GROUND" | "EXPEDITED" | "EXPRESS";
   cost_excl_tax?: string;
   currency: string;
   total_days_min?: number;
@@ -129,7 +133,7 @@ export interface LuluShippingOptionsRequest {
 export interface LuluCostCalculationRequest {
   line_items: LuluLineItemCalculation[];
   shipping_address: LuluCostCalculationAddress;
-  shipping_option: LuluShippingOption['level'];
+  shipping_option: LuluShippingOption["level"];
 }
 
 export interface LuluCostCalculationResponse {
@@ -175,7 +179,7 @@ export interface LuluPrintJobLineItem {
 export interface LuluPrintJobRequest {
   external_id?: string;
   contact_email: string;
-  shipping_level: LuluShippingOption['level'];
+  shipping_level: LuluShippingOption["level"];
   shipping_address: LuluPrintJobShippingAddress;
   line_items: LuluPrintJobLineItem[];
 }
@@ -221,5 +225,5 @@ export interface LuluProviderData {
   pageCount: number;
   coverPdfUrl: string;
   interiorPdfUrl: string;
-  shippingLevel?: LuluShippingOption['level'];
+  shippingLevel?: LuluShippingOption["level"];
 }

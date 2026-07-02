@@ -1,23 +1,22 @@
 import { Context, Effect, Layer, Schedule } from "every-plugin/effect";
 import type { MarketplaceRuntime } from "../runtime";
 import type {
+  CheckoutItemInput,
+  FeeConfig,
+  FulfillmentConfig,
+  ProductMetadata,
   ProviderBreakdown,
   ProviderShippingOption,
   QuoteItemInput,
-  CheckoutItemInput,
   QuoteOutput,
   ShippingAddress,
-  FulfillmentConfig,
   TaxBreakdown,
-  FeeConfig,
-  ProductMetadata,
 } from "../schema";
 import { OrderStore, ProductStore } from "../store";
-import type { CreateOrderItem } from "./fulfillment/schema";
-import type { PaymentLineItem } from "./payment/schema";
 import { CheckoutError } from "./checkout/errors";
 import { getProvidersAddressRequirementError } from "./checkout/provider-address-requirements";
-
+import type { CreateOrderItem } from "./fulfillment/schema";
+import type { PaymentLineItem } from "./payment/schema";
 
 interface ProviderItemGroup {
   item: CheckoutItemInput;
@@ -49,12 +48,8 @@ function getManualNotificationConfig(metadata?: ProductMetadata) {
     : [];
 
   return {
-    ...(notificationEmails.length > 0
-      ? { notificationEmails }
-      : {}),
-    ...(ownerAccountIds.length > 0
-      ? { ownerAccountIds }
-      : {}),
+    ...(notificationEmails.length > 0 ? { notificationEmails } : {}),
+    ...(ownerAccountIds.length > 0 ? { ownerAccountIds } : {}),
   };
 }
 
@@ -84,7 +79,7 @@ function normalizeNearAccountId(value?: string | null) {
 
 function getReferralFeeBps(metadata?: ProductMetadata) {
   const feeBps = metadata?.affiliate?.referral?.enabled
-    ? metadata.affiliate.referral.feeBps ?? 2000
+    ? (metadata.affiliate.referral.feeBps ?? 2000)
     : undefined;
 
   if (!feeBps || feeBps <= 0) {
@@ -168,8 +163,11 @@ function buildRecipient(address: ShippingAddress) {
   };
 }
 
-function mapToFulfillmentItems(providerItems: ProviderItemGroup[], selectedRateId?: string): CreateOrderItem[] {
-  return providerItems.map(pi => {
+function mapToFulfillmentItems(
+  providerItems: ProviderItemGroup[],
+  selectedRateId?: string,
+): CreateOrderItem[] {
+  return providerItems.map((pi) => {
     const config = pi.fulfillmentConfig;
     const providerConfig = config?.providerConfig as Record<string, unknown> | undefined;
     const mergedProviderConfig = {
@@ -203,150 +201,151 @@ export class CheckoutService extends Context.Tag("CheckoutService")<
 export const CheckoutServiceLive = (runtime: MarketplaceRuntime) =>
   Layer.effect(
     CheckoutService,
-      Effect.gen(function* () {
-        const productStore = yield* ProductStore;
-        const orderStore = yield* OrderStore;
-        
+    Effect.gen(function* () {
+      const productStore = yield* ProductStore;
+      const orderStore = yield* OrderStore;
 
-        const logDuration = (label: string, startedAt: number) => {
-          console.log(`[checkout] ${label} took ${Date.now() - startedAt}ms`);
-        };
+      const logDuration = (label: string, startedAt: number) => {
+        console.log(`[checkout] ${label} took ${Date.now() - startedAt}ms`);
+      };
 
-        const calculateProviderTax = ({
-          providerName,
-          providerItems,
-          selectedRateId,
-          selectedRateTaxAmount,
-          selectedRateVat,
-          address,
-          currency,
-          mode,
-        }: {
-          providerName: string;
-          providerItems: ProviderItemGroup[];
-          selectedRateId?: string;
-          selectedRateTaxAmount?: number;
-          selectedRateVat?: number;
-          address: ShippingAddress;
-          currency: string;
-          mode: 'quote' | 'checkout';
-        }) =>
-          Effect.gen(function* () {
-            if (providerName === 'manual') {
-              return {
-                required: false,
-                rate: 0,
-                shippingTaxable: false,
-                exempt: true,
-                taxAmount: 0,
-                vat: 0,
-              };
-            }
-
-            const provider = runtime.getProvider(providerName);
-            if (!provider) {
-              return {
-                required: false,
-                rate: 0,
-                shippingTaxable: false,
-                exempt: true,
-                taxAmount: 0,
-                vat: 0,
-              };
-            }
-
-            if (providerName === 'lulu') {
-              const taxAmount = selectedRateTaxAmount ?? 0;
-              const vat = selectedRateVat ?? 0;
-              const providerSubtotal = providerItems.reduce(
-                (sum, pi) => sum + pi.price * pi.item.quantity,
-                0
-              );
-
-              return {
-                required: taxAmount > 0 || vat > 0,
-                rate: providerSubtotal > 0 ? (taxAmount + vat) / providerSubtotal : 0,
-                shippingTaxable: taxAmount > 0 || vat > 0,
-                exempt: taxAmount === 0 && vat === 0,
-                taxAmount,
-                vat,
-              };
-            }
-
-            {
-              const taxItems = providerItems.map(pi => {
-                const config = pi.fulfillmentConfig;
-                return {
-                  providerConfig: config?.providerConfig || {},
-                  quantity: pi.item.quantity,
-                  files: config?.files || [],
-                };
-              });
-
-              if (taxItems.length === 0) {
-                return {
-                  required: false,
-                  rate: 0,
-                  shippingTaxable: false,
-                  exempt: true,
-                  taxAmount: 0,
-                  vat: 0,
-                };
-              }
-
-              const taxStartedAt = Date.now();
-
-              const taxResultOption = yield* Effect.option(
-                Effect.tryPromise({
-                  try: () =>
-                    provider.client.calculateTax({
-                      recipient: {
-                        countryCode: address.country,
-                        zip: address.postCode,
-                        stateCode: address.state,
-                      },
-                      items: taxItems,
-                      currency,
-                      mode,
-                    }),
-                  catch: (error) => {
-                    console.error(`[${providerName}] Tax calculation failed:`, error);
-                    return new Error(`Tax calculation failed: ${error instanceof Error ? error.message : String(error)}`);
-                  },
-                })
-              );
-
-              logDuration(`${providerName} tax (${mode})`, taxStartedAt);
-
-              if (taxResultOption._tag === 'Some') {
-                const taxResult = taxResultOption.value;
-                return {
-                  required: taxResult.required,
-                  rate: taxResult.rate,
-                  shippingTaxable: taxResult.shippingTaxable,
-                  exempt: taxResult.exempt,
-                  taxAmount: taxResult.taxAmount ?? 0,
-                  vat: taxResult.vat ?? 0,
-                };
-              }
-            }
-
-            const providerSubtotal = providerItems.reduce(
-              (sum, pi) => sum + pi.price * pi.item.quantity,
-              0
-            );
-
+      const calculateProviderTax = ({
+        providerName,
+        providerItems,
+        selectedRateId,
+        selectedRateTaxAmount,
+        selectedRateVat,
+        address,
+        currency,
+        mode,
+      }: {
+        providerName: string;
+        providerItems: ProviderItemGroup[];
+        selectedRateId?: string;
+        selectedRateTaxAmount?: number;
+        selectedRateVat?: number;
+        address: ShippingAddress;
+        currency: string;
+        mode: "quote" | "checkout";
+      }) =>
+        Effect.gen(function* () {
+          if (providerName === "manual") {
             return {
               required: false,
               rate: 0,
               shippingTaxable: false,
-              exempt: providerSubtotal === 0,
+              exempt: true,
               taxAmount: 0,
               vat: 0,
             };
-          });
+          }
 
-        return {
+          const provider = runtime.getProvider(providerName);
+          if (!provider) {
+            return {
+              required: false,
+              rate: 0,
+              shippingTaxable: false,
+              exempt: true,
+              taxAmount: 0,
+              vat: 0,
+            };
+          }
+
+          if (providerName === "lulu") {
+            const taxAmount = selectedRateTaxAmount ?? 0;
+            const vat = selectedRateVat ?? 0;
+            const providerSubtotal = providerItems.reduce(
+              (sum, pi) => sum + pi.price * pi.item.quantity,
+              0,
+            );
+
+            return {
+              required: taxAmount > 0 || vat > 0,
+              rate: providerSubtotal > 0 ? (taxAmount + vat) / providerSubtotal : 0,
+              shippingTaxable: taxAmount > 0 || vat > 0,
+              exempt: taxAmount === 0 && vat === 0,
+              taxAmount,
+              vat,
+            };
+          }
+
+          {
+            const taxItems = providerItems.map((pi) => {
+              const config = pi.fulfillmentConfig;
+              return {
+                providerConfig: config?.providerConfig || {},
+                quantity: pi.item.quantity,
+                files: config?.files || [],
+              };
+            });
+
+            if (taxItems.length === 0) {
+              return {
+                required: false,
+                rate: 0,
+                shippingTaxable: false,
+                exempt: true,
+                taxAmount: 0,
+                vat: 0,
+              };
+            }
+
+            const taxStartedAt = Date.now();
+
+            const taxResultOption = yield* Effect.option(
+              Effect.tryPromise({
+                try: () =>
+                  provider.client.calculateTax({
+                    recipient: {
+                      countryCode: address.country,
+                      zip: address.postCode,
+                      stateCode: address.state,
+                    },
+                    items: taxItems,
+                    currency,
+                    mode,
+                  }),
+                catch: (error) => {
+                  console.error(`[${providerName}] Tax calculation failed:`, error);
+                  return new Error(
+                    `Tax calculation failed: ${error instanceof Error ? error.message : String(error)}`,
+                  );
+                },
+              }),
+            );
+
+            logDuration(`${providerName} tax (${mode})`, taxStartedAt);
+
+            if (taxResultOption._tag === "Some") {
+              const taxResult = taxResultOption.value;
+              return {
+                required: taxResult.required,
+                rate: taxResult.rate,
+                shippingTaxable: taxResult.shippingTaxable,
+                exempt: taxResult.exempt,
+                taxAmount: taxResult.taxAmount ?? 0,
+                vat: taxResult.vat ?? 0,
+              };
+            }
+          }
+
+          const providerSubtotal = providerItems.reduce(
+            (sum, pi) => sum + pi.price * pi.item.quantity,
+            0,
+          );
+
+          return {
+            required: false,
+            rate: 0,
+            shippingTaxable: false,
+            exempt: providerSubtotal === 0,
+            taxAmount: 0,
+            vat: 0,
+          };
+        });
+
+      return {
         getQuote: (items, address) =>
           Effect.gen(function* () {
             const itemsByProvider = new Map<string, ProviderItemGroup[]>();
@@ -357,9 +356,7 @@ export const CheckoutServiceLive = (runtime: MarketplaceRuntime) =>
             for (const item of items) {
               const product = yield* productStore.find(item.productId);
               if (!product) {
-                return yield* Effect.fail(
-                  new Error(`Product not found: ${item.productId}`),
-                );
+                return yield* Effect.fail(new Error(`Product not found: ${item.productId}`));
               }
 
               const selectedVariant = item.variantId
@@ -381,8 +378,7 @@ export const CheckoutServiceLive = (runtime: MarketplaceRuntime) =>
                 productId: product.id,
                 variantId: selectedVariant?.id,
                 price: unitPrice,
-                currency:
-                  selectedVariant?.currency ?? product.currency ?? currency,
+                currency: selectedVariant?.currency ?? product.currency ?? currency,
                 fulfillmentConfig: selectedVariant?.fulfillmentConfig,
                 productTitle: product.title,
                 productDescription: product.description,
@@ -412,13 +408,17 @@ export const CheckoutServiceLive = (runtime: MarketplaceRuntime) =>
             let totalVat = 0;
             let minDeliveryDays: number | undefined;
             let maxDeliveryDays: number | undefined;
-            const providerTaxResults: Array<{ required: boolean; rate: number; shippingTaxable: boolean; exempt: boolean; taxAmount: number; vat: number }> = [];
+            const providerTaxResults: Array<{
+              required: boolean;
+              rate: number;
+              shippingTaxable: boolean;
+              exempt: boolean;
+              taxAmount: number;
+              vat: number;
+            }> = [];
             const quoteStartedAt = Date.now();
 
-            for (const [
-              providerName,
-              providerItems,
-            ] of itemsByProvider.entries()) {
+            for (const [providerName, providerItems] of itemsByProvider.entries()) {
               const provider = runtime.getProvider(providerName);
 
               if (!provider) {
@@ -462,9 +462,7 @@ export const CheckoutServiceLive = (runtime: MarketplaceRuntime) =>
                   continue;
                 }
 
-                return yield* Effect.fail(
-                  new Error(`Provider not configured: ${providerName}`),
-                );
+                return yield* Effect.fail(new Error(`Provider not configured: ${providerName}`));
               }
 
               const fulfillmentItems = mapToFulfillmentItems(providerItems);
@@ -545,7 +543,7 @@ export const CheckoutServiceLive = (runtime: MarketplaceRuntime) =>
                 selectedRateVat: selectedRate.vat,
                 address,
                 currency,
-                mode: 'quote',
+                mode: "quote",
               });
               providerTaxResults.push(providerTax);
               totalTax += providerTax.taxAmount;
@@ -569,9 +567,18 @@ export const CheckoutServiceLive = (runtime: MarketplaceRuntime) =>
               }
             }
 
-            let tax = totalTax;
-            let vat = totalVat;
-            let taxBreakdown: { required: boolean; rate: number; shippingTaxable: boolean; exempt: boolean; taxAmount?: number; vat?: number } | undefined;
+            const tax = totalTax;
+            const vat = totalVat;
+            let taxBreakdown:
+              | {
+                  required: boolean;
+                  rate: number;
+                  shippingTaxable: boolean;
+                  exempt: boolean;
+                  taxAmount?: number;
+                  vat?: number;
+                }
+              | undefined;
 
             if (providerTaxResults.length > 0) {
               taxBreakdown = {
@@ -599,22 +606,15 @@ export const CheckoutServiceLive = (runtime: MarketplaceRuntime) =>
                   : undefined,
             };
 
-            logDuration('quote aggregation', quoteStartedAt);
+            logDuration("quote aggregation", quoteStartedAt);
 
             return quoteResult;
           }),
 
         createCheckout: (params) =>
           Effect.gen(function* () {
-            const {
-              userId,
-              items,
-              address,
-              selectedRates,
-              shippingCost,
-              successUrl,
-              cancelUrl,
-            } = params;
+            const { userId, items, address, selectedRates, shippingCost, successUrl, cancelUrl } =
+              params;
 
             const itemsByProvider = new Map<string, ProviderItemGroup[]>();
 
@@ -624,9 +624,7 @@ export const CheckoutServiceLive = (runtime: MarketplaceRuntime) =>
             for (const item of items) {
               const product = yield* productStore.find(item.productId);
               if (!product) {
-                return yield* Effect.fail(
-                  new Error(`Product not found: ${item.productId}`),
-                );
+                return yield* Effect.fail(new Error(`Product not found: ${item.productId}`));
               }
 
               const selectedVariant = item.variantId
@@ -648,8 +646,7 @@ export const CheckoutServiceLive = (runtime: MarketplaceRuntime) =>
                 productId: product.id,
                 variantId: selectedVariant?.id,
                 price: unitPrice,
-                currency:
-                  selectedVariant?.currency ?? product.currency ?? currency,
+                currency: selectedVariant?.currency ?? product.currency ?? currency,
                 fulfillmentConfig: selectedVariant?.fulfillmentConfig,
                 productTitle: product.title,
                 productDescription: product.description,
@@ -679,12 +676,16 @@ export const CheckoutServiceLive = (runtime: MarketplaceRuntime) =>
             let verifiedShippingCost = 0;
             let tax = 0;
             let vat = 0;
-            const providerTaxResults: Array<{ required: boolean; rate: number; shippingTaxable: boolean; exempt: boolean; taxAmount: number; vat: number }> = [];
+            const providerTaxResults: Array<{
+              required: boolean;
+              rate: number;
+              shippingTaxable: boolean;
+              exempt: boolean;
+              taxAmount: number;
+              vat: number;
+            }> = [];
 
-            for (const [
-              providerName,
-              providerItems,
-            ] of itemsByProvider.entries()) {
+            for (const [providerName, providerItems] of itemsByProvider.entries()) {
               if (providerName === "manual") continue;
 
               const provider = runtime.getProvider(providerName);
@@ -740,7 +741,7 @@ export const CheckoutServiceLive = (runtime: MarketplaceRuntime) =>
                     selectedRateVat: selectedRate.vat,
                     address,
                     currency,
-                    mode: 'checkout',
+                    mode: "checkout",
                   });
                   providerTaxResults.push(providerTax);
                   tax += providerTax.taxAmount;
@@ -786,8 +787,7 @@ export const CheckoutServiceLive = (runtime: MarketplaceRuntime) =>
               taxExempt = providerTaxResults.every((result) => result.exempt);
             }
 
-            const totalAmount =
-              totalSubtotal + verifiedShippingCost + tax + vat;
+            const totalAmount = totalSubtotal + verifiedShippingCost + tax + vat;
 
             const allItems = Array.from(itemsByProvider.values()).flat();
 
@@ -799,18 +799,19 @@ export const CheckoutServiceLive = (runtime: MarketplaceRuntime) =>
             });
 
             const orderItems = allItems.map((pi) => {
-              const manualNotification = pi.fulfillmentProvider === "manual"
-                ? getManualNotificationConfig(pi.metadata)
-                : undefined;
+              const manualNotification =
+                pi.fulfillmentProvider === "manual"
+                  ? getManualNotificationConfig(pi.metadata)
+                  : undefined;
 
               const fulfillmentConfig = manualNotification
                 ? {
                     providerName:
-                      pi.fulfillmentConfig?.providerName ||
-                      pi.fulfillmentProvider ||
-                      "manual",
+                      pi.fulfillmentConfig?.providerName || pi.fulfillmentProvider || "manual",
                     providerConfig: {
-                      ...((pi.fulfillmentConfig?.providerConfig as Record<string, unknown> | undefined) || {}),
+                      ...((pi.fulfillmentConfig?.providerConfig as
+                        | Record<string, unknown>
+                        | undefined) || {}),
                       manualNotification,
                     },
                     files: pi.fulfillmentConfig?.files || [],
@@ -836,8 +837,7 @@ export const CheckoutServiceLive = (runtime: MarketplaceRuntime) =>
               taxAmount: tax,
               vatAmount: vat,
               taxRequired,
-              taxRate:
-                taxRate !== undefined ? Math.round(taxRate * 10000) : undefined,
+              taxRate: taxRate !== undefined ? Math.round(taxRate * 10000) : undefined,
               taxShippingTaxable,
               taxExempt,
               customerTaxId: address.taxId,
@@ -848,27 +848,20 @@ export const CheckoutServiceLive = (runtime: MarketplaceRuntime) =>
 
             const draftOrderIds: Record<string, string> = {};
 
-            for (const [
-              providerName,
-              providerItems,
-            ] of itemsByProvider.entries()) {
+            for (const [providerName, providerItems] of itemsByProvider.entries()) {
               const provider = runtime.getProvider(providerName);
               if (!provider) {
                 if (providerName === "manual") {
                   continue;
                 }
 
-                return yield* Effect.fail(
-                  new Error(`Provider not configured: ${providerName}`),
-                );
+                return yield* Effect.fail(new Error(`Provider not configured: ${providerName}`));
               }
 
               const selectedRateId = selectedRates[providerName];
-              if (providerName !== 'manual' && !selectedRateId) {
+              if (providerName !== "manual" && !selectedRateId) {
                 return yield* Effect.fail(
-                  new Error(
-                    `No shipping rate selected for provider: ${providerName}`,
-                  ),
+                  new Error(`No shipping rate selected for provider: ${providerName}`),
                 );
               }
 
@@ -905,9 +898,7 @@ export const CheckoutServiceLive = (runtime: MarketplaceRuntime) =>
               );
             }
 
-            const lineItems: PaymentLineItem[] = Array.from(
-              itemsByProvider.values(),
-            )
+            const lineItems: PaymentLineItem[] = Array.from(itemsByProvider.values())
               .flat()
               .map((pi) => ({
                 name: pi.productTitle,
@@ -1033,11 +1024,7 @@ export const CheckoutServiceLive = (runtime: MarketplaceRuntime) =>
               createdAt: new Date().toISOString(),
             });
 
-            yield* orderStore.updateCheckout(
-              order.id,
-              checkout.sessionId,
-              providerName,
-            );
+            yield* orderStore.updateCheckout(order.id, checkout.sessionId, providerName);
 
             yield* orderStore.updateDraftOrderIds(order.id, draftOrderIds);
 

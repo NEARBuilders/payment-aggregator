@@ -2,9 +2,9 @@ export function nearAccountIdToEmail(accountId: string): string | undefined {
   const trimmed = accountId?.trim().toLowerCase();
   if (!trimmed) return undefined;
 
-  if (!trimmed.endsWith('.near')) return undefined;
+  if (!trimmed.endsWith(".near")) return undefined;
 
-  const parts = trimmed.split('.');
+  const parts = trimmed.split(".");
   if (parts.length !== 2) return undefined;
 
   const prefix = parts[0]!;

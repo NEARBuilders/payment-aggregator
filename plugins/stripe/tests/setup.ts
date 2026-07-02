@@ -29,7 +29,7 @@ let port = 0;
 
 export async function getPluginClient() {
   if (!server) {
-    const result = await runtime.usePlugin(TEST_PLUGIN_ID, TEST_CONFIG) as any;
+    const result = (await runtime.usePlugin(TEST_PLUGIN_ID, TEST_CONFIG)) as any;
     const { router } = result;
     const rpcHandler = new RPCHandler(router);
 
