@@ -76,6 +76,12 @@ function FloatingSkillAssistant() {
                   Report issue
                 </a>
               </Button>
+              <Button variant="outline" asChild className="justify-start">
+                <Link to="/payments" preload="intent" onClick={() => setOpen(false)}>
+                  <Sparkles size={14} />
+                  Payments
+                </Link>
+              </Button>
               <Button variant="outline" className="justify-start" onClick={handleCopy}>
                 <Copy size={14} />
                 {copied ? "Copied URL" : "Copy skill URL"}
