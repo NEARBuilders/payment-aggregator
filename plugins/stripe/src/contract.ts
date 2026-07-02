@@ -1,37 +1,46 @@
-import { oc } from 'every-plugin/orpc';
-import { z } from 'every-plugin/zod';
+import { oc } from "every-plugin/orpc";
+import { z } from "every-plugin/zod";
 import {
   CheckoutSessionInputSchema,
   CheckoutSessionOutputSchema,
-  WebhookInputSchema,
-  WebhookOutputSchema,
   GetSessionInputSchema,
   GetSessionOutputSchema,
-} from './schema';
+  WebhookInputSchema,
+  WebhookOutputSchema,
+} from "./schema";
 
 export const PaymentContract = oc.router({
-  ping: oc
-    .route({ method: 'GET', path: '/ping' })
-    .output(z.object({
+  metadata: oc.route({ method: "GET", path: "/metadata" }).output(
+    z.object({
+      name: z.string(),
+      logo: z.string(),
+      description: z.string(),
+    }),
+  ),
+
+  ping: oc.route({ method: "GET", path: "/ping" }).output(
+    z.object({
       provider: z.string(),
-      status: z.literal('ok'),
+      status: z.literal("ok"),
       timestamp: z.string().datetime(),
-    })),
+    }),
+  ),
 
   createCheckout: oc
-    .route({ method: 'POST', path: '/checkout' })
+    .route({ method: "POST", path: "/checkout" })
     .input(CheckoutSessionInputSchema)
     .output(CheckoutSessionOutputSchema),
 
   verifyWebhook: oc
-    .route({ method: 'POST', path: '/webhook' })
+    .route({ method: "POST", path: "/webhook" })
     .input(WebhookInputSchema)
     .output(WebhookOutputSchema),
 
   getSession: oc
-    .route({ method: 'GET', path: '/sessions/{sessionId}' })
+    .route({ method: "GET", path: "/sessions/{sessionId}" })
     .input(GetSessionInputSchema)
     .output(GetSessionOutputSchema),
 });
 
 export type PaymentContractType = typeof PaymentContract;
+export type ContractType = typeof PaymentContract;

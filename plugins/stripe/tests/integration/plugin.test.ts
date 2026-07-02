@@ -6,6 +6,20 @@ describe("Stripe Plugin Integration Tests", () => {
     await teardown();
   });
 
+  describe("metadata procedure", () => {
+    it("should return provider metadata", async () => {
+      const client = await getPluginClient();
+
+      const result = await client.metadata();
+
+      expect(result).toEqual({
+        name: "Stripe",
+        logo: expect.stringContaining("stripe"),
+        description: expect.any(String),
+      });
+    });
+  });
+
   describe("ping procedure", () => {
     it("should return healthy status with provider name", async () => {
       const client = await getPluginClient();

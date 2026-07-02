@@ -1,8 +1,8 @@
-import { createPlugin } from 'every-plugin';
-import { Effect } from 'every-plugin/effect';
-import { z } from 'every-plugin/zod';
-import { PaymentContract } from './contract';
-import { StripePaymentService } from './service';
+import { createPlugin } from "every-plugin";
+import { Effect } from "every-plugin/effect";
+import { z } from "every-plugin/zod";
+import { PaymentContract } from "./contract";
+import { StripePaymentService } from "./service";
 
 export default createPlugin({
   variables: z.object({
@@ -17,13 +17,13 @@ export default createPlugin({
   contract: PaymentContract,
 
   initialize: (config) =>
-    Effect.gen(function* () {
+    Effect.sync(() => {
       const service = new StripePaymentService(
         config.secrets.STRIPE_SECRET_KEY,
-        config.secrets.STRIPE_WEBHOOK_SECRET
+        config.secrets.STRIPE_WEBHOOK_SECRET,
       );
 
-      console.log('[Stripe Plugin] Initialized successfully');
+      console.log("[Stripe Plugin] Initialized successfully");
 
       return { service };
     }),
@@ -34,20 +34,26 @@ export default createPlugin({
     const { service } = context;
 
     return {
+      metadata: builder.metadata.handler(async () => ({
+        name: "Stripe",
+        logo: "https://pay.everything.dev/logos/stripe.svg",
+        description: "Card payments via Stripe Checkout",
+      })),
+
       ping: builder.ping.handler(async () => ({
-        provider: 'stripe',
-        status: 'ok' as const,
+        provider: "stripe",
+        status: "ok" as const,
         timestamp: new Date().toISOString(),
       })),
 
       createCheckout: builder.createCheckout.handler(async ({ input }) => {
-        return await Effect.runPromise(service.createCheckout(input)) as any;
+        return (await Effect.runPromise(service.createCheckout(input))) as any;
       }),
 
       verifyWebhook: builder.verifyWebhook.handler(async ({ input }) => {
-        const result = await Effect.runPromise(
-          service.verifyWebhook(input.body, input.signature)
-        ) as any;
+        const result = (await Effect.runPromise(
+          service.verifyWebhook(input.body, input.signature),
+        )) as any;
 
         return {
           received: true,
@@ -57,13 +63,13 @@ export default createPlugin({
       }),
 
       getSession: builder.getSession.handler(async ({ input }) => {
-        const session = await Effect.runPromise(service.getSession(input.sessionId)) as any;
+        const session = (await Effect.runPromise(service.getSession(input.sessionId))) as any;
 
         return {
           session: {
             id: session.id,
-            status: session.status || 'unknown',
-            paymentStatus: session.payment_status || 'unknown',
+            status: session.status || "unknown",
+            paymentStatus: session.payment_status || "unknown",
             amountTotal: session.amount_total ?? undefined,
             currency: session.currency ?? undefined,
             metadata: session.metadata ?? undefined,
@@ -74,4 +80,4 @@ export default createPlugin({
   },
 });
 
-export { StripePaymentService } from './service';
+export { StripePaymentService } from "./service";
