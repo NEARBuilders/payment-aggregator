@@ -1,5 +1,5 @@
 {
-  "name": "stripe",
+  "name": "@payment-aggregator/stripe",
   "version": "1.0.0",
   "description": "Stripe payment plugin for every-plugin framework",
   "type": "module",
