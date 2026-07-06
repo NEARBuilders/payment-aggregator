@@ -165,9 +165,9 @@ export const PingPayServiceLive = (config: PingPayConfig) =>
           id: session.sessionId,
           status: session.status.toLowerCase(),
           paymentStatus: isCompleted ? "paid" : "unpaid",
-          amountTotal: parseInt(session.amount, 10),
-          currency: session.asset.symbol,
-          paymentId: session.paymentId,
+          amountTotal: Number.parseInt(session.amount.amount, 10),
+          currency: response.config?.suggestedAsset?.symbol ?? "USDC",
+          paymentId: session.paymentId ?? undefined,
           metadata: session.metadata || {},
         };
       }),
