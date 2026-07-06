@@ -26,10 +26,18 @@
   },
   "plugins": {
     "pingpay": {
-      "development": "local:plugins/pingpay"
+      "development": "local:plugins/pingpay",
+      "secrets": [
+        "PING_API_KEY",
+        "PING_WEBHOOK_SECRET"
+      ]
     },
     "stripe": {
-      "development": "local:plugins/stripe"
+      "development": "local:plugins/stripe",
+      "secrets": [
+        "STRIPE_SECRET_KEY",
+        "STRIPE_WEBHOOK_SECRET"
+      ]
     }
   }
 }
