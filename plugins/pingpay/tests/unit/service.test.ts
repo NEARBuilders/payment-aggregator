@@ -31,7 +31,7 @@ describe("PingPayService", () => {
 
       expect(result).toBeDefined();
       expect(result.sessionId).toContain("test_session_");
-      expect(result.url).toContain("https://pay.pingpay.io/checkout/");
+      expect(result.url).toContain("https://pay.pingpay.io/checkout?sessionId=");
     });
 
     it("should create checkout with fees", async () => {

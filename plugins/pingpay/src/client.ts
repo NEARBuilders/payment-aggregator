@@ -24,30 +24,43 @@ export interface CreateCheckoutSessionInput {
   fees?: PingFee[];
 }
 
+export interface PingAmount {
+  assetId: string;
+  amount: string;
+  decimals: number;
+}
+
+export interface PingSuggestedAsset {
+  chain: string;
+  symbol: string;
+  contractAddress: string;
+  decimals: number;
+  name: string;
+}
+
+export interface PingSession {
+  sessionId: string;
+  status: "CREATED" | "PENDING" | "COMPLETED" | "EXPIRED" | "CANCELLED";
+  paymentId?: string | null;
+  amount: PingAmount;
+  recipient: PingRecipient;
+  successUrl?: string;
+  cancelUrl?: string;
+  createdAt: string;
+  expiresAt?: string;
+  metadata?: Record<string, unknown>;
+  fees?: PingFee[];
+}
+
 export interface CheckoutSessionResponse {
-  session: {
-    sessionId: string;
-    status: string;
-    amount: string;
-    recipient: string;
-    asset: PingAsset;
-    createdAt: string;
-    expiresAt?: string;
-  };
+  session: PingSession;
   sessionUrl: string;
 }
 
 export interface GetCheckoutSessionResponse {
-  session: {
-    sessionId: string;
-    status: "CREATED" | "PENDING" | "COMPLETED" | "EXPIRED" | "CANCELLED";
-    amount: string;
-    recipient: string;
-    asset: PingAsset;
-    paymentId?: string;
-    createdAt: string;
-    expiresAt?: string;
-    metadata?: Record<string, unknown>;
+  session: PingSession;
+  config?: {
+    suggestedAsset?: PingSuggestedAsset;
   };
 }
 
@@ -101,13 +114,18 @@ export class PingPayClient {
         session: {
           sessionId,
           status: "CREATED",
-          amount: input.amount,
-          recipient: input.recipient.address,
-          asset: input.asset,
+          paymentId: null,
+          amount: {
+            assetId: "nep141:test-usdc.near",
+            amount: input.amount,
+            decimals: 6,
+          },
+          recipient: { address: input.recipient.address },
           createdAt: new Date().toISOString(),
           expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+          metadata: input.metadata,
         },
-        sessionUrl: `https://pay.pingpay.io/checkout/${sessionId}`,
+        sessionUrl: `https://pay.pingpay.io/checkout?sessionId=${sessionId}`,
       };
     }
     return this.request("/checkout/sessions", {
@@ -122,11 +140,24 @@ export class PingPayClient {
         session: {
           sessionId,
           status: "CREATED",
-          amount: "1000000",
-          recipient: "test-recipient.near",
-          asset: { chain: "NEAR", symbol: "USDC" },
+          paymentId: null,
+          amount: {
+            assetId: "nep141:test-usdc.near",
+            amount: "1000000",
+            decimals: 6,
+          },
+          recipient: { address: "test-recipient.near" },
           createdAt: new Date().toISOString(),
           metadata: {},
+        },
+        config: {
+          suggestedAsset: {
+            chain: "near",
+            symbol: "USDC",
+            contractAddress: "test-usdc.near",
+            decimals: 6,
+            name: "USD Coin",
+          },
         },
       };
     }
