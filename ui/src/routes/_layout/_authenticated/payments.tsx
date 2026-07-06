@@ -174,24 +174,26 @@ function CheckoutForm({
   const apiClient = useApiClient();
   const origin = typeof window !== "undefined" ? window.location.origin : "https://example.com";
   const [orderId, setOrderId] = useState(`order_${Date.now()}`);
-  const [amount, setAmount] = useState("100");
+  const [amount, setAmount] = useState("1.00");
   const [currency, setCurrency] = useState("USD");
   const [customerEmail, setCustomerEmail] = useState("");
   const [successUrl, setSuccessUrl] = useState(`${origin}/payments?result=success`);
   const [cancelUrl, setCancelUrl] = useState(`${origin}/payments?result=cancel`);
   const [itemName, setItemName] = useState("Test item");
 
+  const amountInCents = Math.round(Number(amount) * 100);
+
   const checkout = useMutation({
     mutationFn: () =>
       apiClient.paymentCheckout({
         provider: provider.key,
         orderId,
-        amount: Number(amount),
+        amount: amountInCents,
         currency,
         customerEmail: customerEmail || undefined,
         successUrl,
         cancelUrl,
-        items: [{ name: itemName, unitAmount: Number(amount), quantity: 1 }],
+        items: [{ name: itemName, unitAmount: amountInCents, quantity: 1 }],
       }),
     onSuccess: (result) => {
       toast.success("Checkout session created");
@@ -227,15 +229,20 @@ function CheckoutForm({
           <Field label="Item name">
             <Input required value={itemName} onChange={(e) => setItemName(e.target.value)} />
           </Field>
-          <Field label="Amount">
+          <Field label="Amount (USD)">
             <Input
               required
               type="number"
-              min="1"
-              step="any"
+              min="0.01"
+              step="0.01"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
             />
+            {Number.isFinite(amountInCents) && amountInCents > 0 && (
+              <p className="text-muted-foreground text-xs">
+                Sent as {amountInCents} minor units (cents)
+              </p>
+            )}
           </Field>
           <Field label="Currency">
             <Input required value={currency} onChange={(e) => setCurrency(e.target.value)} />
