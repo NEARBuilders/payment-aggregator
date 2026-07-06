@@ -9,7 +9,13 @@ import Plugin from "@/index";
 import pluginDevConfig from "../plugin.dev";
 
 const TEST_PLUGIN_ID = pluginDevConfig.pluginId;
-const TEST_CONFIG = pluginDevConfig.config;
+const TEST_CONFIG = {
+  ...pluginDevConfig.config,
+  secrets: {
+    STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY || "sk_test_placeholder",
+    STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET || "whsec_test_placeholder",
+  },
+};
 
 const TEST_REGISTRY = {
   [TEST_PLUGIN_ID]: {
