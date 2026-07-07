@@ -160,12 +160,14 @@ export const PingPayServiceLive = (config: PingPayConfig) =>
 
         const session = response.session;
         const isCompleted = session.status === "COMPLETED";
+        const rawAmount = Number.parseInt(session.amount.amount, 10);
+        const amountInCents = Math.round((rawAmount / 10 ** session.amount.decimals) * 100);
 
         return {
           id: session.sessionId,
           status: session.status.toLowerCase(),
           paymentStatus: isCompleted ? "paid" : "unpaid",
-          amountTotal: Number.parseInt(session.amount.amount, 10),
+          amountTotal: amountInCents,
           currency: response.config?.suggestedAsset?.symbol ?? "USDC",
           paymentId: session.paymentId ?? undefined,
           metadata: session.metadata || {},

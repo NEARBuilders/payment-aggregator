@@ -36,7 +36,7 @@ export default createPlugin({
     return {
       metadata: builder.metadata.handler(async () => ({
         name: "Stripe",
-        logo: "https://pay.everything.dev/logos/stripe.svg",
+        logo: "/logos/stripe.svg",
         description: "Card payments via Stripe Checkout",
       })),
 
