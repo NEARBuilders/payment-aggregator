@@ -331,3 +331,5 @@ node_modules/.federation
 !**/README.md
 !**/CHANGELOG.md
 !.changeset/**/*.md
+# Plugin contract type build artifacts (bun run build:types)
+plugins/*/types/
