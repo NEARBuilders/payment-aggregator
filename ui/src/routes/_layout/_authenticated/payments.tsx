@@ -400,16 +400,17 @@ function WebhookSimulator({
   const simulate = useMutation({
     mutationFn: async () => {
       const timestamp = String(Math.floor(Date.now() / 1000));
-      const body = JSON.stringify({
-        type: eventType,
-        sessionId,
-        metadata: { orderId },
-      });
-      const signature = await computeHmacSignature(WEBHOOK_TEST_SECRET, `${timestamp}.${body}`);
+      const usesStripeScheme = provider.key === "stripe";
+      const body = JSON.stringify(
+        usesStripeScheme
+          ? { type: eventType, data: { object: { id: sessionId, metadata: { orderId } } } }
+          : { type: eventType, sessionId, metadata: { orderId } },
+      );
+      const digest = await computeHmacSignature(WEBHOOK_TEST_SECRET, `${timestamp}.${body}`);
       return apiClient.paymentWebhook({
         provider: provider.key,
         body,
-        signature,
+        signature: usesStripeScheme ? `t=${timestamp},v1=${digest}` : digest,
         timestamp,
       });
     },
