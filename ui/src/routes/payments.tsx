@@ -46,6 +46,11 @@ type CheckoutResult = {
   orderId: string;
 };
 
+const BRAND_COLORS: Record<string, string> = {
+  pingpay: "#7C5CF6",
+  stripe: "#635BFF",
+};
+
 const WEBHOOK_TEST_SECRET = "test_webhook_secret";
 const WEBHOOK_EVENT_TYPES = [
   "payment.success",
@@ -116,145 +121,145 @@ function PaymentsPage() {
   const pendingKey = checkout.isPending ? checkout.variables?.key : null;
 
   return (
-    <div className="flex min-h-screen flex-col bg-background text-foreground">
-      <header className="flex h-14 shrink-0 items-center justify-between px-5 sm:px-8">
-        <span className="font-mono text-muted-foreground text-sm">pay.everything.dev</span>
-        <div className="flex items-center gap-3">
-          <ThemeToggle />
-          <UserNav />
-        </div>
+    <div className="relative flex min-h-screen flex-col overflow-hidden bg-background text-foreground">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-[480px] bg-[radial-gradient(65%_55%_at_50%_0%,rgba(124,92,246,0.14),transparent_70%)]" />
+
+      <header className="relative flex h-14 shrink-0 items-center justify-end gap-2 px-5 sm:px-8">
+        <ThemeToggle />
+        <UserNav />
       </header>
 
-      <main className="flex-1 px-5 py-10 sm:px-8 sm:py-14">
+      <main className="relative flex-1 px-5 py-8 sm:px-8 sm:py-12">
         <div className="mx-auto max-w-5xl">
-          <div className="mb-10 max-w-xl">
-            <p className="mb-2 font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+          <div className="mb-12 max-w-xl">
+            <p className="mb-3 font-mono text-[11px] font-semibold uppercase tracking-[0.25em] text-[#7C5CF6] dark:text-[#AF9EF9]">
               Payment aggregation
             </p>
-            <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-              One checkout, every provider.
+            <h1 className="text-3xl font-semibold tracking-tight sm:text-[2.75rem] sm:leading-[1.1]">
+              One checkout,
+              <br />
+              every provider.
             </h1>
-            <p className="mt-3 text-muted-foreground text-sm leading-relaxed">
-              Every provider below is a plugin behind the same oRPC contract. Pick one — the
-              aggregator routes the session, the raw responses land on the right.
+            <p className="mt-4 text-muted-foreground text-sm leading-relaxed">
+              Every provider is a plugin behind the same oRPC contract. Pick a method — the
+              aggregator routes the session and the raw responses land on the right.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-[400px_1fr]">
-            <div className="space-y-4">
-              <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-                <div className="flex items-baseline justify-between">
-                  <div>
-                    <p className="font-medium">{itemName}</p>
-                    <p className="text-muted-foreground text-xs">Order {orderId.slice(-8)}</p>
+          <div className="grid grid-cols-1 items-start gap-10 lg:grid-cols-[400px_1fr] lg:gap-14">
+            <div className="rounded-2xl border border-border bg-card p-6 shadow-[0_12px_40px_-12px_rgba(124,92,246,0.25)]">
+              <div className="flex items-baseline justify-between">
+                <div>
+                  <p className="font-medium">{itemName}</p>
+                  <p className="text-muted-foreground text-xs">Order {orderId.slice(-8)}</p>
+                </div>
+                <p className="text-2xl font-semibold tracking-tight">
+                  ${displayAmount}
+                  <span className="ml-1 text-muted-foreground text-xs font-normal">{currency}</span>
+                </p>
+              </div>
+
+              <div className="my-5 border-t border-border" />
+
+              <div className="space-y-2.5">
+                {isLoading && (
+                  <div className="space-y-2.5">
+                    <div className="h-11 animate-pulse rounded-xl bg-muted" />
+                    <div className="h-11 animate-pulse rounded-xl bg-muted" />
                   </div>
-                  <p className="text-2xl font-semibold tracking-tight">
-                    ${displayAmount}
-                    <span className="ml-1 text-muted-foreground text-xs font-normal">
-                      {currency}
-                    </span>
-                  </p>
-                </div>
-
-                <div className="my-5 border-t border-border" />
-
-                <div className="space-y-2.5">
-                  {isLoading && (
-                    <div className="space-y-2.5">
-                      <div className="h-11 animate-pulse rounded-xl bg-muted" />
-                      <div className="h-11 animate-pulse rounded-xl bg-muted" />
-                    </div>
-                  )}
-                  {providers?.map((provider) => (
-                    <button
-                      key={provider.key}
-                      type="button"
-                      disabled={checkout.isPending}
-                      onClick={() => checkout.mutate(provider)}
-                      className="group flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-foreground font-medium text-background text-sm transition-all duration-150 hover:opacity-90 active:scale-[0.99] disabled:opacity-50"
-                    >
-                      {pendingKey === provider.key ? (
-                        <Loader2 size={16} className="animate-spin" />
-                      ) : (
-                        <img src={provider.logo} alt="" className="h-4.5 w-4.5 object-contain" />
-                      )}
-                      Pay with {provider.name}
-                    </button>
-                  ))}
-                  <button
-                    type="button"
-                    disabled
-                    className="flex h-11 w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-border bg-muted/50 font-medium text-muted-foreground text-sm"
-                  >
-                    Stake to Pay
-                    <span className="rounded-full bg-background px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                      Coming soon
-                    </span>
-                  </button>
-                </div>
-
-                {aggregationError && (
-                  <p className="mt-3 text-muted-foreground text-xs">{aggregationError}</p>
                 )}
-
+                {providers?.map((provider) => (
+                  <button
+                    key={provider.key}
+                    type="button"
+                    disabled={checkout.isPending}
+                    onClick={() => checkout.mutate(provider)}
+                    style={{ backgroundColor: BRAND_COLORS[provider.key] ?? "#18181B" }}
+                    className="flex h-11 w-full items-center justify-center gap-2.5 rounded-xl font-medium text-sm text-white shadow-sm transition-all duration-150 hover:brightness-110 hover:shadow-md active:scale-[0.99] disabled:opacity-50"
+                  >
+                    {pendingKey === provider.key ? (
+                      <Loader2 size={16} className="animate-spin" />
+                    ) : (
+                      <span className="flex h-6 w-6 items-center justify-center rounded-md bg-white">
+                        <img src={provider.logo} alt="" className="h-4 w-4 object-contain" />
+                      </span>
+                    )}
+                    Pay with {provider.name}
+                  </button>
+                ))}
                 <button
                   type="button"
-                  onClick={() => setFormOpen((open) => !open)}
-                  className="mt-5 flex w-full items-center justify-center gap-1.5 text-muted-foreground text-xs transition-colors hover:text-foreground"
+                  disabled
+                  className="flex h-11 w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-dashed border-border font-medium text-muted-foreground text-sm"
                 >
-                  Edit order details
-                  <ChevronDown
-                    size={13}
-                    className={`transition-transform duration-150 ${formOpen ? "rotate-180" : ""}`}
-                  />
+                  Stake to Pay
+                  <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
+                    Coming soon
+                  </span>
                 </button>
+              </div>
 
-                {formOpen && (
-                  <div className="mt-4 grid grid-cols-1 gap-3 border-t border-border pt-4">
-                    <Field label="Order ID">
-                      <Input value={orderId} onChange={(e) => setOrderId(e.target.value)} />
-                    </Field>
-                    <Field label="Item name">
-                      <Input value={itemName} onChange={(e) => setItemName(e.target.value)} />
-                    </Field>
-                    <div className="grid grid-cols-2 gap-3">
-                      <Field label="Amount (USD)">
-                        <Input
-                          type="number"
-                          min="0.01"
-                          step="0.01"
-                          value={amount}
-                          onChange={(e) => setAmount(e.target.value)}
-                        />
-                      </Field>
-                      <Field label="Currency">
-                        <Input value={currency} onChange={(e) => setCurrency(e.target.value)} />
-                      </Field>
-                    </div>
-                    <Field label="Customer email (optional)">
+              {aggregationError && (
+                <p className="mt-3 text-muted-foreground text-xs">{aggregationError}</p>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setFormOpen((open) => !open)}
+                className="mt-5 flex w-full items-center justify-center gap-1.5 text-muted-foreground text-xs transition-colors hover:text-foreground"
+              >
+                Edit order details
+                <ChevronDown
+                  size={13}
+                  className={`transition-transform duration-150 ${formOpen ? "rotate-180" : ""}`}
+                />
+              </button>
+
+              {formOpen && (
+                <div className="mt-4 grid grid-cols-1 gap-3 border-t border-border pt-4">
+                  <Field label="Order ID">
+                    <Input value={orderId} onChange={(e) => setOrderId(e.target.value)} />
+                  </Field>
+                  <Field label="Item name">
+                    <Input value={itemName} onChange={(e) => setItemName(e.target.value)} />
+                  </Field>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="Amount (USD)">
                       <Input
-                        type="email"
-                        value={customerEmail}
-                        onChange={(e) => setCustomerEmail(e.target.value)}
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        value={amount}
+                        onChange={(e) => setAmount(e.target.value)}
                       />
                     </Field>
-                    <p className="text-muted-foreground text-[11px]">
-                      Sent as {amountInCents} minor units through the aggregator contract.
-                    </p>
+                    <Field label="Currency">
+                      <Input value={currency} onChange={(e) => setCurrency(e.target.value)} />
+                    </Field>
                   </div>
-                )}
-              </div>
+                  <Field label="Customer email (optional)">
+                    <Input
+                      type="email"
+                      value={customerEmail}
+                      onChange={(e) => setCustomerEmail(e.target.value)}
+                    />
+                  </Field>
+                  <p className="text-muted-foreground text-[11px]">
+                    Sent as {amountInCents} minor units through the aggregator contract.
+                  </p>
+                </div>
+              )}
             </div>
 
-            <div className="space-y-4">
-              <ResponsePanel result={result} />
-              <WebhookPanel result={result} />
+            <div className="space-y-10">
+              <ResponseSection result={result} />
+              <WebhookSection result={result} />
             </div>
           </div>
         </div>
       </main>
 
-      <footer className="flex shrink-0 justify-center py-8">
+      <footer className="relative flex shrink-0 justify-center py-8">
         <a
           href="https://near.dev"
           target="_blank"
@@ -277,7 +282,7 @@ function PaymentsPage() {
   );
 }
 
-function ResponsePanel({ result }: { result: CheckoutResult | null }) {
+function ResponseSection({ result }: { result: CheckoutResult | null }) {
   const apiClient = useApiClient();
 
   const sessionQuery = useQuery({
@@ -300,9 +305,9 @@ function ResponsePanel({ result }: { result: CheckoutResult | null }) {
   };
 
   return (
-    <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-      <div className="mb-4 flex items-center justify-between">
-        <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+    <section>
+      <div className="flex items-center justify-between border-b border-border pb-3">
+        <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.25em] text-muted-foreground">
           Response
         </p>
         {result && (
@@ -319,23 +324,21 @@ function ResponsePanel({ result }: { result: CheckoutResult | null }) {
       </div>
 
       {!result && (
-        <div className="py-8 text-center">
-          <p className="text-muted-foreground text-sm">
-            Checkout responses and session state will appear here.
-          </p>
-        </div>
+        <p className="py-6 text-muted-foreground text-sm">
+          Pick a payment method — checkout responses and session state will land here.
+        </p>
       )}
 
       {result && (
-        <div className="space-y-4">
-          <div className="space-y-2">
+        <div className="space-y-4 pt-4">
+          <div className="space-y-2.5">
             <InfoRow label="provider" value={result.provider.name} />
             <InfoRow label="session" value={result.sessionId} mono />
             <InfoRow label="order" value={result.orderId} mono />
             {session && (
               <>
-                <InfoRow label="status" value={session.status} />
-                <InfoRow label="payment" value={session.paymentStatus} />
+                <InfoRow label="status" badge={session.status} />
+                <InfoRow label="payment" badge={session.paymentStatus} />
                 <InfoRow
                   label="amount"
                   value={
@@ -352,7 +355,7 @@ function ResponsePanel({ result }: { result: CheckoutResult | null }) {
               Session lookup failed: {(sessionQuery.error as Error).message}
             </p>
           )}
-          <div className="flex flex-wrap gap-2 border-t border-border pt-4">
+          <div className="flex flex-wrap gap-2 pt-1">
             <Button variant="outline" size="sm" onClick={copySessionId}>
               <Copy size={13} />
               Copy ID
@@ -370,7 +373,7 @@ function ResponsePanel({ result }: { result: CheckoutResult | null }) {
   );
 }
 
-function WebhookPanel({ result }: { result: CheckoutResult | null }) {
+function WebhookSection({ result }: { result: CheckoutResult | null }) {
   const apiClient = useApiClient();
   const [eventType, setEventType] = useState<string>(WEBHOOK_EVENT_TYPES[0]);
 
@@ -401,11 +404,13 @@ function WebhookPanel({ result }: { result: CheckoutResult | null }) {
   });
 
   return (
-    <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-      <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-        Webhooks
-      </p>
-      <p className="mt-2 text-muted-foreground text-xs leading-relaxed">
+    <section>
+      <div className="border-b border-border pb-3">
+        <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.25em] text-muted-foreground">
+          Webhooks
+        </p>
+      </div>
+      <p className="pt-4 text-muted-foreground text-xs leading-relaxed">
         Deliver a signed provider event to the aggregator — the same verification path production
         webhooks take.
       </p>
@@ -428,8 +433,8 @@ function WebhookPanel({ result }: { result: CheckoutResult | null }) {
         </Button>
       </div>
       {simulate.data && (
-        <div className="mt-4 space-y-2 border-t border-border pt-4">
-          <InfoRow label="received" value={simulate.data.received ? "true" : "false"} />
+        <div className="mt-5 space-y-2.5">
+          <InfoRow label="received" badge={simulate.data.received ? "delivered" : "rejected"} />
           <InfoRow label="event" value={simulate.data.eventType ?? "—"} />
           <InfoRow label="order" value={simulate.data.orderId ?? "—"} />
           <InfoRow label="session" value={simulate.data.sessionId ?? "—"} mono />
@@ -437,6 +442,23 @@ function WebhookPanel({ result }: { result: CheckoutResult | null }) {
       )}
     </section>
   );
+}
+
+const BADGE_STYLES: Record<string, string> = {
+  positive: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+  pending: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+  negative: "bg-red-500/10 text-red-600 dark:text-red-400",
+};
+
+function badgeTone(value: string): string {
+  const normalized = value.toLowerCase();
+  if (["paid", "complete", "completed", "delivered", "success"].includes(normalized)) {
+    return BADGE_STYLES.positive;
+  }
+  if (["expired", "failed", "cancelled", "canceled", "rejected"].includes(normalized)) {
+    return BADGE_STYLES.negative;
+  }
+  return BADGE_STYLES.pending;
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -448,13 +470,31 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function InfoRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+function InfoRow({
+  label,
+  value,
+  badge,
+  mono,
+}: {
+  label: string;
+  value?: string;
+  badge?: string;
+  mono?: boolean;
+}) {
   return (
     <div className="flex items-baseline justify-between gap-4">
       <span className="text-muted-foreground text-xs">{label}</span>
-      <span className={`text-right text-sm ${mono ? "break-all font-mono text-xs" : ""}`}>
-        {value}
-      </span>
+      {badge ? (
+        <span
+          className={`rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${badgeTone(badge)}`}
+        >
+          {badge}
+        </span>
+      ) : (
+        <span className={`text-right text-sm ${mono ? "break-all font-mono text-xs" : ""}`}>
+          {value}
+        </span>
+      )}
     </div>
   );
 }
