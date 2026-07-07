@@ -44,7 +44,7 @@ export default createPlugin({
     return {
       metadata: builder.metadata.handler(async () => ({
         name: "PingPay",
-        logo: "/logos/pingpay.svg",
+        logo: "/logos/pingpay.png",
         description: "Multi-chain crypto asset payments",
       })),
 
