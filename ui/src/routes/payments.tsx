@@ -83,6 +83,7 @@ function PaymentsPage() {
   const [customerEmail, setCustomerEmail] = useState("");
   const [itemName, setItemName] = useState("Demo item");
   const [formOpen, setFormOpen] = useState(false);
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [result, setResult] = useState<CheckoutResult | null>(null);
   const [aggregationError, setAggregationError] = useState<string | null>(null);
 
@@ -118,7 +119,11 @@ function PaymentsPage() {
     },
   });
 
-  const pendingKey = checkout.isPending ? checkout.variables?.key : null;
+  const selectedProvider =
+    providers?.find((provider) => provider.key === selectedKey) ?? providers?.[0] ?? null;
+  const brandColor = selectedProvider
+    ? (BRAND_COLORS[selectedProvider.key] ?? "#18181B")
+    : "#18181B";
 
   return (
     <div className="relative flex min-h-screen flex-col overflow-hidden bg-background text-foreground">
@@ -161,43 +166,77 @@ function PaymentsPage() {
 
               <div className="my-5 border-t border-border" />
 
-              <div className="space-y-2.5">
+              <div className="space-y-2">
                 {isLoading && (
-                  <div className="space-y-2.5">
-                    <div className="h-11 animate-pulse rounded-xl bg-muted" />
-                    <div className="h-11 animate-pulse rounded-xl bg-muted" />
+                  <div className="space-y-2">
+                    <div className="h-14 animate-pulse rounded-xl bg-muted" />
+                    <div className="h-14 animate-pulse rounded-xl bg-muted" />
                   </div>
                 )}
-                {providers?.map((provider) => (
-                  <button
-                    key={provider.key}
-                    type="button"
-                    disabled={checkout.isPending}
-                    onClick={() => checkout.mutate(provider)}
-                    style={{ backgroundColor: BRAND_COLORS[provider.key] ?? "#18181B" }}
-                    className="flex h-11 w-full items-center justify-center gap-2.5 rounded-xl font-medium text-sm text-white shadow-sm transition-all duration-150 hover:brightness-110 hover:shadow-md active:scale-[0.99] disabled:opacity-50"
-                  >
-                    {pendingKey === provider.key ? (
-                      <Loader2 size={16} className="animate-spin" />
-                    ) : (
-                      <span className="flex h-6 w-6 items-center justify-center rounded-md bg-white">
-                        <img src={provider.logo} alt="" className="h-4 w-4 object-contain" />
+                {providers?.map((provider) => {
+                  const selected = selectedProvider?.key === provider.key;
+                  const brand = BRAND_COLORS[provider.key] ?? "#18181B";
+                  return (
+                    <button
+                      key={provider.key}
+                      type="button"
+                      onClick={() => setSelectedKey(provider.key)}
+                      style={selected ? { borderColor: brand } : undefined}
+                      className={`flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-all duration-150 ${
+                        selected ? "bg-muted/40 shadow-sm" : "border-border hover:bg-muted/30"
+                      }`}
+                    >
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-background">
+                        <img src={provider.logo} alt="" className="h-5 w-5 object-contain" />
                       </span>
-                    )}
-                    Pay with {provider.name}
-                  </button>
-                ))}
-                <button
-                  type="button"
-                  disabled
-                  className="flex h-11 w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-dashed border-border font-medium text-muted-foreground text-sm"
-                >
-                  Stake to Pay
-                  <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
+                      <span className="min-w-0 flex-1">
+                        <span className="block font-medium text-sm">{provider.name}</span>
+                        <span className="block truncate text-muted-foreground text-xs">
+                          {provider.description}
+                        </span>
+                      </span>
+                      <span
+                        style={
+                          selected ? { borderColor: brand, backgroundColor: brand } : undefined
+                        }
+                        className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 border-border"
+                      >
+                        {selected && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
+                      </span>
+                    </button>
+                  );
+                })}
+                <div className="flex w-full items-center gap-3 rounded-xl border border-dashed border-border p-3 opacity-60">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground text-sm font-semibold">
+                    S
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-medium text-muted-foreground text-sm">
+                      Stake to Pay
+                    </span>
+                    <span className="block text-muted-foreground text-xs">
+                      Yield-backed checkout
+                    </span>
+                  </span>
+                  <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                     Coming soon
                   </span>
-                </button>
+                </div>
               </div>
+
+              <button
+                type="button"
+                disabled={!selectedProvider || checkout.isPending}
+                onClick={() => selectedProvider && checkout.mutate(selectedProvider)}
+                style={{ backgroundColor: brandColor }}
+                className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-xl font-semibold text-[15px] text-white shadow-md transition-all duration-150 hover:brightness-110 active:scale-[0.99] disabled:opacity-50"
+              >
+                {checkout.isPending ? (
+                  <Loader2 size={17} className="animate-spin" />
+                ) : (
+                  `Pay $${displayAmount}`
+                )}
+              </button>
 
               {aggregationError && (
                 <p className="mt-3 text-muted-foreground text-xs">{aggregationError}</p>
