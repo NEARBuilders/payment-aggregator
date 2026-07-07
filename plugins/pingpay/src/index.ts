@@ -44,8 +44,8 @@ export default createPlugin({
     return {
       metadata: builder.metadata.handler(async () => ({
         name: "PingPay",
-        logo: "https://pay.everything.dev/logos/pingpay.svg",
-        description: "NEAR-based USDC payments",
+        logo: "/logos/pingpay.svg",
+        description: "Multi-chain crypto asset payments",
       })),
 
       ping: builder.ping.handler(async () => ({

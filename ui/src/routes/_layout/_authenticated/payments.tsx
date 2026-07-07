@@ -365,7 +365,11 @@ function SessionViewer({
             <InfoRow label="payment" value={session.paymentStatus} />
             <InfoRow
               label="amount"
-              value={session.amountTotal !== undefined ? String(session.amountTotal) : "—"}
+              value={
+                session.amountTotal !== undefined
+                  ? `${(session.amountTotal / 100).toFixed(2)} ${session.currency?.toUpperCase() ?? ""}`.trim()
+                  : "—"
+              }
             />
             <InfoRow label="currency" value={session.currency ?? "—"} />
             {Object.entries(session.metadata ?? {}).map(([key, value]) => (
