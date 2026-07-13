@@ -13,4 +13,18 @@ describe("aggregator API contract", () => {
       ]),
     );
   });
+
+  it("exposes the generic subscription procedures", () => {
+    expect(Object.keys(contract)).toEqual(
+      expect.arrayContaining([
+        "subscriptionProviders",
+        "subscriptionPlans",
+        "subscriptionCreate",
+        "subscriptionGet",
+        "subscriptionCancel",
+        "subscriptionResume",
+        "subscriptionChange",
+      ]),
+    );
+  });
 });

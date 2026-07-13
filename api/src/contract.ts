@@ -63,6 +63,80 @@ const GetSessionOutputSchema = z.object({
   }),
 });
 
+const AmountSchema = z
+  .string()
+  .regex(/^\d+$/, "integer string in the currency's smallest unit (yoctoNEAR, cents)");
+
+const PlanPeriodSchema = z.enum(["daily", "weekly", "monthly", "quarterly", "yearly"]);
+
+const SubscriptionStatusSchema = z.enum([
+  "active",
+  "cancel_at_period_end",
+  "pending_unstake",
+  "ended",
+  "none",
+]);
+
+const PlanSchema = z
+  .object({
+    id: z.string(),
+    name: z.string(),
+    description: z.string().optional(),
+    period: PlanPeriodSchema,
+    currency: z.string(),
+    minAmount: AmountSchema,
+    maxAmount: AmountSchema,
+    metadata: z.record(z.string(), z.string()).optional(),
+  })
+  .refine((plan) => BigInt(plan.minAmount) <= BigInt(plan.maxAmount), {
+    message: "minAmount must not exceed maxAmount",
+    path: ["minAmount"],
+  });
+
+const SubscriptionSchema = z.object({
+  id: z.string().optional(),
+  planId: z.string(),
+  status: SubscriptionStatusSchema,
+  amount: AmountSchema.optional(),
+  currency: z.string().optional(),
+  currentPeriodEnd: z.string().datetime().optional(),
+  payerRef: z.string(),
+  metadata: z.record(z.string(), z.string()).optional(),
+});
+
+const WalletFunctionCallSchema = z.object({
+  methodName: z.string(),
+  args: z.record(z.string(), z.unknown()),
+  deposit: AmountSchema,
+  gas: z.string().regex(/^\d+$/),
+});
+
+const SubscriptionActionSchema = z.discriminatedUnion("kind", [
+  z.object({
+    kind: z.literal("wallet_intent"),
+    networkId: z.string(),
+    contractId: z.string(),
+    actions: z.array(WalletFunctionCallSchema).min(1),
+  }),
+  z.object({
+    kind: z.literal("redirect"),
+    url: z.string().url(),
+  }),
+  z.object({
+    kind: z.literal("executed"),
+    subscription: SubscriptionSchema,
+  }),
+]);
+
+const CreateSubscriptionInputSchema = z.object({
+  planId: z.string(),
+  amount: AmountSchema.optional(),
+  payerRef: z.string().optional(),
+  successUrl: z.string().url().optional(),
+  cancelUrl: z.string().url().optional(),
+  metadata: z.record(z.string(), z.string()).optional(),
+});
+
 export const contract = oc.router({
   ping: oc.route({ method: "GET", path: "/ping" }).output(
     z.object({
@@ -96,6 +170,73 @@ export const contract = oc.router({
     .route({ method: "GET", path: "/payments/sessions/{provider}/{sessionId}" })
     .input(GetSessionInputSchema.extend({ provider: z.string() }))
     .output(GetSessionOutputSchema),
+
+  subscriptionProviders: oc.route({ method: "GET", path: "/subscriptions/providers" }).output(
+    z.array(
+      z.object({
+        key: z.string(),
+        name: z.string(),
+        logo: z.string(),
+        description: z.string(),
+      }),
+    ),
+  ),
+
+  subscriptionPlans: oc
+    .route({ method: "GET", path: "/subscriptions/{provider}/plans" })
+    .input(z.object({ provider: z.string() }))
+    .output(z.array(PlanSchema)),
+
+  subscriptionCreate: oc
+    .route({ method: "POST", path: "/subscriptions/{provider}" })
+    .input(CreateSubscriptionInputSchema.extend({ provider: z.string() }))
+    .output(SubscriptionActionSchema),
+
+  subscriptionGet: oc
+    .route({ method: "GET", path: "/subscriptions/{provider}/status" })
+    .input(
+      z.object({
+        provider: z.string(),
+        planId: z.string(),
+        payerRef: z.string().optional(),
+      }),
+    )
+    .output(SubscriptionSchema),
+
+  subscriptionCancel: oc
+    .route({ method: "POST", path: "/subscriptions/{provider}/cancel" })
+    .input(
+      z.object({
+        provider: z.string(),
+        planId: z.string(),
+        payerRef: z.string().optional(),
+      }),
+    )
+    .output(SubscriptionActionSchema),
+
+  subscriptionResume: oc
+    .route({ method: "POST", path: "/subscriptions/{provider}/resume" })
+    .input(
+      z.object({
+        provider: z.string(),
+        planId: z.string(),
+        payerRef: z.string().optional(),
+      }),
+    )
+    .output(SubscriptionActionSchema),
+
+  subscriptionChange: oc
+    .route({ method: "POST", path: "/subscriptions/{provider}/change" })
+    .input(
+      z.object({
+        provider: z.string(),
+        planId: z.string(),
+        newPlanId: z.string(),
+        amount: AmountSchema.optional(),
+        payerRef: z.string().optional(),
+      }),
+    )
+    .output(SubscriptionActionSchema),
 });
 
 export type ContractType = typeof contract;
