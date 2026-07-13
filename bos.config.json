@@ -38,6 +38,9 @@
         "STRIPE_SECRET_KEY",
         "STRIPE_WEBHOOK_SECRET"
       ]
+    },
+    "stake2pay": {
+      "development": "local:plugins/stake2pay"
     }
   }
 }
