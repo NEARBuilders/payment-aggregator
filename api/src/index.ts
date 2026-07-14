@@ -26,6 +26,7 @@ export default createPlugin.withPlugins<PluginsClient>()({
       })
       .optional(),
     organizationId: z.string().optional(),
+    walletAddress: z.string().optional(),
     reqHeaders: z.custom<Headers>().optional(),
     getRawBody: z.custom<() => Promise<string>>().optional(),
   }),
@@ -56,6 +57,29 @@ export default createPlugin.withPlugins<PluginsClient>()({
         });
       }
       return factory;
+    };
+
+    const getSubscriptionPlugin = (provider: string) => {
+      const factory = (services.plugins as Record<string, unknown>)[provider];
+      if (!factory || typeof factory !== "function") {
+        throw new ORPCError("NOT_FOUND", {
+          message: `Unknown subscription provider: ${provider}`,
+        });
+      }
+      return factory;
+    };
+
+    const resolvePayerRef = (payerRef: string | undefined, context: { walletAddress?: string }) =>
+      payerRef ?? context.walletAddress;
+
+    const requirePayerRef = (payerRef: string | undefined, context: { walletAddress?: string }) => {
+      const resolved = resolvePayerRef(payerRef, context);
+      if (!resolved) {
+        throw new ORPCError("BAD_REQUEST", {
+          message: "payerRef is required when no authenticated NEAR account is available",
+        });
+      }
+      return resolved;
     };
 
     return {
@@ -103,6 +127,77 @@ export default createPlugin.withPlugins<PluginsClient>()({
         const factory = getPaymentPlugin(provider);
         const client = (factory as (opts?: unknown) => any)();
         return (await client.getSession({ sessionId })) as any;
+      }),
+
+      subscriptionProviders: builder.subscriptionProviders.handler(async () => {
+        const providers: Array<{
+          key: string;
+          name: string;
+          logo: string;
+          description: string;
+        }> = [];
+
+        for (const [key, factory] of Object.entries(services.plugins)) {
+          if (typeof factory !== "function") continue;
+          try {
+            const client = (factory as () => any)();
+            await client.listPlans();
+            const metadata = await client.metadata();
+            providers.push({ key, ...metadata });
+          } catch {}
+        }
+
+        return providers;
+      }),
+
+      subscriptionPlans: builder.subscriptionPlans.handler(async ({ input }) => {
+        const factory = getSubscriptionPlugin(input.provider);
+        const client = (factory as (opts?: unknown) => any)();
+        return (await client.listPlans()) as any;
+      }),
+
+      subscriptionCreate: builder.subscriptionCreate.handler(async ({ input, context }) => {
+        const { provider, payerRef, ...createInput } = input;
+        const factory = getSubscriptionPlugin(provider);
+        const client = (factory as (opts?: unknown) => any)();
+        const resolved = resolvePayerRef(payerRef, context);
+        return (await client.createSubscription({
+          ...createInput,
+          ...(resolved !== undefined ? { payerRef: resolved } : {}),
+        })) as any;
+      }),
+
+      subscriptionGet: builder.subscriptionGet.handler(async ({ input, context }) => {
+        const factory = getSubscriptionPlugin(input.provider);
+        const client = (factory as (opts?: unknown) => any)();
+        const payerRef = requirePayerRef(input.payerRef, context);
+        return (await client.getSubscription({ planId: input.planId, payerRef })) as any;
+      }),
+
+      subscriptionCancel: builder.subscriptionCancel.handler(async ({ input, context }) => {
+        const factory = getSubscriptionPlugin(input.provider);
+        const client = (factory as (opts?: unknown) => any)();
+        const payerRef = requirePayerRef(input.payerRef, context);
+        return (await client.cancelSubscription({ planId: input.planId, payerRef })) as any;
+      }),
+
+      subscriptionResume: builder.subscriptionResume.handler(async ({ input, context }) => {
+        const factory = getSubscriptionPlugin(input.provider);
+        const client = (factory as (opts?: unknown) => any)();
+        const payerRef = requirePayerRef(input.payerRef, context);
+        return (await client.resumeSubscription({ planId: input.planId, payerRef })) as any;
+      }),
+
+      subscriptionChange: builder.subscriptionChange.handler(async ({ input, context }) => {
+        const factory = getSubscriptionPlugin(input.provider);
+        const client = (factory as (opts?: unknown) => any)();
+        const payerRef = requirePayerRef(input.payerRef, context);
+        return (await client.changePlan({
+          planId: input.planId,
+          newPlanId: input.newPlanId,
+          ...(input.amount !== undefined ? { amount: input.amount } : {}),
+          payerRef,
+        })) as any;
       }),
     };
   },
