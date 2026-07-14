@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+import { rm } from "node:fs/promises";
 import { createServer, type IncomingMessage } from "node:http";
 import type { AddressInfo } from "node:net";
 import { createORPCClient } from "@orpc/client";
@@ -66,13 +68,17 @@ const STRIPE_CONFIG = {
   },
 } satisfies PluginConfigInput<typeof StripePlugin>;
 
-const API_CONFIG = {
-  variables: {},
-  secrets: {
-    // In-memory pglite database; migrations run during plugin initialize.
-    API_DATABASE_URL: "pglite:.bos/api/:memory:",
-  },
-} satisfies PluginConfigInput<typeof ApiPlugin>;
+// NOTE: `pglite:.bos/api/:memory:` is NOT in-memory — pglite treats it as an
+// on-disk path, and parallel vitest forks race on a shared directory. Each
+// context therefore gets its own throwaway directory, removed on teardown.
+const apiConfig = (databaseDir: string) =>
+  ({
+    variables: {},
+    secrets: {
+      // Isolated pglite database; migrations run during plugin initialize.
+      API_DATABASE_URL: `pglite:${databaseDir}/data`,
+    },
+  }) satisfies PluginConfigInput<typeof ApiPlugin>;
 
 export type ApiClient = ContractRouterClient<typeof contract>;
 
@@ -97,8 +103,8 @@ function toWebHeaders(req: IncomingMessage): Headers {
  *   - real HTTP server on a random port (127.0.0.1)
  *   - typed oRPC client pointed at the RPC endpoint
  *
- * Callers must invoke `teardown()` when done (closes the server and shuts
- * down the plugin runtime, releasing the in-memory database).
+ * Callers must invoke `teardown()` when done (closes the server, shuts down
+ * the plugin runtime, and removes the throwaway pglite directory).
  */
 export async function createE2EContext() {
   const runtime = createPluginRuntime({
@@ -109,9 +115,11 @@ export async function createE2EContext() {
   const pingpay = await runtime.usePlugin("pingpay", PINGPAY_CONFIG);
   const stripe = await runtime.usePlugin("stripe", STRIPE_CONFIG);
 
+  const databaseDir = `.bos/api-e2e-test-${randomUUID()}`;
+
   // The aggregator API receives provider client factories, exactly like the
   // production host wires them from bos.config.json.
-  const api = await runtime.usePlugin("api", API_CONFIG, {
+  const api = await runtime.usePlugin("api", apiConfig(databaseDir), {
     pingpay: pingpay.createClient,
     stripe: stripe.createClient,
   });
@@ -169,6 +177,7 @@ export async function createE2EContext() {
       server.close((error) => (error ? reject(error) : resolve()));
     });
     await runtime.shutdown();
+    await rm(databaseDir, { recursive: true, force: true });
   };
 
   return { client, baseUrl, runtime, teardown };
