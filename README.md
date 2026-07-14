@@ -18,6 +18,7 @@ Built on [everything-dev](https://everything.dev) runtime, [every-plugin](https:
 |--------|----------|--------|
 | `stripe` | Stripe | `plugins/stripe/` |
 | `pingpay` | PingPay (NEAR USDC) | `plugins/pingpay/` |
+| `stake2pay` | Stake2Pay (NEAR staking subscriptions via House of Stake) | `plugins/stake2pay/` |
 
 Each provider implements the same `PaymentContract`:
 
@@ -61,6 +62,15 @@ Secrets per provider:
 | `PING_API_KEY` | PingPay |
 | `PING_WEBHOOK_SECRET` | PingPay |
 | `API_DATABASE_URL` | Core API |
+
+`stake2pay` needs no secrets — it only performs read-only NEAR view calls and the user's wallet signs all writes. It is configured via `bos.config.json` variables:
+
+| Variable | Default |
+|----------|---------|
+| `rpcUrl` | `https://rpc.testnet.near.org` |
+| `networkId` | `testnet` |
+| `contractId` | `hos-e2e-0601144939.testnet` |
+| `productId` | `prod_5lklj46roIwKZK` |
 
 ## Architecture
 
