@@ -3,11 +3,8 @@
   "account": "pay.everything.near",
   "domain": "pay.everything.dev",
   "title": "everything.dev",
-  "description": "Open runtime for apps on NEAR, composed from published config and loaded through a shared host, UI, and API runtime.",
-  "staging": {
-    "domain": "dev.everything.dev"
-  },
-  "repository": "https://github.com/nearbuilders/everything-dev",
+  "description": "Payment aggregator",
+  "repository": "https://github.com/nearbuilders/payment-aggregator",
   "ci": {
     "railway": {
       "service": "app"
