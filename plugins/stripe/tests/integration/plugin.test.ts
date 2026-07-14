@@ -41,4 +41,22 @@ describe("Stripe Plugin Integration Tests", () => {
       await expect(client.getSession({ sessionId: "cs_nonexistent" })).rejects.toThrow();
     });
   });
+
+  describe("listPlans procedure", () => {
+    it("should return an error with placeholder credentials", async () => {
+      const client = await getPluginClient();
+
+      await expect(client.listPlans()).rejects.toThrow();
+    });
+  });
+
+  describe("getSubscription procedure", () => {
+    it("should return an error with placeholder credentials", async () => {
+      const client = await getPluginClient();
+
+      await expect(
+        client.getSubscription({ planId: "price_nonexistent", payerRef: "sub_nonexistent" }),
+      ).rejects.toThrow();
+    });
+  });
 });

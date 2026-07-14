@@ -4,7 +4,7 @@ import { RPCLink } from "@orpc/client/fetch";
 import type { ContractRouterClient } from "@orpc/contract";
 import { RPCHandler } from "@orpc/server/node";
 import { createPluginRuntime } from "every-plugin";
-import type { PaymentContract } from "@/contract";
+import type { StripeContract } from "@/contract";
 import Plugin from "@/index";
 import pluginDevConfig from "../plugin.dev";
 
@@ -68,7 +68,7 @@ export async function getPluginClient() {
     fetch: globalThis.fetch,
   });
 
-  const client: ContractRouterClient<typeof PaymentContract> = createORPCClient(link);
+  const client: ContractRouterClient<typeof StripeContract> = createORPCClient(link);
   return client;
 }
 
