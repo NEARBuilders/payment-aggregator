@@ -61,15 +61,27 @@ export class StripePaymentService {
           this.webhookSecret,
         )) as any;
 
+        const object = event.data?.object as any;
         let orderId: string | undefined;
+        let sessionId: string | undefined;
+
         if (event.type === "checkout.session.completed") {
-          const session = event.data.object as { metadata?: Record<string, string> };
-          orderId = session.metadata?.orderId;
+          orderId = object?.metadata?.orderId;
+          sessionId = object?.id;
+        } else if (event.type.startsWith("customer.subscription.")) {
+          orderId = object?.metadata?.orderId;
+          sessionId = object?.id;
+        } else if (event.type.startsWith("invoice.")) {
+          orderId = object?.metadata?.orderId;
+          const subscriptionRef =
+            object?.subscription ?? object?.parent?.subscription_details?.subscription;
+          sessionId = typeof subscriptionRef === "string" ? subscriptionRef : subscriptionRef?.id;
         }
 
         return {
           event,
           orderId,
+          sessionId,
         };
       },
       catch: (error: unknown) =>
