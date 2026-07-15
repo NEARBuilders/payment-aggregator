@@ -67,7 +67,7 @@ Secrets per provider:
 
 | Variable | Default |
 |----------|---------|
-| `rpcUrl` | `https://rpc.testnet.near.org` |
+| `rpcUrl` | `https://test.rpc.fastnear.com` |
 | `networkId` | `testnet` |
 | `contractId` | `hos-e2e-0601144939.testnet` |
 | `productId` | `prod_5lklj46roIwKZK` |

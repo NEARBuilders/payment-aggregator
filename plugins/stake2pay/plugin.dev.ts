@@ -8,7 +8,7 @@ export default {
   port: Number(process.env.PORT) || 3016,
   config: {
     variables: {
-      rpcUrl: process.env.HOS_RPC_URL || "https://rpc.testnet.near.org",
+      rpcUrl: process.env.HOS_RPC_URL || "https://test.rpc.fastnear.com",
       networkId: process.env.HOS_NETWORK_ID || "testnet",
       contractId: process.env.HOS_CONTRACT_ID || "hos-e2e-0601144939.testnet",
       productId: process.env.HOS_PRODUCT_ID || "prod_5lklj46roIwKZK",
