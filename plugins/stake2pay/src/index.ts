@@ -69,7 +69,7 @@ export default createPlugin({
     return {
       metadata: builder.metadata.handler(async () => ({
         name: "Stake2Pay",
-        logo: "/logos/stake2pay.png",
+        logo: "/logos/stake2pay.svg",
         description: "Subscriptions paid from NEAR staking yield via House of Stake",
       })),
 

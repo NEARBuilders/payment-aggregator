@@ -90,6 +90,8 @@ const DEMO_STAKES: Record<string, Record<string, string>> = {
   stake2pay: { Starter: "1", Basic: "10", Pro: "100" },
 };
 
+const EMAIL_PAYER_PROVIDERS = new Set(["stripe"]);
+
 const STATUS_LABELS: Record<SubscriptionInfo["status"], string> = {
   active: "Active",
   cancel_at_period_end: "Cancels at period end",
@@ -155,7 +157,8 @@ function SubscriptionsPage() {
     }
   }, [checkout]);
 
-  const payerRef = nearAccountId ?? session?.user?.email ?? null;
+  const emailRef = session?.user?.email ?? null;
+  const payerRef = nearAccountId ?? emailRef;
 
   const { data: providers, isLoading } = useQuery({
     queryKey: ["subscription-providers"],
@@ -242,7 +245,11 @@ function SubscriptionsPage() {
                 <ProviderPlans
                   key={selectedProvider.key}
                   provider={selectedProvider}
-                  payerRef={payerRef}
+                  payerRef={
+                    EMAIL_PAYER_PROVIDERS.has(selectedProvider.key)
+                      ? (emailRef ?? payerRef)
+                      : payerRef
+                  }
                   hasNearWallet={!!nearAccountId}
                 />
               )}
