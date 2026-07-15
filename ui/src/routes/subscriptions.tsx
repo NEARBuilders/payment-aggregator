@@ -120,14 +120,20 @@ async function signWalletIntent(authClient: AuthClient, intent: WalletIntent) {
     throw new Error(`Wallet is on ${network}, but this subscription needs ${intent.networkId}`);
   }
 
-  let tx = authClient.near.client.transaction(accountId);
-  for (const action of intent.actions) {
-    tx = tx.functionCall(intent.contractId, action.methodName, action.args, {
-      gas: action.gas as `${number}`,
-      attachedDeposit: BigInt(action.deposit),
-    });
+  const totalGas = intent.actions.reduce((sum, action) => sum + BigInt(action.gas), 0n);
+  const batches =
+    totalGas <= 300_000_000_000_000n ? [intent.actions] : intent.actions.map((action) => [action]);
+
+  for (const batch of batches) {
+    let tx = authClient.near.client.transaction(accountId);
+    for (const action of batch) {
+      tx = tx.functionCall(intent.contractId, action.methodName, action.args, {
+        gas: action.gas as `${number}`,
+        attachedDeposit: BigInt(action.deposit),
+      });
+    }
+    await tx.send();
   }
-  await tx.send();
 }
 
 function SubscriptionsPage() {
