@@ -39,8 +39,8 @@ export interface Stake2PayConfig {
 
 const GAS_STORAGE_DEPOSIT = "30000000000000";
 // lock/update_subscription assert prepaid_gas >= 300 Tgas on-chain
-// (EPOCH_SETTLEMENT_MIN_GAS in staking-contract/src/gas.rs), so these
-// actions cannot share a transaction with anything else.
+// (EPOCH_SETTLEMENT_MIN_GAS in staking-contract/src/gas.rs); batching with
+// storage_deposit stays under the 1000 Tgas max_total_prepaid_gas cap.
 const GAS_LOCK = "300000000000000";
 const GAS_UPDATE_SUBSCRIPTION = "300000000000000";
 const GAS_LIFECYCLE = "30000000000000";

@@ -122,9 +122,13 @@ async function signWalletIntent(authClient: AuthClient, intent: WalletIntent) {
     throw new Error(`Wallet is on ${network}, but this subscription needs ${intent.networkId}`);
   }
 
+  // max_total_prepaid_gas is 1000 Tgas as of protocol v84/v85 (verified via
+  // EXPERIMENTAL_protocol_config); intents exceeding it sign as sequential txs.
   const totalGas = intent.actions.reduce((sum, action) => sum + BigInt(action.gas), 0n);
   const batches =
-    totalGas <= 300_000_000_000_000n ? [intent.actions] : intent.actions.map((action) => [action]);
+    totalGas <= 1_000_000_000_000_000n
+      ? [intent.actions]
+      : intent.actions.map((action) => [action]);
 
   for (const batch of batches) {
     let tx = authClient.near.client.transaction(accountId);
