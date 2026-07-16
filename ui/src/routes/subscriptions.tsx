@@ -86,8 +86,9 @@ const BRAND_COLORS: Record<string, string> = {
   stripe: "#635BFF",
 };
 
-const DEMO_STAKES: Record<string, Record<string, string>> = {
-  stake2pay: { Starter: "1", Basic: "10", Pro: "100" },
+const DEMO_PLANS: Record<string, Record<string, string | null>> = {
+  stake2pay: { Starter: "1" },
+  stripe: { "Everything Demo": null },
 };
 
 const EMAIL_PAYER_PROVIDERS = new Set(["stripe"]);
@@ -281,17 +282,18 @@ function ProviderPlans({
     queryFn: () => apiClient.subscriptionPlans({ provider: provider.key }),
   });
 
-  const demoStakes = DEMO_STAKES[provider.key];
+  const demoPlans = DEMO_PLANS[provider.key];
   const visiblePlans = useMemo(() => {
     if (!plans) return [];
-    if (!demoStakes) return plans;
+    if (!demoPlans) return plans;
     return plans.filter((plan) => {
-      const fixedStake = demoStakes[plan.name];
-      if (!fixedStake) return false;
-      const yocto = nearToYocto(fixedStake);
+      if (!(plan.name in demoPlans)) return false;
+      const fixedStake = demoPlans[plan.name];
+      if (fixedStake === null) return true;
+      const yocto = nearToYocto(fixedStake ?? "");
       return yocto !== null && yocto >= BigInt(plan.minAmount) && yocto <= BigInt(plan.maxAmount);
     });
-  }, [plans, demoStakes]);
+  }, [plans, demoPlans]);
 
   const statusQueries = useQueries({
     queries: visiblePlans.map((plan) => ({
@@ -309,9 +311,15 @@ function ProviderPlans({
     })),
   });
 
-  const subscriptions = visiblePlans.map(
-    (_, index) => (statusQueries[index]?.data ?? null) as SubscriptionInfo | null,
-  );
+  // HoS subscriptions are keyed per product, so the same subscription comes
+  // back for every price in the catalog — only the card whose plan matches
+  // the subscription's actual price owns it.
+  const subscriptions = visiblePlans.map((plan, index) => {
+    const raw = (statusQueries[index]?.data ?? null) as SubscriptionInfo | null;
+    if (!raw) return null;
+    if (raw.status === "none" || raw.planId === plan.id) return raw;
+    return { planId: plan.id, status: "none" as const, payerRef: raw.payerRef };
+  });
   const activePlan =
     visiblePlans.find((_, index) => {
       const status = subscriptions[index]?.status;
@@ -345,7 +353,7 @@ function ProviderPlans({
           plan={plan}
           payerRef={payerRef}
           hasNearWallet={hasNearWallet}
-          fixedStakeNear={demoStakes?.[plan.name] ?? null}
+          fixedStakeNear={demoPlans?.[plan.name] ?? null}
           subscription={subscriptions[index] ?? null}
           isFetching={statusQueries[index]?.isFetching ?? false}
           activeElsewherePlan={activePlan && activePlan.id !== plan.id ? activePlan : null}
