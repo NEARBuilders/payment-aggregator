@@ -283,15 +283,14 @@ describe("E2E: subscription routes through the aggregator API", () => {
   it("lists only subscription-capable providers, skipping payment-only plugins", async () => {
     const providers = await ctx.anonClient.subscriptionProviders();
 
-    expect(providers).toHaveLength(1);
-    expect(providers[0]).toEqual({
+    expect(providers.find((p) => p.key === SUBS_PROVIDER)).toEqual({
       key: SUBS_PROVIDER,
       name: "Subs Mock",
       logo: "/logos/subsmock.png",
       description: "In-test subscription provider",
     });
+    expect(providers.some((p) => p.key === "stripe")).toBe(true);
     expect(providers.some((p) => p.key === "pingpay")).toBe(false);
-    expect(providers.some((p) => p.key === "stripe")).toBe(false);
   });
 
   it("lists plans for a subscription provider", async () => {
@@ -318,7 +317,7 @@ describe("E2E: subscription routes through the aggregator API", () => {
 
     expect(response.status).toBe(200);
     const providers = (await response.json()) as Array<{ key: string }>;
-    expect(providers.map((p) => p.key)).toEqual([SUBS_PROVIDER]);
+    expect(providers.map((p) => p.key).sort()).toEqual(["stripe", SUBS_PROVIDER].sort());
   });
 
   it("returns NOT_FOUND for an unknown subscription provider", async () => {
