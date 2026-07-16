@@ -320,6 +320,8 @@ docker-compose.yml
 node_modules/.federation
 # CSS files (Tailwind - handled by build tools)
 *.css
+# ...except the Tailwind v4 source entry — the client build fails without it
+!ui/src/styles.css
 .tanstack
 
 # Markdown files (local notes, AI agent instructions, etc.)
