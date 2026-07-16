@@ -1,125 +1,88 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { AnimatePresence, motion } from "framer-motion";
-import { Copy, ExternalLink, Sparkles } from "lucide-react";
-import { useState } from "react";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-
-type SearchParams = {
-  path?: string;
-};
+import { ArrowRight, CreditCard, Repeat } from "lucide-react";
 
 export const Route = createFileRoute("/_layout/")({
-  validateSearch: (search: Record<string, unknown>): SearchParams => ({
-    path: typeof search.path === "string" && search.path.length > 0 ? search.path : undefined,
-  }),
-  component: HomeViewerPage,
+  component: LandingPage,
 });
 
-function HomeViewerPage() {
-  const { path } = Route.useSearch();
-  const iframeSrc = path ? `./_viewer?path=${encodeURIComponent(path)}` : "./_viewer";
+const DEMOS = [
+  {
+    to: "/payments",
+    title: "Payments",
+    tagline: "One checkout, every provider.",
+    description:
+      "One-time payments routed through a single contract — pick Stripe or PingPay and the aggregator creates the session, verifies the webhook, and tracks status.",
+    icon: CreditCard,
+    accent: "#7C5CF6",
+    glow: "rgba(124,92,246,0.14)",
+  },
+  {
+    to: "/subscriptions",
+    title: "Subscriptions",
+    tagline: "Pay with yield, not principal.",
+    description:
+      "Recurring plans behind the same contract — stake NEAR and let validator rewards cover your subscription, or pay by card through Stripe Billing.",
+    icon: Repeat,
+    accent: "#00C08B",
+    glow: "rgba(0,192,139,0.14)",
+  },
+] as const;
 
+function LandingPage() {
   return (
-    <div className="relative h-full w-full bg-background">
-      <iframe
-        title="BOS viewer"
-        src={iframeSrc}
-        loading="eager"
-        allow="clipboard-read; clipboard-write"
-        sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
-        className="block h-full w-full border-0 bg-background"
-      />
-      <FloatingSkillAssistant />
-    </div>
-  );
-}
+    <div className="relative flex min-h-[calc(100vh-3.5rem)] flex-col overflow-hidden bg-background text-foreground">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-[420px] bg-[radial-gradient(60%_50%_at_50%_0%,rgba(124,92,246,0.10),transparent_70%)]" />
 
-function FloatingSkillAssistant() {
-  const [open, setOpen] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const issueUrl = "https://github.com/NEARBuilders/everything-dev/issues/new";
+      <main className="relative flex flex-1 items-center px-5 py-12 sm:px-8">
+        <div className="mx-auto w-full max-w-4xl">
+          <div className="mb-12 text-center">
+            <p className="mb-3 font-mono text-[11px] font-semibold uppercase tracking-[0.25em] text-muted-foreground">
+              pay.everything.dev
+            </p>
+            <h1 className="text-3xl font-semibold tracking-tight sm:text-[2.75rem] sm:leading-[1.1]">
+              Every payment provider,
+              <br />
+              one contract.
+            </h1>
+            <p className="mx-auto mt-4 max-w-xl text-muted-foreground text-sm leading-relaxed">
+              A payment aggregator built on everything.dev — providers are plugins behind shared
+              oRPC contracts, discovered at runtime. Pick a demo.
+            </p>
+          </div>
 
-  const handleCopy = async () => {
-    const rawSkillUrl = "/skill.md";
-    await navigator.clipboard.writeText(rawSkillUrl);
-    setCopied(true);
-    toast.success("Skill URL copied");
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  return (
-    <div className="pointer-events-none fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ opacity: 0, y: 16, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10, scale: 0.98 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-            className="pointer-events-auto w-[min(22rem,calc(100vw-2rem))] rounded-[24px] border border-border bg-card/95 p-4 shadow-2xl backdrop-blur"
-          >
-            <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
-              <Sparkles size={16} />
-              Assistant
-            </div>
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              <Button asChild className="justify-start">
-                <Link to="/skill" preload="intent" onClick={() => setOpen(false)}>
-                  <Sparkles size={14} />
-                  Open skill
-                </Link>
-              </Button>
-              <Button variant="outline" asChild className="justify-start">
-                <a href={issueUrl} target="_blank" rel="noopener noreferrer">
-                  <ExternalLink size={14} />
-                  Report issue
-                </a>
-              </Button>
-              <Button variant="outline" asChild className="justify-start">
-                <Link to="/payments" preload="intent" onClick={() => setOpen(false)}>
-                  <Sparkles size={14} />
-                  Payments
-                </Link>
-              </Button>
-              <Button variant="outline" className="justify-start" onClick={handleCopy}>
-                <Copy size={14} />
-                {copied ? "Copied URL" : "Copy skill URL"}
-              </Button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <motion.button
-        type="button"
-        onClick={() => setOpen((value) => !value)}
-        animate={
-          open
-            ? { y: 0, scale: 1.02 }
-            : {
-                y: [0, -34, 0, -15, 0, -6, 0],
-                scale: [1, 1.02, 0.97, 1.01, 0.992, 1, 1],
-              }
-        }
-        transition={
-          open
-            ? { duration: 0.25, ease: "easeOut" }
-            : {
-                duration: 2.8,
-                ease: [0.22, 1, 0.36, 1],
-                repeat: Number.POSITIVE_INFINITY,
-                times: [0, 0.18, 0.34, 0.5, 0.66, 0.8, 1],
-              }
-        }
-        whileTap={{ scale: 0.97 }}
-        aria-expanded={open}
-        aria-label={open ? "Close assistant" : "Open assistant"}
-        className="pointer-events-auto relative h-24 w-24 cursor-pointer rounded-full border border-white/10 bg-black text-white shadow-[0_20px_50px_rgba(0,0,0,0.45)]"
-      >
-        <span className="absolute inset-[10%] rounded-full bg-[radial-gradient(circle_at_30%_28%,rgba(255,255,255,0.24),rgba(255,255,255,0.05)_28%,transparent_44%)]" />
-        <span className="absolute inset-[18%] rounded-full border border-white/6" />
-      </motion.button>
+          <div className="grid gap-5 sm:grid-cols-2">
+            {DEMOS.map((demo) => (
+              <Link
+                key={demo.to}
+                to={demo.to}
+                className="group relative flex flex-col rounded-2xl border border-border bg-card p-6 transition-all duration-150 hover:-translate-y-0.5 hover:shadow-lg"
+                style={{ boxShadow: `0 12px 40px -18px ${demo.glow}` }}
+              >
+                <span
+                  className="flex h-11 w-11 items-center justify-center rounded-xl text-white"
+                  style={{ backgroundColor: demo.accent }}
+                >
+                  <demo.icon size={20} />
+                </span>
+                <p className="mt-4 text-lg font-semibold">{demo.title}</p>
+                <p className="text-sm font-medium" style={{ color: demo.accent }}>
+                  {demo.tagline}
+                </p>
+                <p className="mt-2 flex-1 text-muted-foreground text-sm leading-relaxed">
+                  {demo.description}
+                </p>
+                <span
+                  className="mt-5 inline-flex items-center gap-1.5 text-sm font-medium transition-transform duration-150 group-hover:translate-x-0.5"
+                  style={{ color: demo.accent }}
+                >
+                  Open demo
+                  <ArrowRight size={15} />
+                </span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </main>
     </div>
   );
 }

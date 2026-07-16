@@ -16,10 +16,13 @@ export function nearToYocto(near: string): bigint | null {
   return BigInt(whole || "0") * YOCTO_PER_NEAR + BigInt(fraction.padEnd(24, "0") || "0");
 }
 
+const CURRENCY_SYMBOLS: Record<string, string> = { USD: "$", EUR: "€", GBP: "£" };
+
 export function formatPlanAmount(amount: string, currency: string): string {
   if (currency === "NEAR") return `${yoctoToNear(amount)} NEAR`;
-  if (currency === "USD") return `$${(Number(amount) / 100).toFixed(2)}`;
-  return `${amount} ${currency}`;
+  const symbol = CURRENCY_SYMBOLS[currency];
+  const value = (Number(amount) / 100).toFixed(2);
+  return symbol ? `${symbol}${value}` : `${value} ${currency}`;
 }
 
 export function formatPlanRange(minAmount: string, maxAmount: string, currency: string): string {

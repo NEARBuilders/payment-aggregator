@@ -22,7 +22,7 @@ const toORPCError = (error: { _tag: string; message: string }) => {
 
 export default createPlugin({
   variables: z.object({
-    rpcUrl: z.string().default("https://rpc.testnet.near.org"),
+    rpcUrl: z.string().default("https://test.rpc.fastnear.com"),
     networkId: z.string().default("testnet"),
     contractId: z.string().default("hos-e2e-0601144939.testnet"),
     productId: z.string().default("prod_5lklj46roIwKZK"),
@@ -69,7 +69,7 @@ export default createPlugin({
     return {
       metadata: builder.metadata.handler(async () => ({
         name: "Stake2Pay",
-        logo: "/logos/stake2pay.png",
+        logo: "/logos/stake2pay.svg",
         description: "Subscriptions paid from NEAR staking yield via House of Stake",
       })),
 

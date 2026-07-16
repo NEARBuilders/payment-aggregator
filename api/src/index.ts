@@ -100,6 +100,7 @@ export default createPlugin.withPlugins<PluginsClient>()({
           if (typeof factory !== "function") continue;
           try {
             const client = (factory as () => any)();
+            if (typeof client.createCheckout !== "function") continue;
             const metadata = await client.metadata();
             providers.push({ key, ...metadata });
           } catch {}
@@ -141,7 +142,7 @@ export default createPlugin.withPlugins<PluginsClient>()({
           if (typeof factory !== "function") continue;
           try {
             const client = (factory as () => any)();
-            await client.listPlans();
+            if (typeof client.listPlans !== "function") continue;
             const metadata = await client.metadata();
             providers.push({ key, ...metadata });
           } catch {}

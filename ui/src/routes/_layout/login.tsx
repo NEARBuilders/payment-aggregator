@@ -44,6 +44,15 @@ function LoginPage() {
   const [nearPending, setNearPending] = useState(false);
   const [anonPending, setAnonPending] = useState(false);
 
+  const supportedNetworks = auth.near.getSupportedNetworks();
+  const [network, setNetwork] = useState<"mainnet" | "testnet">(() => auth.near.getNetwork());
+
+  const switchNetwork = (next: "mainnet" | "testnet") => {
+    if (next === network) return;
+    auth.near.setNetwork(next);
+    setNetwork(next);
+  };
+
   const handleSuccess = async (message: string) => {
     const redirectTo = redirect?.startsWith("/") ? redirect : "/home";
     toast.success(message);
@@ -116,6 +125,26 @@ function LoginPage() {
         </div>
 
         <div className="space-y-3 animate-fade-in-up">
+          {supportedNetworks.length > 1 && (
+            <div className="flex items-center justify-center gap-1 rounded-md border border-border bg-muted/40 p-1">
+              {supportedNetworks.map((candidate) => (
+                <button
+                  key={candidate}
+                  type="button"
+                  onClick={() => switchNetwork(candidate)}
+                  disabled={isPending}
+                  className={`flex-1 rounded px-3 py-1.5 text-xs font-medium transition-colors ${
+                    network === candidate
+                      ? "bg-card text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {candidate}
+                </button>
+              ))}
+            </div>
+          )}
+
           <button
             type="button"
             onClick={handleNear}

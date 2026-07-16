@@ -412,7 +412,7 @@ describe("E2E: stake2pay through the aggregator API (mocked NEAR RPC)", () => {
     expect(stake2pay?.logo).toContain("stake2pay");
     expect(stake2pay?.description).toBeTruthy();
     expect(providers.some((p) => p.key === "pingpay")).toBe(false);
-    expect(providers.some((p) => p.key === "stripe")).toBe(false);
+    expect(providers.some((p) => p.key === "stripe")).toBe(true);
   });
 
   it("lists only active recurring tiers as NEAR range plans", async () => {

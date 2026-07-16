@@ -74,10 +74,11 @@ describe.skipIf(process.env.SKIP_HOS_TESTNET === "1")(
         args: { price_id: plan.id, duration_ns: null },
         deposit: plan.minAmount,
       });
-      expect(BigInt(lockAction?.gas ?? "0") > 0n).toBe(true);
+      expect(lockAction?.gas).toBe("300000000000000");
 
-      const totalGas = action.actions.reduce((sum, a) => sum + BigInt(a.gas), 0n);
-      expect(totalGas <= 300_000_000_000_000n).toBe(true);
+      for (const walletAction of action.actions) {
+        expect(BigInt(walletAction.gas) <= 300_000_000_000_000n).toBe(true);
+      }
     });
 
     it("rejects an out-of-range stake amount", async () => {

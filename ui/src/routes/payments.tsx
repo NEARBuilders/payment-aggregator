@@ -206,22 +206,6 @@ function PaymentsPage() {
                     </button>
                   );
                 })}
-                <div className="flex w-full items-center gap-3 rounded-xl border border-dashed border-border p-3 opacity-60">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground text-sm font-semibold">
-                    S
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block font-medium text-muted-foreground text-sm">
-                      Stake to Pay
-                    </span>
-                    <span className="block text-muted-foreground text-xs">
-                      Yield-backed checkout
-                    </span>
-                  </span>
-                  <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                    Coming soon
-                  </span>
-                </div>
               </div>
 
               <button

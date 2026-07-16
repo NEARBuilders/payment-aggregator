@@ -1,7 +1,7 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { ArrowRight, CheckCircle2, Loader2, RefreshCw, Wallet } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import type { AuthClient } from "@/app";
 import { sessionQueryOptions, useApiClient, useAuthClient } from "@/app";
@@ -86,6 +86,13 @@ const BRAND_COLORS: Record<string, string> = {
   stripe: "#635BFF",
 };
 
+const DEMO_PLANS: Record<string, Record<string, string | null>> = {
+  stake2pay: { Starter: "1" },
+  stripe: { "Everything Demo": null },
+};
+
+const EMAIL_PAYER_PROVIDERS = new Set(["stripe"]);
+
 const STATUS_LABELS: Record<SubscriptionInfo["status"], string> = {
   active: "Active",
   cancel_at_period_end: "Cancels at period end",
@@ -116,14 +123,24 @@ async function signWalletIntent(authClient: AuthClient, intent: WalletIntent) {
     throw new Error(`Wallet is on ${network}, but this subscription needs ${intent.networkId}`);
   }
 
-  let tx = authClient.near.client.transaction(accountId);
-  for (const action of intent.actions) {
-    tx = tx.functionCall(intent.contractId, action.methodName, action.args, {
-      gas: action.gas as `${number}`,
-      attachedDeposit: BigInt(action.deposit),
-    });
+  // max_total_prepaid_gas is 1000 Tgas as of protocol v84/v85 (verified via
+  // EXPERIMENTAL_protocol_config); intents exceeding it sign as sequential txs.
+  const totalGas = intent.actions.reduce((sum, action) => sum + BigInt(action.gas), 0n);
+  const batches =
+    totalGas <= 1_000_000_000_000_000n
+      ? [intent.actions]
+      : intent.actions.map((action) => [action]);
+
+  for (const batch of batches) {
+    let tx = authClient.near.client.transaction(accountId);
+    for (const action of batch) {
+      tx = tx.functionCall(intent.contractId, action.methodName, action.args, {
+        gas: action.gas as `${number}`,
+        attachedDeposit: BigInt(action.deposit),
+      });
+    }
+    await tx.send();
   }
-  await tx.send();
 }
 
 function SubscriptionsPage() {
@@ -145,7 +162,8 @@ function SubscriptionsPage() {
     }
   }, [checkout]);
 
-  const payerRef = nearAccountId ?? session?.user?.email ?? null;
+  const emailRef = session?.user?.email ?? null;
+  const payerRef = nearAccountId ?? emailRef;
 
   const { data: providers, isLoading } = useQuery({
     queryKey: ["subscription-providers"],
@@ -232,7 +250,11 @@ function SubscriptionsPage() {
                 <ProviderPlans
                   key={selectedProvider.key}
                   provider={selectedProvider}
-                  payerRef={payerRef}
+                  payerRef={
+                    EMAIL_PAYER_PROVIDERS.has(selectedProvider.key)
+                      ? (emailRef ?? payerRef)
+                      : payerRef
+                  }
                   hasNearWallet={!!nearAccountId}
                 />
               )}
@@ -260,6 +282,50 @@ function ProviderPlans({
     queryFn: () => apiClient.subscriptionPlans({ provider: provider.key }),
   });
 
+  const demoPlans = DEMO_PLANS[provider.key];
+  const visiblePlans = useMemo(() => {
+    if (!plans) return [];
+    if (!demoPlans) return plans;
+    return plans.filter((plan) => {
+      if (!(plan.name in demoPlans)) return false;
+      const fixedStake = demoPlans[plan.name];
+      if (fixedStake === null) return true;
+      const yocto = nearToYocto(fixedStake ?? "");
+      return yocto !== null && yocto >= BigInt(plan.minAmount) && yocto <= BigInt(plan.maxAmount);
+    });
+  }, [plans, demoPlans]);
+
+  const statusQueries = useQueries({
+    queries: visiblePlans.map((plan) => ({
+      queryKey: ["subscription-status", provider.key, plan.id, payerRef],
+      queryFn: () =>
+        apiClient.subscriptionGet({
+          provider: provider.key,
+          planId: plan.id,
+          payerRef: payerRef ?? undefined,
+        }),
+      enabled: !!payerRef,
+      retry: false,
+      staleTime: 15_000,
+      refetchOnWindowFocus: false,
+    })),
+  });
+
+  // HoS subscriptions are keyed per product, so the same subscription comes
+  // back for every price in the catalog — only the card whose plan matches
+  // the subscription's actual price owns it.
+  const subscriptions = visiblePlans.map((plan, index) => {
+    const raw = (statusQueries[index]?.data ?? null) as SubscriptionInfo | null;
+    if (!raw) return null;
+    if (raw.status === "none" || raw.planId === plan.id) return raw;
+    return { planId: plan.id, status: "none" as const, payerRef: raw.payerRef };
+  });
+  const activePlan =
+    visiblePlans.find((_, index) => {
+      const status = subscriptions[index]?.status;
+      return status === "active" || status === "cancel_at_period_end";
+    }) ?? null;
+
   if (isLoading) {
     return (
       <div className="grid gap-4 lg:grid-cols-3">
@@ -270,7 +336,7 @@ function ProviderPlans({
     );
   }
 
-  if (!plans || plans.length === 0) {
+  if (visiblePlans.length === 0) {
     return (
       <p className="rounded-2xl border border-dashed border-border p-8 text-center text-muted-foreground text-sm">
         {provider.name} has no active plans right now.
@@ -280,14 +346,17 @@ function ProviderPlans({
 
   return (
     <div className="grid items-start gap-4 lg:grid-cols-3">
-      {plans.map((plan) => (
+      {visiblePlans.map((plan, index) => (
         <PlanCard
           key={plan.id}
           provider={provider}
           plan={plan}
-          plans={plans}
           payerRef={payerRef}
           hasNearWallet={hasNearWallet}
+          fixedStakeNear={demoPlans?.[plan.name] ?? null}
+          subscription={subscriptions[index] ?? null}
+          isFetching={statusQueries[index]?.isFetching ?? false}
+          activeElsewherePlan={activePlan && activePlan.id !== plan.id ? activePlan : null}
         />
       ))}
     </div>
@@ -297,15 +366,21 @@ function ProviderPlans({
 function PlanCard({
   provider,
   plan,
-  plans,
   payerRef,
   hasNearWallet,
+  fixedStakeNear,
+  subscription,
+  isFetching,
+  activeElsewherePlan,
 }: {
   provider: ProviderInfo;
   plan: Plan;
-  plans: Plan[];
   payerRef: string | null;
   hasNearWallet: boolean;
+  fixedStakeNear: string | null;
+  subscription: SubscriptionInfo | null;
+  isFetching: boolean;
+  activeElsewherePlan: Plan | null;
 }) {
   const apiClient = useApiClient();
   const authClient = useAuthClient();
@@ -313,22 +388,10 @@ function PlanCard({
   const origin = typeof window !== "undefined" ? window.location.origin : "https://example.com";
 
   const isRange = plan.minAmount !== plan.maxAmount;
-  const [amountNear, setAmountNear] = useState(() => yoctoToNear(plan.minAmount));
+  const [inputNear, setInputNear] = useState(() => yoctoToNear(plan.minAmount));
+  const amountNear = fixedStakeNear ?? inputNear;
 
   const statusQueryKey = ["subscription-status", provider.key, plan.id, payerRef];
-  const statusQuery = useQuery({
-    queryKey: statusQueryKey,
-    queryFn: () =>
-      apiClient.subscriptionGet({
-        provider: provider.key,
-        planId: plan.id,
-        payerRef: payerRef ?? undefined,
-      }),
-    enabled: !!payerRef,
-    retry: false,
-  });
-
-  const subscription = (statusQuery.data ?? null) as SubscriptionInfo | null;
   const status = subscription?.status ?? "none";
 
   const amountYocto = plan.currency === "NEAR" ? nearToYocto(amountNear) : BigInt(plan.minAmount);
@@ -428,11 +491,6 @@ function PlanCard({
   const busy = subscribe.isPending || cancel.isPending || resume.isPending || changePlan.isPending;
   const brand = BRAND_COLORS[provider.key] ?? "#18181B";
 
-  const otherActivePlanId = plans
-    .map((candidate) => candidate.id)
-    .find((candidateId) => candidateId !== plan.id);
-  const canSwitchHere = status === "none" && !!otherActivePlanId;
-
   return (
     <div className="flex flex-col rounded-2xl border border-border bg-card p-5">
       <div className="flex items-start justify-between gap-2">
@@ -456,7 +514,14 @@ function PlanCard({
         </span>
       </p>
 
-      {isRange && plan.currency === "NEAR" && (
+      {plan.currency === "NEAR" && fixedStakeNear && (
+        <div className="mt-4 flex items-center justify-between rounded-lg bg-muted/40 px-3 py-2">
+          <span className="text-muted-foreground text-[11px] font-medium">Stake amount</span>
+          <span className="font-semibold text-sm">{fixedStakeNear} NEAR</span>
+        </div>
+      )}
+
+      {isRange && plan.currency === "NEAR" && !fixedStakeNear && (
         <div className="mt-4 space-y-1.5">
           <label
             htmlFor={`stake-${plan.id}`}
@@ -467,8 +532,8 @@ function PlanCard({
           <Input
             id={`stake-${plan.id}`}
             inputMode="decimal"
-            value={amountNear}
-            onChange={(event) => setAmountNear(event.target.value)}
+            value={inputNear}
+            onChange={(event) => setInputNear(event.target.value)}
             disabled={busy || status !== "none"}
           />
           {!amountValid && (
@@ -490,7 +555,7 @@ function PlanCard({
             className="text-muted-foreground transition-colors hover:text-foreground"
             aria-label="Refresh status"
           >
-            <RefreshCw size={13} className={statusQuery.isFetching ? "animate-spin" : ""} />
+            <RefreshCw size={13} className={isFetching ? "animate-spin" : ""} />
           </button>
         )}
       </div>
@@ -555,15 +620,16 @@ function PlanCard({
           </Button>
         )}
 
-        {canSwitchHere && (
-          <SwitchTargets
-            plan={plan}
-            plans={plans}
-            changePlan={changePlan}
-            busy={busy}
-            payerRef={payerRef}
-            provider={provider}
-          />
+        {status === "none" && activeElsewherePlan && (
+          <Button
+            variant="ghost"
+            className="w-full text-xs"
+            disabled={busy}
+            onClick={() => changePlan.mutate(activeElsewherePlan)}
+          >
+            {changePlan.isPending && <Loader2 size={13} className="animate-spin" />}
+            Switch here from {activeElsewherePlan.name}
+          </Button>
         )}
       </div>
 
@@ -580,56 +646,5 @@ function PlanCard({
         </p>
       )}
     </div>
-  );
-}
-
-function SwitchTargets({
-  plan,
-  plans,
-  changePlan,
-  busy,
-  payerRef,
-  provider,
-}: {
-  plan: Plan;
-  plans: Plan[];
-  changePlan: { mutate: (fromPlan: Plan) => void };
-  busy: boolean;
-  payerRef: string | null;
-  provider: ProviderInfo;
-}) {
-  const apiClient = useApiClient();
-
-  const { data: activeElsewhere } = useQuery({
-    queryKey: ["subscription-active-elsewhere", provider.key, plan.id, payerRef],
-    queryFn: async () => {
-      const others = plans.filter((candidate) => candidate.id !== plan.id);
-      for (const other of others) {
-        const subscription = (await apiClient.subscriptionGet({
-          provider: provider.key,
-          planId: other.id,
-          payerRef: payerRef ?? undefined,
-        })) as SubscriptionInfo;
-        if (subscription.status === "active" || subscription.status === "cancel_at_period_end") {
-          return other;
-        }
-      }
-      return null;
-    },
-    enabled: !!payerRef && plans.length > 1,
-    retry: false,
-  });
-
-  if (!activeElsewhere) return null;
-
-  return (
-    <Button
-      variant="ghost"
-      className="w-full text-xs"
-      disabled={busy}
-      onClick={() => changePlan.mutate(activeElsewhere)}
-    >
-      Switch here from {activeElsewhere.name}
-    </Button>
   );
 }
