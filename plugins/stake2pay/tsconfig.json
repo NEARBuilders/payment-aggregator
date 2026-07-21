@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "types": ["node"],
     "lib": ["ESNext"],
     "target": "ESNext",
     "module": "ESNext",
@@ -20,6 +21,11 @@
     "noPropertyAccessFromIndexSignature": false,
     "declaration": false,
     "declarationMap": false,
+    "plugins": [
+      {
+        "name": "@effect/language-service"
+      }
+    ],
     "paths": {
       "@/*": ["./src/*"]
     }
