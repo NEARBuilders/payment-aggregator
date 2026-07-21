@@ -3,6 +3,7 @@ import { Cause, Effect, Exit, Option } from "every-plugin/effect";
 import { ORPCError } from "every-plugin/orpc";
 import { z } from "every-plugin/zod";
 import { StripeContract } from "./contract";
+import { ContextSchema } from "./lib/context";
 import { StripePaymentService } from "./service";
 import { StripeSubscriptionService } from "./subscription-service";
 
@@ -43,6 +44,8 @@ export default createPlugin({
   }),
 
   contract: StripeContract,
+
+  context: ContextSchema,
 
   initialize: (config) =>
     Effect.sync(() => {

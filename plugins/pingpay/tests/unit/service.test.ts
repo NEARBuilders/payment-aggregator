@@ -11,8 +11,6 @@ const testConfig: PingPayConfig = {
 
 describe("PingPayService", () => {
   const serviceLayer = PingPayServiceLive(testConfig);
-  const runtime = Effect.runtime<never>();
-
   describe("createCheckout", () => {
     it("should create a checkout session in test mode", async () => {
       const result = await Effect.runPromise(
@@ -64,7 +62,7 @@ describe("PingPayService", () => {
         metadata: { orderId: "order-789" },
       });
 
-      const crypto = await import("crypto");
+      const crypto = await import("node:crypto");
       const timestamp = String(Math.floor(Date.now() / 1000));
       const signature = crypto
         .createHmac("sha256", testConfig.webhookSecret!)
@@ -99,7 +97,7 @@ describe("PingPayService", () => {
     });
 
     it("should reject invalid JSON body", async () => {
-      const crypto = await import("crypto");
+      const crypto = await import("node:crypto");
       const timestamp = String(Math.floor(Date.now() / 1000));
       const signature = crypto
         .createHmac("sha256", testConfig.webhookSecret!)

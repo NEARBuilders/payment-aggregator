@@ -286,7 +286,7 @@ async function createStake2PayE2EContext(
       pingpay: { module: PingPayPlugin, description: "Payment-only provider" },
       stripe: { module: StripePlugin, description: "Payment-only provider" },
       stake2pay: { module: Stake2PayPlugin, description: "Stake2Pay provider under test" },
-    },
+    } as const,
     secrets: {},
   });
 

@@ -4,8 +4,8 @@ import { ORPCError } from "every-plugin/orpc";
 import { z } from "every-plugin/zod";
 import { contract } from "./contract";
 import { DatabaseLive, DatabaseTag } from "./db/layer";
-import { loadMigrations } from "./db/load-migrations";
-import { migrate } from "./db/migrator";
+import { loadMigrations, migrate } from "./db/migrate";
+import { ContextSchema } from "./lib/context";
 import type { PluginsClient } from "./lib/plugins-types.gen";
 
 export default createPlugin.withPlugins<PluginsClient>()({
@@ -15,21 +15,7 @@ export default createPlugin.withPlugins<PluginsClient>()({
     API_DATABASE_URL: z.string().default("pglite:.bos/api/:memory:"),
   }),
 
-  context: z.object({
-    userId: z.string().optional(),
-    user: z
-      .object({
-        id: z.string(),
-        role: z.string().optional(),
-        email: z.string().optional(),
-        name: z.string().optional(),
-      })
-      .optional(),
-    organizationId: z.string().optional(),
-    walletAddress: z.string().optional(),
-    reqHeaders: z.custom<Headers>().optional(),
-    getRawBody: z.custom<() => Promise<string>>().optional(),
-  }),
+  context: ContextSchema,
 
   contract,
 
@@ -38,8 +24,8 @@ export default createPlugin.withPlugins<PluginsClient>()({
       Effect.gen(function* () {
         const db = yield* DatabaseTag;
 
-        const migrations = yield* Effect.promise(() => loadMigrations());
-        yield* Effect.promise(() => migrate(db, migrations));
+        const { migrations } = yield* loadMigrations();
+        yield* migrate(db, migrations);
 
         const { auth, ...restPlugins } = plugins;
 
@@ -69,10 +55,15 @@ export default createPlugin.withPlugins<PluginsClient>()({
       return factory;
     };
 
-    const resolvePayerRef = (payerRef: string | undefined, context: { walletAddress?: string }) =>
-      payerRef ?? context.walletAddress;
+    const resolvePayerRef = (
+      payerRef: string | undefined,
+      context: { near?: { primaryAccountId?: string | null } },
+    ) => payerRef ?? context.near?.primaryAccountId ?? undefined;
 
-    const requirePayerRef = (payerRef: string | undefined, context: { walletAddress?: string }) => {
+    const requirePayerRef = (
+      payerRef: string | undefined,
+      context: { near?: { primaryAccountId?: string | null } },
+    ) => {
       const resolved = resolvePayerRef(payerRef, context);
       if (!resolved) {
         throw new ORPCError("BAD_REQUEST", {

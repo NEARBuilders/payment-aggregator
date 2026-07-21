@@ -84,7 +84,7 @@ describe("PingPay Plugin Integration Tests", () => {
         metadata: { orderId: "order-789" },
       });
 
-      const crypto = await import("crypto");
+      const crypto = await import("node:crypto");
       const timestamp = String(Math.floor(Date.now() / 1000));
       const signature = crypto
         .createHmac("sha256", "test_webhook_secret")

@@ -4,6 +4,7 @@ import { ORPCError } from "every-plugin/orpc";
 import { z } from "every-plugin/zod";
 import { NearRpcClient } from "./client";
 import { SubscriptionContract } from "./contract";
+import { ContextSchema } from "./lib/context";
 import { Stake2PayService, Stake2PayServiceLive } from "./service";
 
 const toORPCError = (error: { _tag: string; message: string }) => {
@@ -32,6 +33,8 @@ export default createPlugin({
   secrets: z.object({}),
 
   contract: SubscriptionContract,
+
+  context: ContextSchema,
 
   initialize: (config) =>
     Effect.sync(() => {
