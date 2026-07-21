@@ -24,14 +24,14 @@ import ApiPlugin from "../../src/index";
  *
  *   - discovery probes `listPlans` and skips payment-only providers
  *   - all subscription routes delegate dynamically to the right plugin
- *   - payerRef defaults to the session's NEAR account (context.walletAddress,
- *     injected here from the `x-test-wallet-address` header exactly like the
+ *   - payerRef defaults to the session's NEAR account (context.near.primaryAccountId,
+ *     injected here from the `x-test-near-account-id` header exactly like the
  *     host's session middleware injects it from better-near-auth)
  */
 
 const SUBS_PROVIDER = "subsmock";
-const WALLET_HEADER = "x-test-wallet-address";
-const SESSION_WALLET = "alice.near";
+const NEAR_ACCOUNT_HEADER = "x-test-near-account-id";
+const SESSION_NEAR_ACCOUNT_ID = "alice.near";
 
 const FAKE_PLANS = [
   {
@@ -205,10 +205,10 @@ async function createSubscriptionE2EContext() {
   const openApiHandler = new OpenAPIHandler(router);
 
   const server = createServer(async (req, res) => {
-    const walletAddress = req.headers[WALLET_HEADER];
+    const nearAccountId = req.headers[NEAR_ACCOUNT_HEADER];
     const context = {
       reqHeaders: toWebHeaders(req),
-      ...(typeof walletAddress === "string" ? { walletAddress } : {}),
+      ...(typeof nearAccountId === "string" ? { near: { primaryAccountId: nearAccountId } } : {}),
     };
 
     try {
@@ -253,7 +253,7 @@ async function createSubscriptionE2EContext() {
     new RPCLink({
       url: `${baseUrl}${RPC_PREFIX}`,
       fetch: globalThis.fetch,
-      headers: { [WALLET_HEADER]: SESSION_WALLET },
+      headers: { [NEAR_ACCOUNT_HEADER]: SESSION_NEAR_ACCOUNT_ID },
     }),
   );
 
@@ -364,7 +364,7 @@ describe("E2E: subscription routes through the aggregator API", () => {
 
     expect(action.kind).toBe("executed");
     if (action.kind === "executed") {
-      expect(action.subscription.payerRef).toBe(SESSION_WALLET);
+      expect(action.subscription.payerRef).toBe(SESSION_NEAR_ACCOUNT_ID);
     }
   });
 
@@ -375,7 +375,7 @@ describe("E2E: subscription routes through the aggregator API", () => {
     });
 
     expect(subscription.planId).toBe("plan-basic");
-    expect(subscription.payerRef).toBe(SESSION_WALLET);
+    expect(subscription.payerRef).toBe(SESSION_NEAR_ACCOUNT_ID);
   });
 
   it("lets an explicit payerRef override the session NEAR account", async () => {
@@ -414,7 +414,7 @@ describe("E2E: subscription routes through the aggregator API", () => {
     expect(action.kind).toBe("executed");
     if (action.kind === "executed") {
       expect(action.subscription.status).toBe("cancel_at_period_end");
-      expect(action.subscription.payerRef).toBe(SESSION_WALLET);
+      expect(action.subscription.payerRef).toBe(SESSION_NEAR_ACCOUNT_ID);
     }
   });
 
@@ -427,7 +427,7 @@ describe("E2E: subscription routes through the aggregator API", () => {
     expect(action.kind).toBe("executed");
     if (action.kind === "executed") {
       expect(action.subscription.status).toBe("active");
-      expect(action.subscription.payerRef).toBe(SESSION_WALLET);
+      expect(action.subscription.payerRef).toBe(SESSION_NEAR_ACCOUNT_ID);
     }
   });
 
@@ -441,7 +441,7 @@ describe("E2E: subscription routes through the aggregator API", () => {
     expect(action.kind).toBe("executed");
     if (action.kind === "executed") {
       expect(action.subscription.planId).toBe("plan-pro");
-      expect(action.subscription.payerRef).toBe(SESSION_WALLET);
+      expect(action.subscription.payerRef).toBe(SESSION_NEAR_ACCOUNT_ID);
     }
   });
 

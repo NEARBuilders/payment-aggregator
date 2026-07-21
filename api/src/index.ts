@@ -4,7 +4,6 @@ import { ORPCError } from "every-plugin/orpc";
 import { z } from "every-plugin/zod";
 import { contract } from "./contract";
 import { DatabaseLive, DatabaseTag } from "./db/layer";
-import { loadMigrations, migrate } from "./db/migrate";
 import { ContextSchema } from "./lib/context";
 import type { PluginsClient } from "./lib/plugins-types.gen";
 
@@ -19,20 +18,15 @@ export default createPlugin.withPlugins<PluginsClient>()({
 
   contract,
 
-  initialize: (config, plugins) =>
-    Effect.provide(
-      Effect.gen(function* () {
-        const db = yield* DatabaseTag;
-
-        const { migrations } = yield* loadMigrations();
-        yield* migrate(db, migrations);
-
-        const { auth, ...restPlugins } = plugins;
-
-        return { auth, plugins: restPlugins, db };
-      }),
-      DatabaseLive(config.secrets.API_DATABASE_URL),
-    ),
+  initialize: (config, plugins, tools) =>
+    Effect.gen(function* () {
+      const db = yield* tools.buildService(
+        DatabaseTag,
+        DatabaseLive(config.secrets.API_DATABASE_URL),
+      );
+      const { auth, ...restPlugins } = plugins;
+      return { auth, plugins: restPlugins, db };
+    }),
 
   createRouter: (services, builder) => {
     const getPaymentPlugin = (provider: string) => {
