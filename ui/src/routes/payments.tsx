@@ -463,7 +463,7 @@ function ResponseSection({ result }: { result: CheckoutResult | null }) {
               Copy ID
             </Button>
             <Button size="sm" asChild>
-              <a href={result.url} target="_blank" rel="noopener noreferrer">
+              <a href={result.url}>
                 <ExternalLink size={13} />
                 Open checkout
               </a>
