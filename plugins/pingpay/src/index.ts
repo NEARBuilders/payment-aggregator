@@ -2,6 +2,7 @@ import { createPlugin } from "every-plugin";
 import { Effect } from "every-plugin/effect";
 import { z } from "every-plugin/zod";
 import { PaymentContract } from "./contract";
+import { ContextSchema } from "./lib/context";
 import type { FeeConfig } from "./schema";
 import { PingPayService, PingPayServiceLive } from "./service";
 
@@ -17,6 +18,8 @@ export default createPlugin({
   }),
 
   contract: PaymentContract,
+
+  context: ContextSchema,
 
   initialize: (config) =>
     Effect.sync(() => {

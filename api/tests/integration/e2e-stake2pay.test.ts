@@ -34,13 +34,13 @@ import ApiPlugin from "../../src/index";
  *
  *        HOS_TESTNET=1 bun run test tests/integration/e2e-stake2pay.test.ts
  *
- * The wallet-signing step (actually locking NEAR) stays manual — see
+ * The signing step (actually locking NEAR) stays manual — see
  * docs/004-05-e2e-hos-testnet-docs.md for the one-time checklist.
  */
 
 const PROVIDER = "stake2pay";
-const WALLET_HEADER = "x-test-wallet-address";
-const SESSION_WALLET = "alice.testnet";
+const NEAR_ACCOUNT_HEADER = "x-test-near-account-id";
+const SESSION_NEAR_ACCOUNT_ID = "alice.testnet";
 
 const RPC_PREFIX = "/api/rpc";
 const API_PREFIX = "/api";
@@ -127,7 +127,7 @@ const chainConfig = {
 
 const activeSubscription = {
   subscription_id: "sub_abc",
-  account_id: SESSION_WALLET,
+  account_id: SESSION_NEAR_ACCOUNT_ID,
   product_id: PRODUCT_ID,
   price_id: STARTER_PRICE_ID,
   start_ns: "1780305858303142485",
@@ -141,7 +141,7 @@ const activeSubscription = {
 
 const activeLock = {
   lock_id: "lock_1",
-  account_id: SESSION_WALLET,
+  account_id: SESSION_NEAR_ACCOUNT_ID,
   validator_id: `mock-pool-0.${CONTRACT_ID}`,
   amount_near: YOCTO_5_NEAR,
   shares: "123",
@@ -162,7 +162,7 @@ const rpcFixtures: Record<string, (args: Record<string, unknown>) => unknown> = 
   get_price: (args) => priceTable[args.price_id as string] ?? null,
   get_config: () => chainConfig,
   get_subscription_for_price: (args) =>
-    args.account_id === SESSION_WALLET ? chainState.subscription : null,
+    args.account_id === SESSION_NEAR_ACCOUNT_ID ? chainState.subscription : null,
   get_lock: () => chainState.lock,
   storage_balance_of: () => null,
 };
@@ -273,7 +273,7 @@ function toWebHeaders(req: IncomingMessage): Headers {
 
 /**
  * Same harness as e2e-subscriptions.test.ts: real plugin runtime, real HTTP
- * server, typed oRPC client, walletAddress injected from a test header the way
+ * server, typed oRPC client, near.primaryAccountId injected from a test header the way
  * the host's session middleware injects it from better-near-auth. Copy this
  * (plus a provider config) for future subscription providers.
  */
@@ -286,7 +286,7 @@ async function createStake2PayE2EContext(
       pingpay: { module: PingPayPlugin, description: "Payment-only provider" },
       stripe: { module: StripePlugin, description: "Payment-only provider" },
       stake2pay: { module: Stake2PayPlugin, description: "Stake2Pay provider under test" },
-    },
+    } as const,
     secrets: {},
   });
 
@@ -319,10 +319,10 @@ async function createStake2PayE2EContext(
   const openApiHandler = new OpenAPIHandler(router);
 
   const server: Server = createServer(async (req, res) => {
-    const walletAddress = req.headers[WALLET_HEADER];
+    const nearAccountId = req.headers[NEAR_ACCOUNT_HEADER];
     const context = {
       reqHeaders: toWebHeaders(req),
-      ...(typeof walletAddress === "string" ? { walletAddress } : {}),
+      ...(typeof nearAccountId === "string" ? { near: { primaryAccountId: nearAccountId } } : {}),
     };
 
     try {
@@ -367,7 +367,7 @@ async function createStake2PayE2EContext(
     new RPCLink({
       url: `${baseUrl}${RPC_PREFIX}`,
       fetch: globalThis.fetch,
-      headers: { [WALLET_HEADER]: SESSION_WALLET },
+      headers: { [NEAR_ACCOUNT_HEADER]: SESSION_NEAR_ACCOUNT_ID },
     }),
   );
 
@@ -454,7 +454,7 @@ describe("E2E: stake2pay through the aggregator API (mocked NEAR RPC)", () => {
     expect(action.actions).toHaveLength(2);
     expect(action.actions[0]).toMatchObject({
       methodName: "storage_deposit",
-      args: { account_id: SESSION_WALLET },
+      args: { account_id: SESSION_NEAR_ACCOUNT_ID },
       deposit: chainConfig.min_storage_deposit,
     });
     const lock = action.actions.at(-1);
@@ -499,7 +499,7 @@ describe("E2E: stake2pay through the aggregator API (mocked NEAR RPC)", () => {
     });
   });
 
-  it("maps an active chain subscription, defaulting payerRef from the session wallet", async () => {
+  it("maps an active chain subscription, defaulting payerRef from the session NEAR account", async () => {
     chainState.subscription = { ...activeSubscription };
     chainState.lock = { ...activeLock };
 
@@ -510,7 +510,7 @@ describe("E2E: stake2pay through the aggregator API (mocked NEAR RPC)", () => {
 
     expect(subscription.status).toBe("active");
     expect(subscription.id).toBe("sub_abc");
-    expect(subscription.payerRef).toBe(SESSION_WALLET);
+    expect(subscription.payerRef).toBe(SESSION_NEAR_ACCOUNT_ID);
     expect(subscription.amount).toBe(YOCTO_5_NEAR);
     expect(subscription.currency).toBe("NEAR");
     expect(subscription.currentPeriodEnd).toBe(
@@ -567,13 +567,13 @@ describe("E2E: stake2pay through the aggregator API (mocked NEAR RPC)", () => {
     chainState.lock = { ...activeLock };
 
     const response = await fetch(
-      `${ctx.baseUrl}${API_PREFIX}/subscriptions/${PROVIDER}/status?planId=${STARTER_PRICE_ID}&payerRef=${SESSION_WALLET}`,
+      `${ctx.baseUrl}${API_PREFIX}/subscriptions/${PROVIDER}/status?planId=${STARTER_PRICE_ID}&payerRef=${SESSION_NEAR_ACCOUNT_ID}`,
     );
 
     expect(response.status).toBe(200);
     const subscription = (await response.json()) as { status: string; payerRef: string };
     expect(subscription.status).toBe("active");
-    expect(subscription.payerRef).toBe(SESSION_WALLET);
+    expect(subscription.payerRef).toBe(SESSION_NEAR_ACCOUNT_ID);
   });
 
   it("returns a 1-yocto cancel_subscription wallet_intent", async () => {

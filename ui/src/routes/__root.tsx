@@ -1,3 +1,11 @@
+/**
+ * HTML shell — head/scripts/styles, runtime config handoff.
+ * Root boundary between the host-rendered document and the UI application.
+ *
+ * BE CAREFUL MODIFYING THIS FILE — changes will be overwritten by `bos sync` / `bos upgrade`.
+ * Prefer upstream changes at https://github.com/nearbuilders/everything-dev
+ */
+
 import { TanStackDevtools } from "@tanstack/react-devtools";
 import {
   ClientOnly,
@@ -11,9 +19,10 @@ import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { getRemoteScripts } from "everything-dev/ui/head";
 import { getSocialImageMeta } from "everything-dev/ui/metadata";
 import { ThemeProvider } from "next-themes";
-import { Toaster } from "sonner";
 import type { RouterContext } from "@/app";
 import { getBaseStyles } from "@/app";
+import { Toaster } from "@/components/ui/sonner";
+import { useMediaQuery } from "@/hooks";
 import { sessionQueryKey } from "@/lib/auth";
 import TanStackQueryDevtools from "../integrations/tanstack-query/devtools";
 
@@ -80,7 +89,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
         { name: "format-detection", content: "telephone=no" },
         { name: "robots", content: "index, follow" },
         ...getSocialImageMeta({
-          imageUrl: "/metadata.png",
+          imageUrl: siteUrl ? `${siteUrl}/metadata.png` : "/metadata.png",
           title,
           description,
           siteName: title,
@@ -100,15 +109,14 @@ export const Route = createRootRouteWithContext<RouterContext>()({
           crossOrigin: "anonymous",
         },
         { rel: "shortcut icon", href: "/favicon.ico" },
-        { rel: "icon", type: "image/svg+xml", href: "/icon.svg" },
-        { rel: "icon", type: "image/png", sizes: "32x32", href: "/favicon-32x32.png" },
-        { rel: "icon", type: "image/png", sizes: "16x16", href: "/favicon-16x16.png" },
+        { rel: "icon", href: "/favicon.ico" },
+        { rel: "icon", type: "image/png", sizes: "96x96", href: "/favicon-96x96.png" },
         {
           rel: "apple-touch-icon",
           sizes: "180x180",
           href: "/apple-touch-icon.png",
         },
-        { rel: "manifest", href: "/manifest.json" },
+        { rel: "manifest", href: "/site.webmanifest" },
         ...(siteUrl ? [{ rel: "canonical", href: siteUrl }] : []),
       ],
       scripts: [
@@ -133,6 +141,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 
 function RootComponent() {
   const { cspNonce } = Route.useRouteContext();
+  const isDesktop = useMediaQuery("(min-width: 640px)");
   return (
     <html lang="en" className="scroll-smooth" suppressHydrationWarning>
       <head>
@@ -144,7 +153,7 @@ function RootComponent() {
           <div id="root">
             <Outlet />
           </div>
-          <Toaster position="bottom-right" richColors closeButton />
+          <Toaster position={isDesktop ? "bottom-right" : "top-center"} closeButton />
         </ThemeProvider>
         <Scripts />
         {process.env.NODE_ENV === "development" && (

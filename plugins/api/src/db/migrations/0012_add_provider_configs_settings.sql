@@ -1,1 +1,0 @@
-ALTER TABLE "provider_configs" ADD COLUMN "settings" jsonb;
