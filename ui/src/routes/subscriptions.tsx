@@ -5,10 +5,10 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import type { AuthClient } from "@/app";
 import { sessionQueryOptions, useApiClient, useAuthClient } from "@/app";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { AppFooter } from "@/components/app-footer";
+import { TopNav } from "@/components/top-nav";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { UserNav } from "@/components/user-nav";
 import { formatPlanAmount, formatPlanRange, nearToYocto, yoctoToNear } from "@/lib/near-amount";
 import { pollUntil } from "@/lib/poll";
 
@@ -93,6 +93,10 @@ const DEMO_PLANS: Record<string, Record<string, string | null>> = {
 
 const EMAIL_PAYER_PROVIDERS = new Set(["stripe"]);
 
+function isValidEmail(value: string | null | undefined): value is string {
+  return !!value && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
 const STATUS_LABELS: Record<SubscriptionInfo["status"], string> = {
   active: "Active",
   cancel_at_period_end: "Cancels at period end",
@@ -174,13 +178,9 @@ function SubscriptionsPage() {
     providers?.find((provider) => provider.key === selectedKey) ?? providers?.[0] ?? null;
 
   return (
-    <div className="relative flex min-h-screen flex-col overflow-hidden bg-background text-foreground">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-[480px] bg-[radial-gradient(65%_55%_at_50%_0%,rgba(0,192,139,0.12),transparent_70%)]" />
-
-      <header className="relative flex h-14 shrink-0 items-center justify-end gap-2 px-5 sm:px-8">
-        <ThemeToggle />
-        <UserNav />
-      </header>
+    <div className="relative flex min-h-dvh flex-col overflow-hidden bg-background text-foreground">
+      <TopNav />
+      <div className="pointer-events-none absolute inset-x-0 top-14 h-[480px] bg-[radial-gradient(65%_55%_at_50%_0%,rgba(0,192,139,0.12),transparent_70%)]" />
 
       <main className="relative flex-1 px-5 py-8 sm:px-8 sm:py-12">
         <div className="mx-auto max-w-5xl">
@@ -250,18 +250,17 @@ function SubscriptionsPage() {
                 <ProviderPlans
                   key={selectedProvider.key}
                   provider={selectedProvider}
-                  payerRef={
-                    EMAIL_PAYER_PROVIDERS.has(selectedProvider.key)
-                      ? (emailRef ?? payerRef)
-                      : payerRef
-                  }
+                  payerRef={EMAIL_PAYER_PROVIDERS.has(selectedProvider.key) ? emailRef : payerRef}
                   hasNearWallet={!!nearAccountId}
+                  isEmailPayer={EMAIL_PAYER_PROVIDERS.has(selectedProvider.key)}
                 />
               )}
             </>
           )}
         </div>
       </main>
+
+      <AppFooter />
     </div>
   );
 }
@@ -270,12 +269,21 @@ function ProviderPlans({
   provider,
   payerRef,
   hasNearWallet,
+  isEmailPayer,
 }: {
   provider: ProviderInfo;
   payerRef: string | null;
   hasNearWallet: boolean;
+  isEmailPayer: boolean;
 }) {
   const apiClient = useApiClient();
+
+  const [emailInput, setEmailInput] = useState("");
+  const sessionEmail = isEmailPayer && isValidEmail(payerRef) ? payerRef : null;
+  const effectivePayerRef = isEmailPayer
+    ? (sessionEmail ?? (isValidEmail(emailInput.trim()) ? emailInput.trim() : null))
+    : payerRef;
+  const needsEmail = isEmailPayer && !sessionEmail;
 
   const { data: plans, isLoading } = useQuery({
     queryKey: ["subscription-plans", provider.key],
@@ -297,14 +305,14 @@ function ProviderPlans({
 
   const statusQueries = useQueries({
     queries: visiblePlans.map((plan) => ({
-      queryKey: ["subscription-status", provider.key, plan.id, payerRef],
+      queryKey: ["subscription-status", provider.key, plan.id, effectivePayerRef],
       queryFn: () =>
         apiClient.subscriptionGet({
           provider: provider.key,
           planId: plan.id,
-          payerRef: payerRef ?? undefined,
+          payerRef: effectivePayerRef ?? undefined,
         }),
-      enabled: !!payerRef,
+      enabled: !!effectivePayerRef,
       retry: false,
       staleTime: 15_000,
       refetchOnWindowFocus: false,
@@ -345,20 +353,46 @@ function ProviderPlans({
   }
 
   return (
-    <div className="grid items-start gap-4 lg:grid-cols-3">
-      {visiblePlans.map((plan, index) => (
-        <PlanCard
-          key={plan.id}
-          provider={provider}
-          plan={plan}
-          payerRef={payerRef}
-          hasNearWallet={hasNearWallet}
-          fixedStakeNear={demoPlans?.[plan.name] ?? null}
-          subscription={subscriptions[index] ?? null}
-          isFetching={statusQueries[index]?.isFetching ?? false}
-          activeElsewherePlan={activePlan && activePlan.id !== plan.id ? activePlan : null}
-        />
-      ))}
+    <div className="space-y-6">
+      {needsEmail && (
+        <div className="max-w-md rounded-2xl border border-border bg-card p-5">
+          <label htmlFor="payer-email" className="font-medium text-sm">
+            Billing email
+          </label>
+          <p className="mt-0.5 text-muted-foreground text-xs">
+            {provider.name} bills by email — enter one to subscribe or check your status.
+          </p>
+          <Input
+            id="payer-email"
+            type="email"
+            inputMode="email"
+            placeholder="you@example.com"
+            value={emailInput}
+            onChange={(event) => setEmailInput(event.target.value)}
+            className="mt-3"
+          />
+          {emailInput.trim() && !isValidEmail(emailInput.trim()) && (
+            <p className="mt-1.5 text-red-500 text-xs">Enter a valid email address.</p>
+          )}
+        </div>
+      )}
+
+      <div className="grid items-start gap-4 lg:grid-cols-3">
+        {visiblePlans.map((plan, index) => (
+          <PlanCard
+            key={plan.id}
+            provider={provider}
+            plan={plan}
+            payerRef={effectivePayerRef}
+            isEmailPayer={isEmailPayer}
+            hasNearWallet={hasNearWallet}
+            fixedStakeNear={demoPlans?.[plan.name] ?? null}
+            subscription={subscriptions[index] ?? null}
+            isFetching={statusQueries[index]?.isFetching ?? false}
+            activeElsewherePlan={activePlan && activePlan.id !== plan.id ? activePlan : null}
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -367,6 +401,7 @@ function PlanCard({
   provider,
   plan,
   payerRef,
+  isEmailPayer,
   hasNearWallet,
   fixedStakeNear,
   subscription,
@@ -376,6 +411,7 @@ function PlanCard({
   provider: ProviderInfo;
   plan: Plan;
   payerRef: string | null;
+  isEmailPayer: boolean;
   hasNearWallet: boolean;
   fixedStakeNear: string | null;
   subscription: SubscriptionInfo | null;
@@ -434,6 +470,7 @@ function PlanCard({
         provider: provider.key,
         planId: plan.id,
         amount: isRange || plan.currency === "NEAR" ? amountYocto?.toString() : undefined,
+        payerRef: isEmailPayer ? (payerRef ?? undefined) : undefined,
         successUrl: `${origin}/subscriptions?checkout=success`,
         cancelUrl: `${origin}/subscriptions?checkout=cancel`,
       })) as SubscriptionAction;
@@ -582,7 +619,12 @@ function PlanCard({
           <Button
             className="w-full text-white"
             style={{ backgroundColor: brand }}
-            disabled={busy || !amountValid || (!hasNearWallet && plan.currency === "NEAR")}
+            disabled={
+              busy ||
+              !amountValid ||
+              (!hasNearWallet && plan.currency === "NEAR") ||
+              (isEmailPayer && !payerRef)
+            }
             onClick={() => subscribe.mutate()}
           >
             {subscribe.isPending ? (

@@ -30,7 +30,7 @@ const DEMOS = [
 
 function LandingPage() {
   return (
-    <div className="relative flex min-h-[calc(100vh-3.5rem)] flex-col overflow-hidden bg-background text-foreground">
+    <div className="relative flex flex-1 flex-col overflow-hidden">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[420px] bg-[radial-gradient(60%_50%_at_50%_0%,rgba(124,92,246,0.10),transparent_70%)]" />
 
       <main className="relative flex flex-1 items-center px-5 py-12 sm:px-8">

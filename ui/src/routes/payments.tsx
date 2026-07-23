@@ -1,18 +1,27 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { createFileRoute, redirect } from "@tanstack/react-router";
-import { ChevronDown, Copy, ExternalLink, Loader2, RefreshCw } from "lucide-react";
-import { useState } from "react";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import {
+  CheckCircle2,
+  ChevronDown,
+  Copy,
+  ExternalLink,
+  Loader2,
+  RefreshCw,
+  X,
+  XCircle,
+} from "lucide-react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { sessionQueryOptions, useApiClient } from "@/app";
-import builtOn from "@/assets/built_on.png";
-import builtOnRev from "@/assets/built_on_rev.png";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { AppFooter } from "@/components/app-footer";
+import { TopNav } from "@/components/top-nav";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { UserNav } from "@/components/user-nav";
 
 export const Route = createFileRoute("/payments")({
+  validateSearch: (search: Record<string, unknown>): { result?: "success" | "cancel" } =>
+    search.result === "success" || search.result === "cancel" ? { result: search.result } : {},
   beforeLoad: async ({ context, location }) => {
     const { queryClient, authClient } = context;
     const session = await queryClient.ensureQueryData(
@@ -51,6 +60,23 @@ const BRAND_COLORS: Record<string, string> = {
   stripe: "#635BFF",
 };
 
+const CHECKOUT_STORAGE_KEY = "payments:last-checkout";
+
+function storeCheckout(result: CheckoutResult) {
+  try {
+    localStorage.setItem(CHECKOUT_STORAGE_KEY, JSON.stringify(result));
+  } catch {}
+}
+
+function readStoredCheckout(): CheckoutResult | null {
+  try {
+    const raw = localStorage.getItem(CHECKOUT_STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as CheckoutResult) : null;
+  } catch {
+    return null;
+  }
+}
+
 const WEBHOOK_TEST_SECRET = "test_webhook_secret";
 const WEBHOOK_EVENT_TYPES = [
   "payment.success",
@@ -75,6 +101,8 @@ async function computeHmacSignature(secret: string, payload: string): Promise<st
 
 function PaymentsPage() {
   const apiClient = useApiClient();
+  const navigate = useNavigate();
+  const { result: resultParam } = Route.useSearch();
   const origin = typeof window !== "undefined" ? window.location.origin : "https://example.com";
 
   const [orderId, setOrderId] = useState(`order_${Date.now()}`);
@@ -86,6 +114,29 @@ function PaymentsPage() {
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [result, setResult] = useState<CheckoutResult | null>(null);
   const [aggregationError, setAggregationError] = useState<string | null>(null);
+  const [banner, setBanner] = useState<"success" | "cancel" | null>(resultParam ?? null);
+
+  useEffect(() => {
+    if (!resultParam) return;
+    const stored = readStoredCheckout();
+    if (stored) {
+      setResult(stored);
+      setSelectedKey(stored.provider.key);
+    }
+    setBanner(resultParam);
+  }, [resultParam]);
+
+  const selectProvider = (key: string) => {
+    setSelectedKey(key);
+    setResult(null);
+    setAggregationError(null);
+    setBanner(null);
+  };
+
+  const dismissBanner = () => {
+    setBanner(null);
+    navigate({ to: "/payments", search: {}, replace: true });
+  };
 
   const amountInCents = Math.round(Number(amount) * 100);
   const displayAmount = Number.isFinite(amountInCents) ? (amountInCents / 100).toFixed(2) : "0.00";
@@ -111,7 +162,9 @@ function PaymentsPage() {
     },
     onSuccess: ({ provider, response }) => {
       setAggregationError(null);
-      setResult({ provider, sessionId: response.sessionId, url: response.url, orderId });
+      const next = { provider, sessionId: response.sessionId, url: response.url, orderId };
+      setResult(next);
+      storeCheckout(next);
       toast.success(`${provider.name} session created`);
     },
     onError: (error: Error, provider) => {
@@ -126,16 +179,14 @@ function PaymentsPage() {
     : "#18181B";
 
   return (
-    <div className="relative flex min-h-screen flex-col overflow-hidden bg-background text-foreground">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-[480px] bg-[radial-gradient(65%_55%_at_50%_0%,rgba(124,92,246,0.14),transparent_70%)]" />
-
-      <header className="relative flex h-14 shrink-0 items-center justify-end gap-2 px-5 sm:px-8">
-        <ThemeToggle />
-        <UserNav />
-      </header>
+    <div className="relative flex min-h-dvh flex-col overflow-hidden bg-background text-foreground">
+      <TopNav />
+      <div className="pointer-events-none absolute inset-x-0 top-14 h-[480px] bg-[radial-gradient(65%_55%_at_50%_0%,rgba(124,92,246,0.14),transparent_70%)]" />
 
       <main className="relative flex-1 px-5 py-8 sm:px-8 sm:py-12">
         <div className="mx-auto max-w-5xl">
+          {banner && <CheckoutBanner outcome={banner} onDismiss={dismissBanner} />}
+
           <div className="mb-12 max-w-xl">
             <p className="mb-3 font-mono text-[11px] font-semibold uppercase tracking-[0.25em] text-[#7C5CF6] dark:text-[#AF9EF9]">
               Payment aggregation
@@ -180,7 +231,7 @@ function PaymentsPage() {
                     <button
                       key={provider.key}
                       type="button"
-                      onClick={() => setSelectedKey(provider.key)}
+                      onClick={() => selectProvider(provider.key)}
                       style={selected ? { borderColor: brand } : undefined}
                       className={`flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-all duration-150 ${
                         selected ? "bg-muted/40 shadow-sm" : "border-border hover:bg-muted/30"
@@ -276,31 +327,59 @@ function PaymentsPage() {
 
             <div className="space-y-10">
               <ResponseSection result={result} />
-              <WebhookSection result={result} />
+              <WebhookSection key={result?.provider.key ?? "none"} result={result} />
             </div>
           </div>
         </div>
       </main>
 
-      <footer className="relative flex shrink-0 justify-center py-8">
-        <a
-          href="https://near.dev"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="relative h-6 w-[100px]"
-        >
-          <img
-            src={builtOn}
-            alt="Built on NEAR"
-            className="absolute inset-0 h-full w-full object-contain dark:hidden"
-          />
-          <img
-            src={builtOnRev}
-            alt="Built on NEAR"
-            className="absolute inset-0 hidden h-full w-full object-contain dark:block"
-          />
-        </a>
-      </footer>
+      <AppFooter />
+    </div>
+  );
+}
+
+function CheckoutBanner({
+  outcome,
+  onDismiss,
+}: {
+  outcome: "success" | "cancel";
+  onDismiss: () => void;
+}) {
+  const isSuccess = outcome === "success";
+  return (
+    <div
+      className={`mb-8 flex items-start gap-3 rounded-xl border p-4 ${
+        isSuccess
+          ? "border-emerald-500/30 bg-emerald-500/10"
+          : "border-amber-500/30 bg-amber-500/10"
+      }`}
+    >
+      {isSuccess ? (
+        <CheckCircle2
+          size={18}
+          className="mt-0.5 shrink-0 text-emerald-600 dark:text-emerald-400"
+        />
+      ) : (
+        <XCircle size={18} className="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />
+      )}
+      <div className="min-w-0 flex-1">
+        <p className="font-medium text-sm">
+          {isSuccess ? "Checkout complete" : "Checkout cancelled"}
+        </p>
+        <p className="mt-0.5 text-muted-foreground text-xs leading-relaxed">
+          {isSuccess
+            ? "Your payment session finished — the live status below reflects the latest state. Refresh to re-poll the provider."
+            : "You returned without completing payment. The session details below are still available."}
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={onDismiss}
+        aria-label="Dismiss"
+        className="shrink-0 text-muted-foreground transition-colors hover:text-foreground"
+      >
+        <X size={15} />
+      </button>
     </div>
   );
 }
