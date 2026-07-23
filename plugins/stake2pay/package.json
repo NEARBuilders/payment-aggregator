@@ -1,6 +1,6 @@
 {
   "name": "stake2pay",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Stake2Pay subscription plugin (House of Stake NEAR staking) for every-plugin framework",
   "type": "module",
   "exports": {
