@@ -88,7 +88,7 @@ const BRAND_COLORS: Record<string, string> = {
 
 const DEMO_PLANS: Record<string, Record<string, string | null>> = {
   stake2pay: { Starter: "1" },
-  stripe: { "Everything Demo": null },
+  stripe: { "Demo Subscription": null },
 };
 
 const EMAIL_PAYER_PROVIDERS = new Set(["stripe"]);

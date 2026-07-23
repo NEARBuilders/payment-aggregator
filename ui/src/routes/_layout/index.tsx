@@ -36,18 +36,11 @@ function LandingPage() {
       <main className="relative flex flex-1 items-center px-5 py-12 sm:px-8">
         <div className="mx-auto w-full max-w-4xl">
           <div className="mb-12 text-center">
-            <p className="mb-3 font-mono text-[11px] font-semibold uppercase tracking-[0.25em] text-muted-foreground">
-              pay.everything.dev
-            </p>
             <h1 className="text-3xl font-semibold tracking-tight sm:text-[2.75rem] sm:leading-[1.1]">
               Every payment provider,
               <br />
               one contract.
             </h1>
-            <p className="mx-auto mt-4 max-w-xl text-muted-foreground text-sm leading-relaxed">
-              A payment aggregator built on everything.dev — providers are plugins behind shared
-              oRPC contracts, discovered at runtime. Pick a demo.
-            </p>
           </div>
 
           <div className="grid gap-5 sm:grid-cols-2">

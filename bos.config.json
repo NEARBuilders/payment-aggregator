@@ -2,8 +2,8 @@
   "extends": "bos://dev.everything.near/dev.everything.dev",
   "account": "pay.everything.near",
   "domain": "pay.everything.dev",
-  "title": "everything.dev",
-  "description": "Payment aggregator",
+  "title": "Payment Aggregator",
+  "description": "A payment aggregator demo — one API for Stripe, PingPay, and NEAR staking. Use it in your own app.",
   "repository": "https://github.com/nearbuilders/payment-aggregator",
   "ci": {
     "railway": {

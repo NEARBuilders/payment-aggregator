@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Navigate, redirect, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import { getAppName, sessionQueryOptions, useAuthClient } from "@/app";
+import { sessionQueryOptions, useAuthClient } from "@/app";
 
 type SearchParams = {
   redirect?: string;
@@ -37,7 +37,6 @@ function LoginPage() {
   const auth = useAuthClient();
   const { data: session } = useQuery(sessionQueryOptions(auth, undefined));
   const { redirect } = Route.useSearch();
-  const { runtimeConfig } = Route.useRouteContext();
   const queryClient = useQueryClient();
 
   const [nearPending, setNearPending] = useState(false);
@@ -116,17 +115,6 @@ function LoginPage() {
   return (
     <div className="min-h-[70vh] w-full flex items-start justify-center px-6 pt-[30vh] animate-fade-in">
       <div className="w-full max-w-sm space-y-8">
-        <div className="space-y-2 text-center">
-          <div className="flex justify-center">
-            <svg viewBox="0 0 24 24" fill="currentColor" className="h-8 w-8 text-foreground">
-              <title>{getAppName(runtimeConfig)}</title>
-              <circle cx="12" cy="12" r="10" />
-            </svg>
-          </div>
-          <h1 className="text-lg font-semibold tracking-tight">Sign in to pay.everything.dev</h1>
-          <p className="text-xs text-muted-foreground">Every payment provider, one contract.</p>
-        </div>
-
         <div className="space-y-3 animate-fade-in-up">
           {supportedNetworks.length > 1 && (
             <div className="flex items-center justify-center gap-1 rounded-md border border-border bg-muted/40 p-1">
@@ -154,7 +142,7 @@ function LoginPage() {
             disabled={isPending}
             className="w-full h-10 px-4 inline-flex items-center justify-center gap-2 text-sm font-medium border-2 border-outset border-border-strong bg-card text-foreground shadow-sm hover:shadow-md hover:bg-muted active:border-inset active:shadow-none transition-all duration-200 ease-out disabled:pointer-events-none disabled:opacity-50 cursor-pointer"
           >
-            {nearPending ? "connecting..." : "connect to everything"}
+            {nearPending ? "connecting..." : "connect to NEAR (staking)"}
           </button>
 
           <div className="flex items-center gap-3">
@@ -169,7 +157,7 @@ function LoginPage() {
             disabled={isPending}
             className="w-full h-10 px-4 inline-flex items-center justify-center gap-2 text-sm font-medium border-2 border-transparent bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground hover:shadow-sm active:shadow-none transition-all duration-200 ease-out disabled:pointer-events-none disabled:opacity-50 cursor-pointer"
           >
-            {anonPending ? "starting..." : "continue anonymously"}
+            {anonPending ? "starting..." : "continue anonymously (demo)"}
           </button>
         </div>
 
