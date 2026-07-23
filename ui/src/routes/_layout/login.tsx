@@ -2,8 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Navigate, redirect, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import { sessionQueryOptions, useAuthClient } from "@/app";
-import { UnderConstruction } from "@/components/under-construction";
+import { getAppName, sessionQueryOptions, useAuthClient } from "@/app";
 
 type SearchParams = {
   redirect?: string;
@@ -22,7 +21,7 @@ export const Route = createFileRoute("/_layout/login")({
       queryClient.getQueryData(sessionQueryOptions(authClient, initialSession).queryKey);
 
     if (session?.user) {
-      const redirectTo = search.redirect?.startsWith("/") ? search.redirect : "/home";
+      const redirectTo = search.redirect?.startsWith("/") ? search.redirect : "/";
       throw redirect({ to: redirectTo, search: {} });
     }
   },
@@ -54,7 +53,7 @@ function LoginPage() {
   };
 
   const handleSuccess = async (message: string) => {
-    const redirectTo = redirect?.startsWith("/") ? redirect : "/home";
+    const redirectTo = redirect?.startsWith("/") ? redirect : "/";
     toast.success(message);
     const { data: freshSession } = await auth.getSession();
     if (freshSession) {
@@ -108,7 +107,7 @@ function LoginPage() {
   };
 
   if (session?.user) {
-    const redirectTo = redirect?.startsWith("/") ? redirect : "/home";
+    const redirectTo = redirect?.startsWith("/") ? redirect : "/";
     return <Navigate to={redirectTo} replace search={{}} />;
   }
 
@@ -117,11 +116,15 @@ function LoginPage() {
   return (
     <div className="min-h-[70vh] w-full flex items-start justify-center px-6 pt-[30vh] animate-fade-in">
       <div className="w-full max-w-sm space-y-8">
-        <div className="flex justify-center">
-          <UnderConstruction
-            sourceFile="ui/src/routes/_layout/login.tsx"
-            runtimeConfig={runtimeConfig}
-          />
+        <div className="space-y-2 text-center">
+          <div className="flex justify-center">
+            <svg viewBox="0 0 24 24" fill="currentColor" className="h-8 w-8 text-foreground">
+              <title>{getAppName(runtimeConfig)}</title>
+              <circle cx="12" cy="12" r="10" />
+            </svg>
+          </div>
+          <h1 className="text-lg font-semibold tracking-tight">Sign in to pay.everything.dev</h1>
+          <p className="text-xs text-muted-foreground">Every payment provider, one contract.</p>
         </div>
 
         <div className="space-y-3 animate-fade-in-up">
