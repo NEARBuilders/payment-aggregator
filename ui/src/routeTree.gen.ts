@@ -8,202 +8,216 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from "./routes/__root";
-import { Route as LayoutRouteImport } from "./routes/_layout";
-import { Route as LayoutAuthenticatedRouteImport } from "./routes/_layout/_authenticated";
-import { Route as LayoutAuthenticatedHomeRouteImport } from "./routes/_layout/_authenticated/home";
-import { Route as LayoutAuthenticatedSettingsRouteImport } from "./routes/_layout/_authenticated/settings";
-import { Route as LayoutIndexRouteImport } from "./routes/_layout/index";
-import { Route as LayoutLoginRouteImport } from "./routes/_layout/login";
-import { Route as LayoutSkillRouteImport } from "./routes/_layout/skill";
-import { Route as PaymentsRouteImport } from "./routes/payments";
-import { Route as SubscriptionsRouteImport } from "./routes/subscriptions";
+import { Route as rootRouteImport } from './routes/__root'
+import { Route as SubscriptionsRouteImport } from './routes/subscriptions'
+import { Route as PaymentsRouteImport } from './routes/payments'
+import { Route as LayoutRouteImport } from './routes/_layout'
+import { Route as LayoutIndexRouteImport } from './routes/_layout/index'
+import { Route as LayoutSkillRouteImport } from './routes/_layout/skill'
+import { Route as LayoutLoginRouteImport } from './routes/_layout/login'
+import { Route as LayoutAuthenticatedRouteImport } from './routes/_layout/_authenticated'
+import { Route as LayoutAuthenticatedSettingsRouteImport } from './routes/_layout/_authenticated/settings'
+import { Route as LayoutAuthenticatedHomeRouteImport } from './routes/_layout/_authenticated/home'
 
 const SubscriptionsRoute = SubscriptionsRouteImport.update({
-  id: "/subscriptions",
-  path: "/subscriptions",
+  id: '/subscriptions',
+  path: '/subscriptions',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const PaymentsRoute = PaymentsRouteImport.update({
-  id: "/payments",
-  path: "/payments",
+  id: '/payments',
+  path: '/payments',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const LayoutRoute = LayoutRouteImport.update({
-  id: "/_layout",
+  id: '/_layout',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const LayoutIndexRoute = LayoutIndexRouteImport.update({
-  id: "/",
-  path: "/",
+  id: '/',
+  path: '/',
   getParentRoute: () => LayoutRoute,
-} as any);
+} as any)
 const LayoutSkillRoute = LayoutSkillRouteImport.update({
-  id: "/skill",
-  path: "/skill",
+  id: '/skill',
+  path: '/skill',
   getParentRoute: () => LayoutRoute,
-} as any);
+} as any)
 const LayoutLoginRoute = LayoutLoginRouteImport.update({
-  id: "/login",
-  path: "/login",
+  id: '/login',
+  path: '/login',
   getParentRoute: () => LayoutRoute,
-} as any);
+} as any)
 const LayoutAuthenticatedRoute = LayoutAuthenticatedRouteImport.update({
-  id: "/_authenticated",
+  id: '/_authenticated',
   getParentRoute: () => LayoutRoute,
-} as any);
-const LayoutAuthenticatedSettingsRoute = LayoutAuthenticatedSettingsRouteImport.update({
-  id: "/settings",
-  path: "/settings",
-  getParentRoute: () => LayoutAuthenticatedRoute,
-} as any);
+} as any)
+const LayoutAuthenticatedSettingsRoute =
+  LayoutAuthenticatedSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => LayoutAuthenticatedRoute,
+  } as any)
 const LayoutAuthenticatedHomeRoute = LayoutAuthenticatedHomeRouteImport.update({
-  id: "/home",
-  path: "/home",
+  id: '/home',
+  path: '/home',
   getParentRoute: () => LayoutAuthenticatedRoute,
-} as any);
+} as any)
 
 export interface FileRoutesByFullPath {
-  "/": typeof LayoutIndexRoute;
-  "/payments": typeof PaymentsRoute;
-  "/subscriptions": typeof SubscriptionsRoute;
-  "/login": typeof LayoutLoginRoute;
-  "/skill": typeof LayoutSkillRoute;
-  "/home": typeof LayoutAuthenticatedHomeRoute;
-  "/settings": typeof LayoutAuthenticatedSettingsRoute;
+  '/': typeof LayoutIndexRoute
+  '/payments': typeof PaymentsRoute
+  '/subscriptions': typeof SubscriptionsRoute
+  '/login': typeof LayoutLoginRoute
+  '/skill': typeof LayoutSkillRoute
+  '/home': typeof LayoutAuthenticatedHomeRoute
+  '/settings': typeof LayoutAuthenticatedSettingsRoute
 }
 export interface FileRoutesByTo {
-  "/payments": typeof PaymentsRoute;
-  "/subscriptions": typeof SubscriptionsRoute;
-  "/": typeof LayoutIndexRoute;
-  "/login": typeof LayoutLoginRoute;
-  "/skill": typeof LayoutSkillRoute;
-  "/home": typeof LayoutAuthenticatedHomeRoute;
-  "/settings": typeof LayoutAuthenticatedSettingsRoute;
+  '/payments': typeof PaymentsRoute
+  '/subscriptions': typeof SubscriptionsRoute
+  '/': typeof LayoutIndexRoute
+  '/login': typeof LayoutLoginRoute
+  '/skill': typeof LayoutSkillRoute
+  '/home': typeof LayoutAuthenticatedHomeRoute
+  '/settings': typeof LayoutAuthenticatedSettingsRoute
 }
 export interface FileRoutesById {
-  __root__: typeof rootRouteImport;
-  "/_layout": typeof LayoutRouteWithChildren;
-  "/payments": typeof PaymentsRoute;
-  "/subscriptions": typeof SubscriptionsRoute;
-  "/_layout/_authenticated": typeof LayoutAuthenticatedRouteWithChildren;
-  "/_layout/login": typeof LayoutLoginRoute;
-  "/_layout/skill": typeof LayoutSkillRoute;
-  "/_layout/": typeof LayoutIndexRoute;
-  "/_layout/_authenticated/home": typeof LayoutAuthenticatedHomeRoute;
-  "/_layout/_authenticated/settings": typeof LayoutAuthenticatedSettingsRoute;
+  __root__: typeof rootRouteImport
+  '/_layout': typeof LayoutRouteWithChildren
+  '/payments': typeof PaymentsRoute
+  '/subscriptions': typeof SubscriptionsRoute
+  '/_layout/_authenticated': typeof LayoutAuthenticatedRouteWithChildren
+  '/_layout/login': typeof LayoutLoginRoute
+  '/_layout/skill': typeof LayoutSkillRoute
+  '/_layout/': typeof LayoutIndexRoute
+  '/_layout/_authenticated/home': typeof LayoutAuthenticatedHomeRoute
+  '/_layout/_authenticated/settings': typeof LayoutAuthenticatedSettingsRoute
 }
 export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath;
-  fullPaths: "/" | "/payments" | "/subscriptions" | "/login" | "/skill" | "/home" | "/settings";
-  fileRoutesByTo: FileRoutesByTo;
-  to: "/payments" | "/subscriptions" | "/" | "/login" | "/skill" | "/home" | "/settings";
+  fileRoutesByFullPath: FileRoutesByFullPath
+  fullPaths:
+    | '/'
+    | '/payments'
+    | '/subscriptions'
+    | '/login'
+    | '/skill'
+    | '/home'
+    | '/settings'
+  fileRoutesByTo: FileRoutesByTo
+  to:
+    | '/payments'
+    | '/subscriptions'
+    | '/'
+    | '/login'
+    | '/skill'
+    | '/home'
+    | '/settings'
   id:
-    | "__root__"
-    | "/_layout"
-    | "/payments"
-    | "/subscriptions"
-    | "/_layout/_authenticated"
-    | "/_layout/login"
-    | "/_layout/skill"
-    | "/_layout/"
-    | "/_layout/_authenticated/home"
-    | "/_layout/_authenticated/settings";
-  fileRoutesById: FileRoutesById;
+    | '__root__'
+    | '/_layout'
+    | '/payments'
+    | '/subscriptions'
+    | '/_layout/_authenticated'
+    | '/_layout/login'
+    | '/_layout/skill'
+    | '/_layout/'
+    | '/_layout/_authenticated/home'
+    | '/_layout/_authenticated/settings'
+  fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  LayoutRoute: typeof LayoutRouteWithChildren;
-  PaymentsRoute: typeof PaymentsRoute;
-  SubscriptionsRoute: typeof SubscriptionsRoute;
+  LayoutRoute: typeof LayoutRouteWithChildren
+  PaymentsRoute: typeof PaymentsRoute
+  SubscriptionsRoute: typeof SubscriptionsRoute
 }
 
-declare module "@tanstack/react-router" {
+declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    "/subscriptions": {
-      id: "/subscriptions";
-      path: "/subscriptions";
-      fullPath: "/subscriptions";
-      preLoaderRoute: typeof SubscriptionsRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/payments": {
-      id: "/payments";
-      path: "/payments";
-      fullPath: "/payments";
-      preLoaderRoute: typeof PaymentsRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/_layout": {
-      id: "/_layout";
-      path: "";
-      fullPath: "/";
-      preLoaderRoute: typeof LayoutRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/_layout/": {
-      id: "/_layout/";
-      path: "/";
-      fullPath: "/";
-      preLoaderRoute: typeof LayoutIndexRouteImport;
-      parentRoute: typeof LayoutRoute;
-    };
-    "/_layout/skill": {
-      id: "/_layout/skill";
-      path: "/skill";
-      fullPath: "/skill";
-      preLoaderRoute: typeof LayoutSkillRouteImport;
-      parentRoute: typeof LayoutRoute;
-    };
-    "/_layout/login": {
-      id: "/_layout/login";
-      path: "/login";
-      fullPath: "/login";
-      preLoaderRoute: typeof LayoutLoginRouteImport;
-      parentRoute: typeof LayoutRoute;
-    };
-    "/_layout/_authenticated": {
-      id: "/_layout/_authenticated";
-      path: "";
-      fullPath: "/";
-      preLoaderRoute: typeof LayoutAuthenticatedRouteImport;
-      parentRoute: typeof LayoutRoute;
-    };
-    "/_layout/_authenticated/settings": {
-      id: "/_layout/_authenticated/settings";
-      path: "/settings";
-      fullPath: "/settings";
-      preLoaderRoute: typeof LayoutAuthenticatedSettingsRouteImport;
-      parentRoute: typeof LayoutAuthenticatedRoute;
-    };
-    "/_layout/_authenticated/home": {
-      id: "/_layout/_authenticated/home";
-      path: "/home";
-      fullPath: "/home";
-      preLoaderRoute: typeof LayoutAuthenticatedHomeRouteImport;
-      parentRoute: typeof LayoutAuthenticatedRoute;
-    };
+    '/subscriptions': {
+      id: '/subscriptions'
+      path: '/subscriptions'
+      fullPath: '/subscriptions'
+      preLoaderRoute: typeof SubscriptionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/payments': {
+      id: '/payments'
+      path: '/payments'
+      fullPath: '/payments'
+      preLoaderRoute: typeof PaymentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_layout': {
+      id: '/_layout'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof LayoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_layout/': {
+      id: '/_layout/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof LayoutIndexRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/skill': {
+      id: '/_layout/skill'
+      path: '/skill'
+      fullPath: '/skill'
+      preLoaderRoute: typeof LayoutSkillRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/login': {
+      id: '/_layout/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LayoutLoginRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/_authenticated': {
+      id: '/_layout/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof LayoutAuthenticatedRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/_authenticated/settings': {
+      id: '/_layout/_authenticated/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof LayoutAuthenticatedSettingsRouteImport
+      parentRoute: typeof LayoutAuthenticatedRoute
+    }
+    '/_layout/_authenticated/home': {
+      id: '/_layout/_authenticated/home'
+      path: '/home'
+      fullPath: '/home'
+      preLoaderRoute: typeof LayoutAuthenticatedHomeRouteImport
+      parentRoute: typeof LayoutAuthenticatedRoute
+    }
   }
 }
 
 interface LayoutAuthenticatedRouteChildren {
-  LayoutAuthenticatedHomeRoute: typeof LayoutAuthenticatedHomeRoute;
-  LayoutAuthenticatedSettingsRoute: typeof LayoutAuthenticatedSettingsRoute;
+  LayoutAuthenticatedHomeRoute: typeof LayoutAuthenticatedHomeRoute
+  LayoutAuthenticatedSettingsRoute: typeof LayoutAuthenticatedSettingsRoute
 }
 
 const LayoutAuthenticatedRouteChildren: LayoutAuthenticatedRouteChildren = {
   LayoutAuthenticatedHomeRoute: LayoutAuthenticatedHomeRoute,
   LayoutAuthenticatedSettingsRoute: LayoutAuthenticatedSettingsRoute,
-};
+}
 
-const LayoutAuthenticatedRouteWithChildren = LayoutAuthenticatedRoute._addFileChildren(
-  LayoutAuthenticatedRouteChildren,
-);
+const LayoutAuthenticatedRouteWithChildren =
+  LayoutAuthenticatedRoute._addFileChildren(LayoutAuthenticatedRouteChildren)
 
 interface LayoutRouteChildren {
-  LayoutAuthenticatedRoute: typeof LayoutAuthenticatedRouteWithChildren;
-  LayoutLoginRoute: typeof LayoutLoginRoute;
-  LayoutSkillRoute: typeof LayoutSkillRoute;
-  LayoutIndexRoute: typeof LayoutIndexRoute;
+  LayoutAuthenticatedRoute: typeof LayoutAuthenticatedRouteWithChildren
+  LayoutLoginRoute: typeof LayoutLoginRoute
+  LayoutSkillRoute: typeof LayoutSkillRoute
+  LayoutIndexRoute: typeof LayoutIndexRoute
 }
 
 const LayoutRouteChildren: LayoutRouteChildren = {
@@ -211,15 +225,16 @@ const LayoutRouteChildren: LayoutRouteChildren = {
   LayoutLoginRoute: LayoutLoginRoute,
   LayoutSkillRoute: LayoutSkillRoute,
   LayoutIndexRoute: LayoutIndexRoute,
-};
+}
 
-const LayoutRouteWithChildren = LayoutRoute._addFileChildren(LayoutRouteChildren);
+const LayoutRouteWithChildren =
+  LayoutRoute._addFileChildren(LayoutRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   LayoutRoute: LayoutRouteWithChildren,
   PaymentsRoute: PaymentsRoute,
   SubscriptionsRoute: SubscriptionsRoute,
-};
+}
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>();
+  ._addFileTypes<FileRouteTypes>()

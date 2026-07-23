@@ -34,13 +34,17 @@ function LandingPage() {
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[420px] bg-[radial-gradient(60%_50%_at_50%_0%,rgba(124,92,246,0.10),transparent_70%)]" />
 
       <main className="relative flex flex-1 items-center px-5 py-12 sm:px-8">
-        <div className="mx-auto w-full max-w-4xl">
-          <div className="mb-12 text-center">
+        <div className="mx-auto w-full max-w-5xl">
+          <div className="mb-10 flex flex-col items-center text-center">
             <h1 className="text-3xl font-semibold tracking-tight sm:text-[2.75rem] sm:leading-[1.1]">
               Every payment provider,
               <br />
               one contract.
             </h1>
+            <p className="mt-4 max-w-xl text-sm leading-relaxed text-muted-foreground animate-fade-in sm:text-base">
+              A single aggregator contract unifying Stripe, PingPay, and NEAR staking. Pick a demo
+              to explore.
+            </p>
           </div>
 
           <div className="grid gap-5 sm:grid-cols-2">
