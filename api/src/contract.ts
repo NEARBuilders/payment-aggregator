@@ -137,6 +137,11 @@ const CreateSubscriptionInputSchema = z.object({
   metadata: z.record(z.string(), z.string()).optional(),
 });
 
+const CreditBalanceSchema = z.object({
+  creditType: z.string(),
+  balance: z.string(),
+});
+
 export const contract = oc.router({
   ping: oc.route({ method: "GET", path: "/ping" }).output(
     z.object({
@@ -237,6 +242,25 @@ export const contract = oc.router({
       }),
     )
     .output(SubscriptionActionSchema),
+
+  creditList: oc.route({ method: "GET", path: "/credits" }).output(z.array(CreditBalanceSchema)),
+
+  subscriptionCreditSync: oc
+    .route({ method: "POST", path: "/subscriptions/{provider}/credits/sync" })
+    .input(
+      z.object({
+        provider: z.string(),
+        planId: z.string(),
+        payerRef: z.string().optional(),
+      }),
+    )
+    .output(
+      z.object({
+        granted: z.boolean(),
+        reason: z.enum(["granted", "already_synced", "not_ready", "not_staked"]),
+        balances: z.array(CreditBalanceSchema),
+      }),
+    ),
 });
 
 export type ContractType = typeof contract;

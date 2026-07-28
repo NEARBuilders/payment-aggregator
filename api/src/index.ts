@@ -4,7 +4,8 @@ import { ORPCError } from "every-plugin/orpc";
 import { z } from "every-plugin/zod";
 import { contract } from "./contract";
 import { DatabaseLive, DatabaseTag } from "./db/layer";
-import { ContextSchema } from "./lib/context";
+import { ContextSchema, runEffect } from "./lib/context";
+import { EntitlementService, EntitlementServiceLive, yoctoToNear } from "./lib/credits";
 import type { PluginsClient } from "./lib/plugins-types.gen";
 
 export default createPlugin.withPlugins<PluginsClient>()({
@@ -24,8 +25,9 @@ export default createPlugin.withPlugins<PluginsClient>()({
         DatabaseTag,
         DatabaseLive(config.secrets.API_DATABASE_URL),
       );
+      const credits = yield* tools.buildService(EntitlementService, EntitlementServiceLive(db));
       const { auth, ...restPlugins } = plugins;
-      return { auth, plugins: restPlugins, db };
+      return { auth, plugins: restPlugins, db, credits };
     }),
 
   createRouter: (services, builder) => {
@@ -65,6 +67,56 @@ export default createPlugin.withPlugins<PluginsClient>()({
         });
       }
       return resolved;
+    };
+
+    const requireUserId = (context: { userId?: string | null }) => {
+      if (!context.userId) {
+        throw new ORPCError("UNAUTHORIZED", { message: "Sign in to view credits" });
+      }
+      return context.userId;
+    };
+
+    const requireOwnPayerRef = (
+      payerRef: string | undefined,
+      context: {
+        near?: {
+          primaryAccountId?: string | null;
+          linkedAccounts?: Array<{ accountId: string }>;
+        };
+      },
+    ) => {
+      const resolved = requirePayerRef(payerRef, context);
+      const owned =
+        resolved === context.near?.primaryAccountId ||
+        (context.near?.linkedAccounts ?? []).some((account) => account.accountId === resolved);
+      if (!owned) {
+        throw new ORPCError("FORBIDDEN", {
+          message: "payerRef must be a NEAR account linked to your session",
+        });
+      }
+      return resolved;
+    };
+
+    const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    // Public NEAR RPC endpoints load-balance across nodes with no read-after-write
+    // guarantee, so a subscription's status can flip to "active" on one node while
+    // its lock object is still unindexed on another. Retry a few times before
+    // treating "status active but no lock data yet" as "nothing to grant".
+    const getSubscriptionWithRetry = async (
+      client: { getSubscription: (input: { planId: string; payerRef: string }) => Promise<any> },
+      planId: string,
+      payerRef: string,
+    ): Promise<{ status: string; amount?: string; metadata?: Record<string, string> }> => {
+      const retryDelaysMs = [300, 600, 1200];
+      let subscription = await client.getSubscription({ planId, payerRef });
+      for (const delay of retryDelaysMs) {
+        const hasLockData = !!subscription.metadata?.lastLockId && !!subscription.amount;
+        if (hasLockData) break;
+        await sleep(delay);
+        subscription = await client.getSubscription({ planId, payerRef });
+      }
+      return subscription;
     };
 
     return {
@@ -184,6 +236,59 @@ export default createPlugin.withPlugins<PluginsClient>()({
           ...(input.amount !== undefined ? { amount: input.amount } : {}),
           payerRef,
         })) as any;
+      }),
+
+      creditList: builder.creditList.handler(async ({ context }) => {
+        const userId = requireUserId(context);
+        const personalOrganizationId = null;
+        return await runEffect(
+          services.credits.getBalances({ userId, organizationId: personalOrganizationId }),
+        );
+      }),
+
+      subscriptionCreditSync: builder.subscriptionCreditSync.handler(async ({ input, context }) => {
+        const userId = requireUserId(context);
+        const { provider, planId } = input;
+        if (provider !== "stake2pay") {
+          throw new ORPCError("NOT_IMPLEMENTED", {
+            message: `Credit sync is only available for stake2pay, not ${provider}`,
+          });
+        }
+        const personalOrganizationId = null;
+        const factory = getSubscriptionPlugin(provider);
+        const client = (factory as (opts?: unknown) => any)();
+        const payerRef = requireOwnPayerRef(input.payerRef, context);
+
+        const subscription = await getSubscriptionWithRetry(client, planId, payerRef);
+
+        const lockId = subscription.metadata?.lastLockId;
+        const amount = subscription.amount;
+        const grantableStatuses = new Set(["active", "cancel_at_period_end", "pending_unstake"]);
+
+        let granted = false;
+        let reason: "granted" | "already_synced" | "not_ready" | "not_staked" = "not_staked";
+
+        if (grantableStatuses.has(subscription.status) && lockId && amount) {
+          const result = await runEffect(
+            services.credits.grantCredits({
+              userId,
+              organizationId: personalOrganizationId,
+              amount: yoctoToNear(amount),
+              source: `${provider}:lock`,
+              sourceRef: lockId,
+              metadata: { provider, planId, payerRef },
+            }),
+          );
+          granted = result.granted;
+          reason = result.granted ? "granted" : "already_synced";
+        } else if (grantableStatuses.has(subscription.status)) {
+          reason = "not_ready";
+        }
+
+        const balances = await runEffect(
+          services.credits.getBalances({ userId, organizationId: personalOrganizationId }),
+        );
+        return { granted, reason, balances };
       }),
     };
   },

@@ -13,6 +13,7 @@ import { Route as SubscriptionsRouteImport } from './routes/subscriptions'
 import { Route as PaymentsRouteImport } from './routes/payments'
 import { Route as LayoutRouteImport } from './routes/_layout'
 import { Route as LayoutIndexRouteImport } from './routes/_layout/index'
+import { Route as SubscriptionsStake2payRouteImport } from './routes/subscriptions_.stake2pay'
 import { Route as LayoutSkillRouteImport } from './routes/_layout/skill'
 import { Route as LayoutLoginRouteImport } from './routes/_layout/login'
 import { Route as LayoutAuthenticatedRouteImport } from './routes/_layout/_authenticated'
@@ -37,6 +38,11 @@ const LayoutIndexRoute = LayoutIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => LayoutRoute,
+} as any)
+const SubscriptionsStake2payRoute = SubscriptionsStake2payRouteImport.update({
+  id: '/subscriptions_/stake2pay',
+  path: '/subscriptions/stake2pay',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const LayoutSkillRoute = LayoutSkillRouteImport.update({
   id: '/skill',
@@ -70,6 +76,7 @@ export interface FileRoutesByFullPath {
   '/subscriptions': typeof SubscriptionsRoute
   '/login': typeof LayoutLoginRoute
   '/skill': typeof LayoutSkillRoute
+  '/subscriptions/stake2pay': typeof SubscriptionsStake2payRoute
   '/home': typeof LayoutAuthenticatedHomeRoute
   '/settings': typeof LayoutAuthenticatedSettingsRoute
 }
@@ -79,6 +86,7 @@ export interface FileRoutesByTo {
   '/': typeof LayoutIndexRoute
   '/login': typeof LayoutLoginRoute
   '/skill': typeof LayoutSkillRoute
+  '/subscriptions/stake2pay': typeof SubscriptionsStake2payRoute
   '/home': typeof LayoutAuthenticatedHomeRoute
   '/settings': typeof LayoutAuthenticatedSettingsRoute
 }
@@ -90,6 +98,7 @@ export interface FileRoutesById {
   '/_layout/_authenticated': typeof LayoutAuthenticatedRouteWithChildren
   '/_layout/login': typeof LayoutLoginRoute
   '/_layout/skill': typeof LayoutSkillRoute
+  '/subscriptions_/stake2pay': typeof SubscriptionsStake2payRoute
   '/_layout/': typeof LayoutIndexRoute
   '/_layout/_authenticated/home': typeof LayoutAuthenticatedHomeRoute
   '/_layout/_authenticated/settings': typeof LayoutAuthenticatedSettingsRoute
@@ -102,6 +111,7 @@ export interface FileRouteTypes {
     | '/subscriptions'
     | '/login'
     | '/skill'
+    | '/subscriptions/stake2pay'
     | '/home'
     | '/settings'
   fileRoutesByTo: FileRoutesByTo
@@ -111,6 +121,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/skill'
+    | '/subscriptions/stake2pay'
     | '/home'
     | '/settings'
   id:
@@ -121,6 +132,7 @@ export interface FileRouteTypes {
     | '/_layout/_authenticated'
     | '/_layout/login'
     | '/_layout/skill'
+    | '/subscriptions_/stake2pay'
     | '/_layout/'
     | '/_layout/_authenticated/home'
     | '/_layout/_authenticated/settings'
@@ -130,6 +142,7 @@ export interface RootRouteChildren {
   LayoutRoute: typeof LayoutRouteWithChildren
   PaymentsRoute: typeof PaymentsRoute
   SubscriptionsRoute: typeof SubscriptionsRoute
+  SubscriptionsStake2payRoute: typeof SubscriptionsStake2payRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -161,6 +174,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof LayoutIndexRouteImport
       parentRoute: typeof LayoutRoute
+    }
+    '/subscriptions_/stake2pay': {
+      id: '/subscriptions_/stake2pay'
+      path: '/subscriptions/stake2pay'
+      fullPath: '/subscriptions/stake2pay'
+      preLoaderRoute: typeof SubscriptionsStake2payRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_layout/skill': {
       id: '/_layout/skill'
@@ -234,6 +254,7 @@ const rootRouteChildren: RootRouteChildren = {
   LayoutRoute: LayoutRouteWithChildren,
   PaymentsRoute: PaymentsRoute,
   SubscriptionsRoute: SubscriptionsRoute,
+  SubscriptionsStake2payRoute: SubscriptionsStake2payRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
