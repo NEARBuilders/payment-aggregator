@@ -322,7 +322,15 @@ async function createStake2PayE2EContext(
     const nearAccountId = req.headers[NEAR_ACCOUNT_HEADER];
     const context = {
       reqHeaders: toWebHeaders(req),
-      ...(typeof nearAccountId === "string" ? { near: { primaryAccountId: nearAccountId } } : {}),
+      ...(typeof nearAccountId === "string"
+        ? {
+            userId: `user-${nearAccountId}`,
+            near: {
+              primaryAccountId: nearAccountId,
+              linkedAccounts: [{ accountId: nearAccountId }],
+            },
+          }
+        : {}),
     };
 
     try {
@@ -593,6 +601,71 @@ describe("E2E: stake2pay through the aggregator API (mocked NEAR RPC)", () => {
       methodName: "cancel_subscription",
       args: { product_id: PRODUCT_ID },
       deposit: "1",
+    });
+  });
+
+  describe("subscriptionCreditSync", () => {
+    it("grants credits for an active lock, then is idempotent on re-sync", async () => {
+      chainState.subscription = { ...activeSubscription, last_lock_id: "lock_credit_1" };
+      chainState.lock = { ...activeLock, lock_id: "lock_credit_1" };
+
+      const first = await ctx.authedClient.subscriptionCreditSync({
+        provider: PROVIDER,
+        planId: STARTER_PRICE_ID,
+      });
+      expect(first.granted).toBe(true);
+      expect(first.reason).toBe("granted");
+      expect(first.balances).toEqual([{ creditType: "default", balance: "5" }]);
+
+      const second = await ctx.authedClient.subscriptionCreditSync({
+        provider: PROVIDER,
+        planId: STARTER_PRICE_ID,
+      });
+      expect(second.granted).toBe(false);
+      expect(second.reason).toBe("already_synced");
+      expect(second.balances).toEqual([{ creditType: "default", balance: "5" }]);
+    });
+
+    it("rejects a payerRef that isn't linked to the caller's session", async () => {
+      await expect(
+        ctx.authedClient.subscriptionCreditSync({
+          provider: PROVIDER,
+          planId: STARTER_PRICE_ID,
+          payerRef: "mallory.testnet",
+        }),
+      ).rejects.toThrow(/FORBIDDEN|linked/);
+    });
+
+    it("does not grant credits for a lock that was withdrawn before ever syncing", async () => {
+      chainState.subscription = {
+        ...activeSubscription,
+        last_lock_id: "lock_credit_withdrawn",
+        status: "Cancelled",
+        end_ns: PAST_END_NS,
+      };
+      chainState.lock = {
+        ...activeLock,
+        lock_id: "lock_credit_withdrawn",
+        status: "Withdrawn",
+      };
+
+      const sync = await ctx.authedClient.subscriptionCreditSync({
+        provider: PROVIDER,
+        planId: STARTER_PRICE_ID,
+      });
+
+      expect(sync.granted).toBe(false);
+      expect(sync.reason).toBe("not_staked");
+      expect(sync.balances).toEqual([{ creditType: "default", balance: "5" }]);
+    });
+
+    it("rejects credit sync for a non-stake2pay provider", async () => {
+      await expect(
+        ctx.authedClient.subscriptionCreditSync({
+          provider: "stripe",
+          planId: STARTER_PRICE_ID,
+        }),
+      ).rejects.toThrow(/NOT_IMPLEMENTED|stake2pay/);
     });
   });
 });

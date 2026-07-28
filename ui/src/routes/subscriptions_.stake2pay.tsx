@@ -55,14 +55,21 @@ function Stake2PayPage() {
   const apiClient = useApiClient();
   const authClient = useAuthClient();
   const queryClient = useQueryClient();
+  const { session } = Route.useRouteContext();
+  const activeOrganizationId = session.session?.activeOrganizationId ?? null;
+  const creditsQueryKey = ["credits", activeOrganizationId];
 
   const [nearAccountId, setNearAccountId] = useState<string | null>(null);
   const [inputNear, setInputNear] = useState(DEMO_STAKE_NEAR);
   const [optimisticBalance, setOptimisticBalance] = useState<string | null>(null);
 
   useEffect(() => {
+    const previousNetwork = authClient.near.getNetwork();
     authClient.near.setNetwork("testnet");
     setNearAccountId(authClient.near.getAccountId());
+    return () => {
+      authClient.near.setNetwork(previousNetwork);
+    };
   }, [authClient]);
 
   const { data: plans } = useQuery({
@@ -90,10 +97,12 @@ function Stake2PayPage() {
     enabled: !!plan && !!nearAccountId,
     retry: false,
   });
-  const alreadyStaked = subscription ? subscription.status !== "none" : false;
+  const alreadyStaked = subscription
+    ? subscription.status !== "none" && subscription.status !== "ended"
+    : false;
 
   const { data: balances, refetch: refetchBalances } = useQuery({
-    queryKey: ["credits"],
+    queryKey: creditsQueryKey,
     queryFn: () => apiClient.creditList() as Promise<CreditBalance[]>,
   });
   const defaultBalance = balances?.find((b) => b.creditType === "default")?.balance ?? "0";
@@ -134,7 +143,7 @@ function Stake2PayPage() {
         planId: plan.id,
         payerRef,
       });
-      queryClient.setQueryData(["credits"], sync.balances);
+      queryClient.setQueryData(creditsQueryKey, sync.balances);
       return sync;
     },
     onSuccess: notifySyncResult,
@@ -164,14 +173,15 @@ function Stake2PayPage() {
 
       await signWalletIntent(authClient, action);
 
-      const staked = yoctoToNear(amountYocto.toString());
-      setOptimisticBalance((Number(defaultBalance) + Number(staked)).toString());
+      const stakedYocto = amountYocto;
+      const currentYocto = nearToYocto(defaultBalance) ?? 0n;
+      setOptimisticBalance(yoctoToNear((currentYocto + stakedYocto).toString()));
       toast.info("Stake sent — waiting for the chain to confirm");
 
       const payerRef = authClient.near.getAccountId();
       if (!payerRef) throw new Error("Wallet disconnected before confirmation");
 
-      await pollUntil(
+      const activeSubscription = await pollUntil(
         () =>
           apiClient.subscriptionGet({
             provider: PROVIDER,
@@ -180,13 +190,17 @@ function Stake2PayPage() {
           }) as Promise<SubscriptionInfo>,
         (s) => s.status === "active",
       );
+      queryClient.setQueryData(
+        ["subscription-status", PROVIDER, plan.id, nearAccountId],
+        activeSubscription,
+      );
 
       const sync = await apiClient.subscriptionCreditSync({
         provider: PROVIDER,
         planId: plan.id,
         payerRef,
       });
-      queryClient.setQueryData(["credits"], sync.balances);
+      queryClient.setQueryData(creditsQueryKey, sync.balances);
       setOptimisticBalance(null);
       return sync;
     },

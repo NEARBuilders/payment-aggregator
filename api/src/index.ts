@@ -76,6 +76,27 @@ export default createPlugin.withPlugins<PluginsClient>()({
       return context.userId;
     };
 
+    const requireOwnPayerRef = (
+      payerRef: string | undefined,
+      context: {
+        near?: {
+          primaryAccountId?: string | null;
+          linkedAccounts?: Array<{ accountId: string }>;
+        };
+      },
+    ) => {
+      const resolved = requirePayerRef(payerRef, context);
+      const owned =
+        resolved === context.near?.primaryAccountId ||
+        (context.near?.linkedAccounts ?? []).some((account) => account.accountId === resolved);
+      if (!owned) {
+        throw new ORPCError("FORBIDDEN", {
+          message: "payerRef must be a NEAR account linked to your session",
+        });
+      }
+      return resolved;
+    };
+
     const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
     // Public NEAR RPC endpoints load-balance across nodes with no read-after-write
@@ -91,7 +112,7 @@ export default createPlugin.withPlugins<PluginsClient>()({
       let subscription = await client.getSubscription({ planId, payerRef });
       for (const delay of retryDelaysMs) {
         const hasLockData = !!subscription.metadata?.lastLockId && !!subscription.amount;
-        if (subscription.status === "none" || hasLockData) break;
+        if (hasLockData) break;
         await sleep(delay);
         subscription = await client.getSubscription({ planId, payerRef });
       }
@@ -219,31 +240,39 @@ export default createPlugin.withPlugins<PluginsClient>()({
 
       creditList: builder.creditList.handler(async ({ context }) => {
         const userId = requireUserId(context);
-        const organizationId = context.organization?.activeOrganizationId ?? null;
-        return await runEffect(services.credits.getBalances({ userId, organizationId }));
+        const personalOrganizationId = null;
+        return await runEffect(
+          services.credits.getBalances({ userId, organizationId: personalOrganizationId }),
+        );
       }),
 
       subscriptionCreditSync: builder.subscriptionCreditSync.handler(async ({ input, context }) => {
         const userId = requireUserId(context);
-        const organizationId = context.organization?.activeOrganizationId ?? null;
         const { provider, planId } = input;
+        if (provider !== "stake2pay") {
+          throw new ORPCError("NOT_IMPLEMENTED", {
+            message: `Credit sync is only available for stake2pay, not ${provider}`,
+          });
+        }
+        const personalOrganizationId = null;
         const factory = getSubscriptionPlugin(provider);
         const client = (factory as (opts?: unknown) => any)();
-        const payerRef = requirePayerRef(input.payerRef, context);
+        const payerRef = requireOwnPayerRef(input.payerRef, context);
 
         const subscription = await getSubscriptionWithRetry(client, planId, payerRef);
 
         const lockId = subscription.metadata?.lastLockId;
         const amount = subscription.amount;
+        const grantableStatuses = new Set(["active", "cancel_at_period_end", "pending_unstake"]);
 
         let granted = false;
         let reason: "granted" | "already_synced" | "not_ready" | "not_staked" = "not_staked";
 
-        if (subscription.status !== "none" && lockId && amount) {
+        if (grantableStatuses.has(subscription.status) && lockId && amount) {
           const result = await runEffect(
             services.credits.grantCredits({
               userId,
-              organizationId,
+              organizationId: personalOrganizationId,
               amount: yoctoToNear(amount),
               source: `${provider}:lock`,
               sourceRef: lockId,
@@ -252,11 +281,13 @@ export default createPlugin.withPlugins<PluginsClient>()({
           );
           granted = result.granted;
           reason = result.granted ? "granted" : "already_synced";
-        } else if (subscription.status !== "none") {
+        } else if (grantableStatuses.has(subscription.status)) {
           reason = "not_ready";
         }
 
-        const balances = await runEffect(services.credits.getBalances({ userId, organizationId }));
+        const balances = await runEffect(
+          services.credits.getBalances({ userId, organizationId: personalOrganizationId }),
+        );
         return { granted, reason, balances };
       }),
     };
