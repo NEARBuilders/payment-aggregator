@@ -13,18 +13,18 @@
   "app": {
     "ui": {
       "development": "local:ui",
-      "production": "https://elliot-braem-6967-ui-payment-aggregator-nearbuild-712bdd1c4-ze.zephyrcloud.app",
-      "ssr": "https://elliot-braem-6972-ui-payment-aggregator-nearbuild-ec276c46e-ze.zephyrcloud.app",
-      "integrity": "sha384-xMgjX9cLb+TCkw1jWk/ZrPXeU1wcsUMNooKf+52yMP/cEevHBqFsdFJ+aMOE1Xa1",
-      "ssrIntegrity": "sha384-STtXFkhHRifCXIIrjRl4ikKe/Mbpcsz0HiwmYTLR8HmuXhL+U+wMRiqbtqnCzQoo"
+      "production": "https://elliot-braem-6973-ui-payment-aggregator-nearbuild-be250e10d-ze.zephyrcloud.app",
+      "ssr": "https://elliot-braem-6978-ui-payment-aggregator-nearbuild-a06347617-ze.zephyrcloud.app",
+      "integrity": "sha384-pkksUpPzmrUvszSN+sjVCGQjvrlcLkpjAHOFCQz08Q132WLoAwB5K18cOeldc/RS",
+      "ssrIntegrity": "sha384-eix9TyKPmAGLtrcxK15S/CjTxlRLqWJaBgc9hXUkepXoFUf9ZCDEePQNtFFH7g+W"
     },
     "api": {
       "development": "local:api",
       "secrets": [
         "API_DATABASE_URL"
       ],
-      "production": "https://elliot-braem-6970-api-payment-aggregator-nearbuil-578df9b67-ze.zephyrcloud.app",
-      "integrity": "sha384-iiw1Det+wL2bpP24eGfwrNZS+nCbYs88TVSFfAOrSPd/Rj7MwD/cpPUKyK3n3z9D"
+      "production": "https://elliot-braem-6974-api-payment-aggregator-nearbuil-bd9683f05-ze.zephyrcloud.app",
+      "integrity": "sha384-Q1j11SDO6qglBtU9/qNC4tg3MD8RWcclDZapDBCFKapUolYs2zNDViLuI8y9sFPb"
     }
   },
   "plugins": {
@@ -34,8 +34,8 @@
         "PING_API_KEY",
         "PING_WEBHOOK_SECRET"
       ],
-      "production": "https://elliot-braem-6968-pingpay-payment-aggregator-near-0d716fc9e-ze.zephyrcloud.app",
-      "integrity": "sha384-sJJJF/vPkQiEz9c6Hr0w9AgJpan4JFwlaaKiP117sfwYA4jmdE+DTigvitZV5hqA"
+      "production": "https://elliot-braem-6975-pingpay-payment-aggregator-near-c9c098c4b-ze.zephyrcloud.app",
+      "integrity": "sha384-RyoYRCwinaklZu+ZbC++WxMQjpYO5o6VKsk95MqFX79Tv0VBUSq77nKEXxXO4vW1"
     },
     "stripe": {
       "development": "local:plugins/stripe",
@@ -43,8 +43,8 @@
         "STRIPE_SECRET_KEY",
         "STRIPE_WEBHOOK_SECRET"
       ],
-      "production": "https://elliot-braem-6971-payment-aggregator-stripe-payme-12daa43da-ze.zephyrcloud.app",
-      "integrity": "sha384-0m8rBUI4Fp+96hdKAdDt9CsEU8uktzJyBjXd1SatunWKMbtAyo1YI1GXsjVkRNnr"
+      "production": "https://elliot-braem-6977-payment-aggregator-stripe-payme-296700cee-ze.zephyrcloud.app",
+      "integrity": "sha384-9cY1VTQEgSPoGVYqEeUxaL5LKALVBcrIxLl1IPg9kpas/vspiSTxzn+DGFjZc0q3"
     },
     "stake2pay": {
       "development": "local:plugins/stake2pay",
@@ -54,8 +54,8 @@
         "contractId": "hos-e2e-0601144939.testnet",
         "productId": "prod_5lklj46roIwKZK"
       },
-      "production": "https://elliot-braem-6969-stake2pay-payment-aggregator-ne-3afefec8b-ze.zephyrcloud.app",
-      "integrity": "sha384-ODxGsJJJeb2MwrFwE8FwmnnN1yJSSE2fvOjVvh+7Rah5SRcH60AD/xRGctEchSyb"
+      "production": "https://elliot-braem-6976-stake2pay-payment-aggregator-ne-791dc9d61-ze.zephyrcloud.app",
+      "integrity": "sha384-duojazl4pGFy6OVf529ANLlncQ5BJIK6Nksisb2rkZMdyYpg7ycd/cIOpAARPmnj"
     }
   }
 }
