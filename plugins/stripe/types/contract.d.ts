@@ -65,6 +65,8 @@ export declare const SubscriptionContract: {
         name: z.ZodString;
         logo: z.ZodString;
         description: z.ZodString;
+        webhookEventTypes: z.ZodArray<z.ZodString>;
+        defaultWebhookEvent: z.ZodString;
     }, z.core.$strip>, import("@orpc/contract").MergedErrorMap<Record<never, never>, Record<never, never>>, Record<never, never>>;
     ping: import("@orpc/contract").ContractProcedure<import("@orpc/contract").Schema<unknown, unknown>, z.ZodObject<{
         provider: z.ZodString;
