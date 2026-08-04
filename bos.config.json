@@ -13,17 +13,16 @@
   "app": {
     "ui": {
       "development": "local:ui",
-      "production": "https://elliot-braem-6943-ui-payment-aggregator-nearbuild-266e32a35-ze.zephyrcloud.app",
-      "integrity": "sha384-fQThVJmy8iDG+VkqZdotxQpvJIADTQM7zEQOjo5FJ2/liz21uZ668WaUlRS8MGpO",
-      "ssr": "https://elliot-braem-6948-ui-payment-aggregator-nearbuild-58f616171-ze.zephyrcloud.app",
-      "ssrIntegrity": "sha384-Mp3eupWmvSuONc1UtaFJ3vkT3b7mfC9IoRh2v9Jobms28Lr7bLj2o4oJLPpAp6H5"
+      "production": "https://elliot-braem-6949-ui-payment-aggregator-nearbuild-bffd575c7-ze.zephyrcloud.app",
+      "integrity": "sha384-TLymoQwDLwqOkXdhNPkBhr75hFa5a3n0ZxT5zNRuDDHSybM/SBlPhqSXceqJe2Ia",
+      "ssr": "https://elliot-braem-6954-ui-payment-aggregator-nearbuild-3c474b81d-ze.zephyrcloud.app"
     },
     "api": {
       "development": "local:api",
       "secrets": [
         "API_DATABASE_URL"
       ],
-      "production": "https://elliot-braem-6947-api-payment-aggregator-nearbuil-b800c4c4c-ze.zephyrcloud.app",
+      "production": "https://elliot-braem-6951-api-payment-aggregator-nearbuil-730116f5c-ze.zephyrcloud.app",
       "integrity": "sha384-Q1j11SDO6qglBtU9/qNC4tg3MD8RWcclDZapDBCFKapUolYs2zNDViLuI8y9sFPb"
     }
   },
@@ -34,7 +33,7 @@
         "PING_API_KEY",
         "PING_WEBHOOK_SECRET"
       ],
-      "production": "https://elliot-braem-6945-pingpay-payment-aggregator-near-d54f337b1-ze.zephyrcloud.app",
+      "production": "https://elliot-braem-6953-pingpay-payment-aggregator-near-8aba4dbd0-ze.zephyrcloud.app",
       "integrity": "sha384-RyoYRCwinaklZu+ZbC++WxMQjpYO5o6VKsk95MqFX79Tv0VBUSq77nKEXxXO4vW1"
     },
     "stripe": {
@@ -43,7 +42,7 @@
         "STRIPE_SECRET_KEY",
         "STRIPE_WEBHOOK_SECRET"
       ],
-      "production": "https://elliot-braem-6944-payment-aggregator-stripe-payme-0f0ebfecc-ze.zephyrcloud.app",
+      "production": "https://elliot-braem-6950-payment-aggregator-stripe-payme-bccb5be5b-ze.zephyrcloud.app",
       "integrity": "sha384-9cY1VTQEgSPoGVYqEeUxaL5LKALVBcrIxLl1IPg9kpas/vspiSTxzn+DGFjZc0q3"
     },
     "stake2pay": {
@@ -54,7 +53,7 @@
         "contractId": "hos-e2e-0601144939.testnet",
         "productId": "prod_5lklj46roIwKZK"
       },
-      "production": "https://elliot-braem-6946-stake2pay-payment-aggregator-ne-3ca847adb-ze.zephyrcloud.app",
+      "production": "https://elliot-braem-6952-stake2pay-payment-aggregator-ne-e33208de6-ze.zephyrcloud.app",
       "integrity": "sha384-duojazl4pGFy6OVf529ANLlncQ5BJIK6Nksisb2rkZMdyYpg7ycd/cIOpAARPmnj"
     }
   }
