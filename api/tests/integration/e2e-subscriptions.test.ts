@@ -68,6 +68,8 @@ const FakeSubscriptionPlugin = createPlugin({
       name: "Subs Mock",
       logo: "/logos/subsmock.png",
       description: "In-test subscription provider",
+      webhookEventTypes: [],
+      defaultWebhookEvent: "",
     })),
 
     ping: builder.ping.handler(async () => ({
@@ -288,6 +290,8 @@ describe("E2E: subscription routes through the aggregator API", () => {
       name: "Subs Mock",
       logo: "/logos/subsmock.png",
       description: "In-test subscription provider",
+      webhookEventTypes: [],
+      defaultWebhookEvent: "",
     });
     expect(providers.some((p) => p.key === "stripe")).toBe(true);
     expect(providers.some((p) => p.key === "pingpay")).toBe(false);

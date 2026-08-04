@@ -419,6 +419,8 @@ describe("E2E: stake2pay through the aggregator API (mocked NEAR RPC)", () => {
     expect(stake2pay?.name).toBe("Stake2Pay");
     expect(stake2pay?.logo).toContain("stake2pay");
     expect(stake2pay?.description).toBeTruthy();
+    expect(stake2pay?.webhookEventTypes).toEqual([]);
+    expect(stake2pay?.defaultWebhookEvent).toBe("");
     expect(providers.some((p) => p.key === "pingpay")).toBe(false);
     expect(providers.some((p) => p.key === "stripe")).toBe(true);
   });

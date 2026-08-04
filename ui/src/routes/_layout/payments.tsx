@@ -10,7 +10,7 @@ import {
   X,
   XCircle,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useApiClient, useAuthClient, useAuthState } from "@/app";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,8 @@ type ProviderInfo = {
   name: string;
   logo: string;
   description: string;
+  webhookEventTypes: string[];
+  defaultWebhookEvent: string;
 };
 
 type CheckoutResult = {
@@ -66,11 +68,6 @@ function readStoredCheckout(): CheckoutResult | null {
 }
 
 const WEBHOOK_TEST_SECRET = "test_webhook_secret";
-const WEBHOOK_EVENT_TYPES = [
-  "payment.success",
-  "payment.failed",
-  "checkout.session.completed",
-] as const;
 
 async function computeHmacSignature(secret: string, payload: string): Promise<string> {
   const encoder = new TextEncoder();
@@ -486,11 +483,23 @@ function ResponseSection({ result }: { result: CheckoutResult | null }) {
 function WebhookSection({ result }: { result: CheckoutResult | null }) {
   const apiClient = useApiClient();
   const queryClient = useQueryClient();
-  const [eventType, setEventType] = useState<string>(WEBHOOK_EVENT_TYPES[0]);
+  const eventTypes = result?.provider.webhookEventTypes ?? [];
+  const defaultEvent = result?.provider.defaultWebhookEvent ?? "";
+  const [eventType, setEventType] = useState<string>(defaultEvent);
+  const prevKeyRef = useRef(result?.provider.key ?? null);
+
+  useEffect(() => {
+    const currentKey = result?.provider.key ?? null;
+    if (currentKey !== prevKeyRef.current) {
+      prevKeyRef.current = currentKey;
+      setEventType(result?.provider.defaultWebhookEvent ?? "");
+    }
+  }, [result?.provider.key, result?.provider.defaultWebhookEvent]);
+
+  if (eventTypes.length === 0 || !result) return null;
 
   const simulate = useMutation({
     mutationFn: async () => {
-      if (!result) throw new Error("Create a checkout session first");
       const timestamp = String(Math.floor(Date.now() / 1000));
       const usesStripeScheme = result.provider.key === "stripe";
       const body = JSON.stringify(
@@ -532,16 +541,15 @@ function WebhookSection({ result }: { result: CheckoutResult | null }) {
         <select
           value={eventType}
           onChange={(e) => setEventType(e.target.value)}
-          disabled={!result}
-          className="h-9 flex-1 rounded-lg border border-border bg-background px-3 text-foreground text-sm disabled:opacity-50"
+          className="h-9 flex-1 rounded-lg border border-border bg-background px-3 text-foreground text-sm"
         >
-          {WEBHOOK_EVENT_TYPES.map((type) => (
+          {eventTypes.map((type) => (
             <option key={type} value={type}>
               {type}
             </option>
           ))}
         </select>
-        <Button onClick={() => simulate.mutate()} disabled={!result || simulate.isPending}>
+        <Button onClick={() => simulate.mutate()} disabled={simulate.isPending}>
           {simulate.isPending && <Loader2 size={14} className="animate-spin" />}
           Run webhook
         </Button>

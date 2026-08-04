@@ -16,6 +16,8 @@ describe("Stripe Plugin Integration Tests", () => {
         name: "Stripe",
         logo: expect.stringContaining("stripe"),
         description: expect.any(String),
+        webhookEventTypes: ["checkout.session.completed"],
+        defaultWebhookEvent: "checkout.session.completed",
       });
     });
   });

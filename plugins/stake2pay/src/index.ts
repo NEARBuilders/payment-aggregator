@@ -74,6 +74,8 @@ export default createPlugin({
         name: "Stake2Pay",
         logo: "/logos/stake2pay.svg",
         description: "Subscriptions paid from NEAR staking yield via House of Stake",
+        webhookEventTypes: [],
+        defaultWebhookEvent: "",
       })),
 
       ping: builder.ping.handler(async () => ({

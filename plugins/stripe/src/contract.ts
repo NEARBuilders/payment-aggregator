@@ -24,6 +24,8 @@ const metadata = oc.route({ method: "GET", path: "/metadata" }).output(
     name: z.string(),
     logo: z.string(),
     description: z.string(),
+    webhookEventTypes: z.array(z.string()),
+    defaultWebhookEvent: z.string(),
   }),
 );
 

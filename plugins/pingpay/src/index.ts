@@ -49,6 +49,8 @@ export default createPlugin({
         name: "PingPay",
         logo: "/logos/pingpay.png",
         description: "Multi-chain crypto asset payments",
+        webhookEventTypes: ["payment.success", "payment.failed", "checkout.session.completed"],
+        defaultWebhookEvent: "payment.success",
       })),
 
       ping: builder.ping.handler(async () => ({

@@ -71,6 +71,8 @@ export default createPlugin({
         name: "Stripe",
         logo: "/logos/stripe.svg",
         description: "Card payments and subscriptions via Stripe Checkout and Billing",
+        webhookEventTypes: ["checkout.session.completed"],
+        defaultWebhookEvent: "checkout.session.completed",
       })),
 
       ping: builder.ping.handler(async () => ({

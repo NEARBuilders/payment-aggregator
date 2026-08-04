@@ -125,6 +125,8 @@ export default createPlugin.withPlugins<PluginsClient>()({
           name: string;
           logo: string;
           description: string;
+          webhookEventTypes: string[];
+          defaultWebhookEvent: string;
         }> = [];
 
         for (const [key, factory] of Object.entries(services.plugins)) {
@@ -233,6 +235,8 @@ export default createPlugin.withPlugins<PluginsClient>()({
           name: string;
           logo: string;
           description: string;
+          webhookEventTypes: string[];
+          defaultWebhookEvent: string;
         }> = [];
 
         for (const [key, factory] of Object.entries(services.plugins)) {

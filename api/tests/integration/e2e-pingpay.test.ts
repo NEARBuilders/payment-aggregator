@@ -32,6 +32,12 @@ describe("E2E: PingPay through the aggregator API", () => {
     expect(pingpay?.name).toBe("PingPay");
     expect(pingpay?.logo).toContain("pingpay");
     expect(pingpay?.description).toBeTruthy();
+    expect(pingpay?.webhookEventTypes).toEqual([
+      "payment.success",
+      "payment.failed",
+      "checkout.session.completed",
+    ]);
+    expect(pingpay?.defaultWebhookEvent).toBe("payment.success");
   });
 
   it("proves the PingPay plugin is alive via provider discovery", async () => {

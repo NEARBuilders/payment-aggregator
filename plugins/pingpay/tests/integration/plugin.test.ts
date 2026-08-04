@@ -16,6 +16,8 @@ describe("PingPay Plugin Integration Tests", () => {
         name: "PingPay",
         logo: expect.stringContaining("pingpay"),
         description: expect.any(String),
+        webhookEventTypes: ["payment.success", "payment.failed", "checkout.session.completed"],
+        defaultWebhookEvent: "payment.success",
       });
     });
   });

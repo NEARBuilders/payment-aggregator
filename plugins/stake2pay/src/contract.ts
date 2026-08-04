@@ -21,6 +21,8 @@ export const SubscriptionContract = oc.router({
       name: z.string(),
       logo: z.string(),
       description: z.string(),
+      webhookEventTypes: z.array(z.string()),
+      defaultWebhookEvent: z.string(),
     }),
   ),
 

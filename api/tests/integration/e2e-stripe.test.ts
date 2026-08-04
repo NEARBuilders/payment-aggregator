@@ -119,6 +119,8 @@ describe("E2E: Stripe through the aggregator API", () => {
     expect(stripe?.name).toBe("Stripe");
     expect(stripe?.logo).toContain("stripe");
     expect(stripe?.description).toBeTruthy();
+    expect(stripe?.webhookEventTypes).toEqual(["checkout.session.completed"]);
+    expect(stripe?.defaultWebhookEvent).toBe("checkout.session.completed");
   });
 
   it("creates a Stripe checkout session through the generic endpoint", async () => {
