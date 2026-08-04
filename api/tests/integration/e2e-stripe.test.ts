@@ -261,7 +261,7 @@ describe("E2E: Stripe through the aggregator API", () => {
         successUrl: "https://example.com/success",
         cancelUrl: "https://example.com/cancel",
       }),
-    ).rejects.toThrow(/Unknown payment provider|NOT_FOUND/);
+    ).rejects.toThrow(/Unknown plugin/);
   });
 
   it("provider list includes both Stripe and PingPay", async () => {

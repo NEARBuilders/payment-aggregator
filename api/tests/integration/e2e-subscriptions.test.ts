@@ -322,12 +322,12 @@ describe("E2E: subscription routes through the aggregator API", () => {
 
   it("returns NOT_FOUND for an unknown subscription provider", async () => {
     await expect(ctx.anonClient.subscriptionPlans({ provider: "nonexistent" })).rejects.toThrow(
-      /Unknown subscription provider|NOT_FOUND/,
+      /Unknown plugin/,
     );
 
     await expect(
       ctx.anonClient.subscriptionCreate({ provider: "nonexistent", planId: "plan-basic" }),
-    ).rejects.toThrow(/Unknown subscription provider|NOT_FOUND/);
+    ).rejects.toThrow(/Unknown plugin/);
   });
 
   it("creates a subscription with an explicit payerRef", async () => {

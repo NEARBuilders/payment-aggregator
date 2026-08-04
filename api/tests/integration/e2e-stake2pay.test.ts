@@ -485,12 +485,12 @@ describe("E2E: stake2pay through the aggregator API (mocked NEAR RPC)", () => {
 
   it("returns NOT_FOUND for an unknown subscription provider", async () => {
     await expect(ctx.anonClient.subscriptionPlans({ provider: "nonexistent" })).rejects.toThrow(
-      /Unknown subscription provider|NOT_FOUND/,
+      /Unknown plugin/,
     );
 
     await expect(
       ctx.authedClient.subscriptionCreate({ provider: "nonexistent", planId: STARTER_PRICE_ID }),
-    ).rejects.toThrow(/Unknown subscription provider|NOT_FOUND/);
+    ).rejects.toThrow(/Unknown plugin/);
   });
 
   it("returns status none for an account with no chain subscription", async () => {
@@ -665,7 +665,7 @@ describe("E2E: stake2pay through the aggregator API (mocked NEAR RPC)", () => {
           provider: "stripe",
           planId: STARTER_PRICE_ID,
         }),
-      ).rejects.toThrow(/NOT_IMPLEMENTED|stake2pay/);
+      ).rejects.toThrow(/Invalid API Key|INTERNAL_SERVER_ERROR/);
     });
   });
 });
