@@ -9,27 +9,23 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SubscriptionsRouteImport } from './routes/subscriptions'
-import { Route as PaymentsRouteImport } from './routes/payments'
 import { Route as LayoutRouteImport } from './routes/_layout'
 import { Route as LayoutIndexRouteImport } from './routes/_layout/index'
-import { Route as SubscriptionsStake2payRouteImport } from './routes/subscriptions_.stake2pay'
+import { Route as LayoutSubscriptionsRouteImport } from './routes/_layout/subscriptions'
 import { Route as LayoutSkillRouteImport } from './routes/_layout/skill'
+import { Route as LayoutPaymentsRouteImport } from './routes/_layout/payments'
 import { Route as LayoutLoginRouteImport } from './routes/_layout/login'
+import { Route as LayoutIntegrateRouteImport } from './routes/_layout/integrate'
 import { Route as LayoutAuthenticatedRouteImport } from './routes/_layout/_authenticated'
+import { Route as LayoutSubscriptionsIndexRouteImport } from './routes/_layout/subscriptions/index'
+import { Route as LayoutSubscriptionsStripeRouteImport } from './routes/_layout/subscriptions/stripe'
+import { Route as LayoutSubscriptionsStake2payRouteImport } from './routes/_layout/subscriptions/stake2pay'
 import { Route as LayoutAuthenticatedSettingsRouteImport } from './routes/_layout/_authenticated/settings'
 import { Route as LayoutAuthenticatedHomeRouteImport } from './routes/_layout/_authenticated/home'
+import { Route as LayoutAuthenticatedOrganizationsIndexRouteImport } from './routes/_layout/_authenticated/organizations/index'
+import { Route as LayoutAuthenticatedOrganizationsNewRouteImport } from './routes/_layout/_authenticated/organizations/new'
+import { Route as LayoutAuthenticatedOrganizationsSlugRouteImport } from './routes/_layout/_authenticated/organizations/$slug'
 
-const SubscriptionsRoute = SubscriptionsRouteImport.update({
-  id: '/subscriptions',
-  path: '/subscriptions',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PaymentsRoute = PaymentsRouteImport.update({
-  id: '/payments',
-  path: '/payments',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const LayoutRoute = LayoutRouteImport.update({
   id: '/_layout',
   getParentRoute: () => rootRouteImport,
@@ -39,14 +35,19 @@ const LayoutIndexRoute = LayoutIndexRouteImport.update({
   path: '/',
   getParentRoute: () => LayoutRoute,
 } as any)
-const SubscriptionsStake2payRoute = SubscriptionsStake2payRouteImport.update({
-  id: '/subscriptions_/stake2pay',
-  path: '/subscriptions/stake2pay',
-  getParentRoute: () => rootRouteImport,
+const LayoutSubscriptionsRoute = LayoutSubscriptionsRouteImport.update({
+  id: '/subscriptions',
+  path: '/subscriptions',
+  getParentRoute: () => LayoutRoute,
 } as any)
 const LayoutSkillRoute = LayoutSkillRouteImport.update({
   id: '/skill',
   path: '/skill',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutPaymentsRoute = LayoutPaymentsRouteImport.update({
+  id: '/payments',
+  path: '/payments',
   getParentRoute: () => LayoutRoute,
 } as any)
 const LayoutLoginRoute = LayoutLoginRouteImport.update({
@@ -54,10 +55,33 @@ const LayoutLoginRoute = LayoutLoginRouteImport.update({
   path: '/login',
   getParentRoute: () => LayoutRoute,
 } as any)
+const LayoutIntegrateRoute = LayoutIntegrateRouteImport.update({
+  id: '/integrate',
+  path: '/integrate',
+  getParentRoute: () => LayoutRoute,
+} as any)
 const LayoutAuthenticatedRoute = LayoutAuthenticatedRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => LayoutRoute,
 } as any)
+const LayoutSubscriptionsIndexRoute =
+  LayoutSubscriptionsIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => LayoutSubscriptionsRoute,
+  } as any)
+const LayoutSubscriptionsStripeRoute =
+  LayoutSubscriptionsStripeRouteImport.update({
+    id: '/stripe',
+    path: '/stripe',
+    getParentRoute: () => LayoutSubscriptionsRoute,
+  } as any)
+const LayoutSubscriptionsStake2payRoute =
+  LayoutSubscriptionsStake2payRouteImport.update({
+    id: '/stake2pay',
+    path: '/stake2pay',
+    getParentRoute: () => LayoutSubscriptionsRoute,
+  } as any)
 const LayoutAuthenticatedSettingsRoute =
   LayoutAuthenticatedSettingsRouteImport.update({
     id: '/settings',
@@ -69,98 +93,133 @@ const LayoutAuthenticatedHomeRoute = LayoutAuthenticatedHomeRouteImport.update({
   path: '/home',
   getParentRoute: () => LayoutAuthenticatedRoute,
 } as any)
+const LayoutAuthenticatedOrganizationsIndexRoute =
+  LayoutAuthenticatedOrganizationsIndexRouteImport.update({
+    id: '/organizations/',
+    path: '/organizations/',
+    getParentRoute: () => LayoutAuthenticatedRoute,
+  } as any)
+const LayoutAuthenticatedOrganizationsNewRoute =
+  LayoutAuthenticatedOrganizationsNewRouteImport.update({
+    id: '/organizations/new',
+    path: '/organizations/new',
+    getParentRoute: () => LayoutAuthenticatedRoute,
+  } as any)
+const LayoutAuthenticatedOrganizationsSlugRoute =
+  LayoutAuthenticatedOrganizationsSlugRouteImport.update({
+    id: '/organizations/$slug',
+    path: '/organizations/$slug',
+    getParentRoute: () => LayoutAuthenticatedRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof LayoutIndexRoute
-  '/payments': typeof PaymentsRoute
-  '/subscriptions': typeof SubscriptionsRoute
+  '/integrate': typeof LayoutIntegrateRoute
   '/login': typeof LayoutLoginRoute
+  '/payments': typeof LayoutPaymentsRoute
   '/skill': typeof LayoutSkillRoute
-  '/subscriptions/stake2pay': typeof SubscriptionsStake2payRoute
+  '/subscriptions': typeof LayoutSubscriptionsRouteWithChildren
   '/home': typeof LayoutAuthenticatedHomeRoute
   '/settings': typeof LayoutAuthenticatedSettingsRoute
+  '/subscriptions/stake2pay': typeof LayoutSubscriptionsStake2payRoute
+  '/subscriptions/stripe': typeof LayoutSubscriptionsStripeRoute
+  '/subscriptions/': typeof LayoutSubscriptionsIndexRoute
+  '/organizations/$slug': typeof LayoutAuthenticatedOrganizationsSlugRoute
+  '/organizations/new': typeof LayoutAuthenticatedOrganizationsNewRoute
+  '/organizations/': typeof LayoutAuthenticatedOrganizationsIndexRoute
 }
 export interface FileRoutesByTo {
-  '/payments': typeof PaymentsRoute
-  '/subscriptions': typeof SubscriptionsRoute
   '/': typeof LayoutIndexRoute
+  '/integrate': typeof LayoutIntegrateRoute
   '/login': typeof LayoutLoginRoute
+  '/payments': typeof LayoutPaymentsRoute
   '/skill': typeof LayoutSkillRoute
-  '/subscriptions/stake2pay': typeof SubscriptionsStake2payRoute
   '/home': typeof LayoutAuthenticatedHomeRoute
   '/settings': typeof LayoutAuthenticatedSettingsRoute
+  '/subscriptions/stake2pay': typeof LayoutSubscriptionsStake2payRoute
+  '/subscriptions/stripe': typeof LayoutSubscriptionsStripeRoute
+  '/subscriptions': typeof LayoutSubscriptionsIndexRoute
+  '/organizations/$slug': typeof LayoutAuthenticatedOrganizationsSlugRoute
+  '/organizations/new': typeof LayoutAuthenticatedOrganizationsNewRoute
+  '/organizations': typeof LayoutAuthenticatedOrganizationsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_layout': typeof LayoutRouteWithChildren
-  '/payments': typeof PaymentsRoute
-  '/subscriptions': typeof SubscriptionsRoute
   '/_layout/_authenticated': typeof LayoutAuthenticatedRouteWithChildren
+  '/_layout/integrate': typeof LayoutIntegrateRoute
   '/_layout/login': typeof LayoutLoginRoute
+  '/_layout/payments': typeof LayoutPaymentsRoute
   '/_layout/skill': typeof LayoutSkillRoute
-  '/subscriptions_/stake2pay': typeof SubscriptionsStake2payRoute
+  '/_layout/subscriptions': typeof LayoutSubscriptionsRouteWithChildren
   '/_layout/': typeof LayoutIndexRoute
   '/_layout/_authenticated/home': typeof LayoutAuthenticatedHomeRoute
   '/_layout/_authenticated/settings': typeof LayoutAuthenticatedSettingsRoute
+  '/_layout/subscriptions/stake2pay': typeof LayoutSubscriptionsStake2payRoute
+  '/_layout/subscriptions/stripe': typeof LayoutSubscriptionsStripeRoute
+  '/_layout/subscriptions/': typeof LayoutSubscriptionsIndexRoute
+  '/_layout/_authenticated/organizations/$slug': typeof LayoutAuthenticatedOrganizationsSlugRoute
+  '/_layout/_authenticated/organizations/new': typeof LayoutAuthenticatedOrganizationsNewRoute
+  '/_layout/_authenticated/organizations/': typeof LayoutAuthenticatedOrganizationsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/payments'
-    | '/subscriptions'
+    | '/integrate'
     | '/login'
+    | '/payments'
     | '/skill'
-    | '/subscriptions/stake2pay'
+    | '/subscriptions'
     | '/home'
     | '/settings'
+    | '/subscriptions/stake2pay'
+    | '/subscriptions/stripe'
+    | '/subscriptions/'
+    | '/organizations/$slug'
+    | '/organizations/new'
+    | '/organizations/'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/payments'
-    | '/subscriptions'
     | '/'
+    | '/integrate'
     | '/login'
+    | '/payments'
     | '/skill'
-    | '/subscriptions/stake2pay'
     | '/home'
     | '/settings'
+    | '/subscriptions/stake2pay'
+    | '/subscriptions/stripe'
+    | '/subscriptions'
+    | '/organizations/$slug'
+    | '/organizations/new'
+    | '/organizations'
   id:
     | '__root__'
     | '/_layout'
-    | '/payments'
-    | '/subscriptions'
     | '/_layout/_authenticated'
+    | '/_layout/integrate'
     | '/_layout/login'
+    | '/_layout/payments'
     | '/_layout/skill'
-    | '/subscriptions_/stake2pay'
+    | '/_layout/subscriptions'
     | '/_layout/'
     | '/_layout/_authenticated/home'
     | '/_layout/_authenticated/settings'
+    | '/_layout/subscriptions/stake2pay'
+    | '/_layout/subscriptions/stripe'
+    | '/_layout/subscriptions/'
+    | '/_layout/_authenticated/organizations/$slug'
+    | '/_layout/_authenticated/organizations/new'
+    | '/_layout/_authenticated/organizations/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   LayoutRoute: typeof LayoutRouteWithChildren
-  PaymentsRoute: typeof PaymentsRoute
-  SubscriptionsRoute: typeof SubscriptionsRoute
-  SubscriptionsStake2payRoute: typeof SubscriptionsStake2payRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/subscriptions': {
-      id: '/subscriptions'
-      path: '/subscriptions'
-      fullPath: '/subscriptions'
-      preLoaderRoute: typeof SubscriptionsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/payments': {
-      id: '/payments'
-      path: '/payments'
-      fullPath: '/payments'
-      preLoaderRoute: typeof PaymentsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/_layout': {
       id: '/_layout'
       path: ''
@@ -175,18 +234,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutIndexRouteImport
       parentRoute: typeof LayoutRoute
     }
-    '/subscriptions_/stake2pay': {
-      id: '/subscriptions_/stake2pay'
-      path: '/subscriptions/stake2pay'
-      fullPath: '/subscriptions/stake2pay'
-      preLoaderRoute: typeof SubscriptionsStake2payRouteImport
-      parentRoute: typeof rootRouteImport
+    '/_layout/subscriptions': {
+      id: '/_layout/subscriptions'
+      path: '/subscriptions'
+      fullPath: '/subscriptions'
+      preLoaderRoute: typeof LayoutSubscriptionsRouteImport
+      parentRoute: typeof LayoutRoute
     }
     '/_layout/skill': {
       id: '/_layout/skill'
       path: '/skill'
       fullPath: '/skill'
       preLoaderRoute: typeof LayoutSkillRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/payments': {
+      id: '/_layout/payments'
+      path: '/payments'
+      fullPath: '/payments'
+      preLoaderRoute: typeof LayoutPaymentsRouteImport
       parentRoute: typeof LayoutRoute
     }
     '/_layout/login': {
@@ -196,12 +262,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutLoginRouteImport
       parentRoute: typeof LayoutRoute
     }
+    '/_layout/integrate': {
+      id: '/_layout/integrate'
+      path: '/integrate'
+      fullPath: '/integrate'
+      preLoaderRoute: typeof LayoutIntegrateRouteImport
+      parentRoute: typeof LayoutRoute
+    }
     '/_layout/_authenticated': {
       id: '/_layout/_authenticated'
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof LayoutAuthenticatedRouteImport
       parentRoute: typeof LayoutRoute
+    }
+    '/_layout/subscriptions/': {
+      id: '/_layout/subscriptions/'
+      path: '/'
+      fullPath: '/subscriptions/'
+      preLoaderRoute: typeof LayoutSubscriptionsIndexRouteImport
+      parentRoute: typeof LayoutSubscriptionsRoute
+    }
+    '/_layout/subscriptions/stripe': {
+      id: '/_layout/subscriptions/stripe'
+      path: '/stripe'
+      fullPath: '/subscriptions/stripe'
+      preLoaderRoute: typeof LayoutSubscriptionsStripeRouteImport
+      parentRoute: typeof LayoutSubscriptionsRoute
+    }
+    '/_layout/subscriptions/stake2pay': {
+      id: '/_layout/subscriptions/stake2pay'
+      path: '/stake2pay'
+      fullPath: '/subscriptions/stake2pay'
+      preLoaderRoute: typeof LayoutSubscriptionsStake2payRouteImport
+      parentRoute: typeof LayoutSubscriptionsRoute
     }
     '/_layout/_authenticated/settings': {
       id: '/_layout/_authenticated/settings'
@@ -217,33 +311,84 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutAuthenticatedHomeRouteImport
       parentRoute: typeof LayoutAuthenticatedRoute
     }
+    '/_layout/_authenticated/organizations/': {
+      id: '/_layout/_authenticated/organizations/'
+      path: '/organizations'
+      fullPath: '/organizations/'
+      preLoaderRoute: typeof LayoutAuthenticatedOrganizationsIndexRouteImport
+      parentRoute: typeof LayoutAuthenticatedRoute
+    }
+    '/_layout/_authenticated/organizations/new': {
+      id: '/_layout/_authenticated/organizations/new'
+      path: '/organizations/new'
+      fullPath: '/organizations/new'
+      preLoaderRoute: typeof LayoutAuthenticatedOrganizationsNewRouteImport
+      parentRoute: typeof LayoutAuthenticatedRoute
+    }
+    '/_layout/_authenticated/organizations/$slug': {
+      id: '/_layout/_authenticated/organizations/$slug'
+      path: '/organizations/$slug'
+      fullPath: '/organizations/$slug'
+      preLoaderRoute: typeof LayoutAuthenticatedOrganizationsSlugRouteImport
+      parentRoute: typeof LayoutAuthenticatedRoute
+    }
   }
 }
 
 interface LayoutAuthenticatedRouteChildren {
   LayoutAuthenticatedHomeRoute: typeof LayoutAuthenticatedHomeRoute
   LayoutAuthenticatedSettingsRoute: typeof LayoutAuthenticatedSettingsRoute
+  LayoutAuthenticatedOrganizationsSlugRoute: typeof LayoutAuthenticatedOrganizationsSlugRoute
+  LayoutAuthenticatedOrganizationsNewRoute: typeof LayoutAuthenticatedOrganizationsNewRoute
+  LayoutAuthenticatedOrganizationsIndexRoute: typeof LayoutAuthenticatedOrganizationsIndexRoute
 }
 
 const LayoutAuthenticatedRouteChildren: LayoutAuthenticatedRouteChildren = {
   LayoutAuthenticatedHomeRoute: LayoutAuthenticatedHomeRoute,
   LayoutAuthenticatedSettingsRoute: LayoutAuthenticatedSettingsRoute,
+  LayoutAuthenticatedOrganizationsSlugRoute:
+    LayoutAuthenticatedOrganizationsSlugRoute,
+  LayoutAuthenticatedOrganizationsNewRoute:
+    LayoutAuthenticatedOrganizationsNewRoute,
+  LayoutAuthenticatedOrganizationsIndexRoute:
+    LayoutAuthenticatedOrganizationsIndexRoute,
 }
 
 const LayoutAuthenticatedRouteWithChildren =
   LayoutAuthenticatedRoute._addFileChildren(LayoutAuthenticatedRouteChildren)
 
+interface LayoutSubscriptionsRouteChildren {
+  LayoutSubscriptionsStake2payRoute: typeof LayoutSubscriptionsStake2payRoute
+  LayoutSubscriptionsStripeRoute: typeof LayoutSubscriptionsStripeRoute
+  LayoutSubscriptionsIndexRoute: typeof LayoutSubscriptionsIndexRoute
+}
+
+const LayoutSubscriptionsRouteChildren: LayoutSubscriptionsRouteChildren = {
+  LayoutSubscriptionsStake2payRoute: LayoutSubscriptionsStake2payRoute,
+  LayoutSubscriptionsStripeRoute: LayoutSubscriptionsStripeRoute,
+  LayoutSubscriptionsIndexRoute: LayoutSubscriptionsIndexRoute,
+}
+
+const LayoutSubscriptionsRouteWithChildren =
+  LayoutSubscriptionsRoute._addFileChildren(LayoutSubscriptionsRouteChildren)
+
 interface LayoutRouteChildren {
   LayoutAuthenticatedRoute: typeof LayoutAuthenticatedRouteWithChildren
+  LayoutIntegrateRoute: typeof LayoutIntegrateRoute
   LayoutLoginRoute: typeof LayoutLoginRoute
+  LayoutPaymentsRoute: typeof LayoutPaymentsRoute
   LayoutSkillRoute: typeof LayoutSkillRoute
+  LayoutSubscriptionsRoute: typeof LayoutSubscriptionsRouteWithChildren
   LayoutIndexRoute: typeof LayoutIndexRoute
 }
 
 const LayoutRouteChildren: LayoutRouteChildren = {
   LayoutAuthenticatedRoute: LayoutAuthenticatedRouteWithChildren,
+  LayoutIntegrateRoute: LayoutIntegrateRoute,
   LayoutLoginRoute: LayoutLoginRoute,
+  LayoutPaymentsRoute: LayoutPaymentsRoute,
   LayoutSkillRoute: LayoutSkillRoute,
+  LayoutSubscriptionsRoute: LayoutSubscriptionsRouteWithChildren,
   LayoutIndexRoute: LayoutIndexRoute,
 }
 
@@ -252,9 +397,6 @@ const LayoutRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   LayoutRoute: LayoutRouteWithChildren,
-  PaymentsRoute: PaymentsRoute,
-  SubscriptionsRoute: SubscriptionsRoute,
-  SubscriptionsStake2payRoute: SubscriptionsStake2payRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

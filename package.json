@@ -5,7 +5,8 @@
     "packages": [
       "api",
       "ui",
-      "plugins/*"
+      "plugins/*",
+      "packages/client"
     ],
     "catalog": {
       "react": "19.2.4",
@@ -113,13 +114,14 @@
   "devDependencies": {
     "@biomejs/biome": "2.4.15",
     "@changesets/cli": "^2.29.8",
+    "@playwright/test": "^1.58.1",
+    "@tanstack/intent": "^0.3.6",
     "@types/bun": "latest",
+    "@types/pg": "catalog:",
     "dotenv": "^17.3.1",
     "tsx": "^4.21.0",
     "vite-tsconfig-paths": "^6.1.1",
-    "vitest": "catalog:",
-    "@types/pg": "catalog:",
-    "@playwright/test": "^1.58.1"
+    "vitest": "catalog:"
   },
   "dependencies": {
     "@better-auth/api-key": "catalog:",

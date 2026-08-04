@@ -1,5 +1,5 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   CheckCircle2,
   ChevronDown,
@@ -12,26 +12,14 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { sessionQueryOptions, useApiClient } from "@/app";
-import { AppFooter } from "@/components/app-footer";
-import { TopNav } from "@/components/top-nav";
+import { useApiClient, useAuthClient, useAuthState } from "@/app";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export const Route = createFileRoute("/payments")({
+export const Route = createFileRoute("/_layout/payments")({
   validateSearch: (search: Record<string, unknown>): { result?: "success" | "cancel" } =>
     search.result === "success" || search.result === "cancel" ? { result: search.result } : {},
-  beforeLoad: async ({ context, location }) => {
-    const { queryClient, authClient } = context;
-    const session = await queryClient.ensureQueryData(
-      sessionQueryOptions(authClient, context.session),
-    );
-    if (!session?.user) {
-      throw redirect({ to: "/login", search: { redirect: location.href } });
-    }
-    return { session };
-  },
   head: () => ({
     meta: [
       { title: "Payments — pay.everything.dev" },
@@ -101,9 +89,13 @@ async function computeHmacSignature(secret: string, payload: string): Promise<st
 
 function PaymentsPage() {
   const apiClient = useApiClient();
+  const authClient = useAuthClient();
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { result: resultParam } = Route.useSearch();
   const origin = typeof window !== "undefined" ? window.location.origin : "https://example.com";
+
+  const { isAuthenticated } = useAuthState();
 
   const [orderId, setOrderId] = useState(`order_${Date.now()}`);
   const [amount, setAmount] = useState("1.00");
@@ -124,7 +116,8 @@ function PaymentsPage() {
       setSelectedKey(stored.provider.key);
     }
     setBanner(resultParam);
-  }, [resultParam]);
+    void queryClient.invalidateQueries({ queryKey: ["credits"] });
+  }, [resultParam, queryClient]);
 
   const selectProvider = (key: string) => {
     setSelectedKey(key);
@@ -135,7 +128,7 @@ function PaymentsPage() {
 
   const dismissBanner = () => {
     setBanner(null);
-    navigate({ to: "/payments", search: {}, replace: true });
+    void navigate({ to: "/payments", search: {}, replace: true });
   };
 
   const amountInCents = Math.round(Number(amount) * 100);
@@ -148,6 +141,19 @@ function PaymentsPage() {
 
   const checkout = useMutation({
     mutationFn: async (provider: ProviderInfo) => {
+      if (!isAuthenticated) {
+        await new Promise<void>((resolve, reject) => {
+          void authClient.signIn.anonymous({
+            fetchOptions: {
+              onSuccess: () => resolve(),
+              onError: (ctx: { error?: { message?: string } }) =>
+                reject(new Error(ctx.error?.message ?? "Failed to start session")),
+            },
+          });
+        });
+        await queryClient.invalidateQueries({ queryKey: ["session"] });
+      }
+
       const response = await apiClient.paymentCheckout({
         provider: provider.key,
         orderId,
@@ -165,7 +171,7 @@ function PaymentsPage() {
       const next = { provider, sessionId: response.sessionId, url: response.url, orderId };
       setResult(next);
       storeCheckout(next);
-      toast.success(`${provider.name} session created`);
+      window.location.assign(response.url);
     },
     onError: (error: Error, provider) => {
       setAggregationError(error.message || `${provider.name} is not available yet`);
@@ -179,18 +185,22 @@ function PaymentsPage() {
     : "#18181B";
 
   return (
-    <div className="relative flex min-h-dvh flex-col overflow-hidden bg-background text-foreground">
-      <TopNav />
-      <div className="pointer-events-none absolute inset-x-0 top-14 h-[480px] bg-[radial-gradient(65%_55%_at_50%_0%,rgba(124,92,246,0.14),transparent_70%)]" />
+    <div className="relative flex flex-1 flex-col overflow-hidden">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-[480px] bg-[radial-gradient(65%_55%_at_50%_0%,rgba(124,92,246,0.14),transparent_70%)]" />
 
-      <main className="relative flex-1 px-5 py-8 sm:px-8 sm:py-12">
+      <div className="relative flex-1 px-5 py-8 sm:px-8 sm:py-12">
         <div className="mx-auto max-w-5xl">
           {banner && <CheckoutBanner outcome={banner} onDismiss={dismissBanner} />}
 
           <div className="mb-12 max-w-xl">
-            <p className="mb-3 font-mono text-[11px] font-semibold uppercase tracking-[0.25em] text-[#7C5CF6] dark:text-[#AF9EF9]">
-              Payment aggregation
-            </p>
+            <div className="mb-3 flex items-center gap-2">
+              <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.25em] text-[#7C5CF6] dark:text-[#AF9EF9]">
+                Payment aggregation
+              </p>
+              <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
+                sandbox
+              </span>
+            </div>
             <h1 className="text-3xl font-semibold tracking-tight sm:text-[2.75rem] sm:leading-[1.1]">
               One checkout,
               <br />
@@ -331,9 +341,7 @@ function PaymentsPage() {
             </div>
           </div>
         </div>
-      </main>
-
-      <AppFooter />
+      </div>
     </div>
   );
 }
@@ -463,7 +471,7 @@ function ResponseSection({ result }: { result: CheckoutResult | null }) {
               Copy ID
             </Button>
             <Button size="sm" asChild>
-              <a href={result.url}>
+              <a href={result.url} target="_blank" rel="noopener noreferrer">
                 <ExternalLink size={13} />
                 Open checkout
               </a>
@@ -477,6 +485,7 @@ function ResponseSection({ result }: { result: CheckoutResult | null }) {
 
 function WebhookSection({ result }: { result: CheckoutResult | null }) {
   const apiClient = useApiClient();
+  const queryClient = useQueryClient();
   const [eventType, setEventType] = useState<string>(WEBHOOK_EVENT_TYPES[0]);
 
   const simulate = useMutation({
@@ -499,6 +508,9 @@ function WebhookSection({ result }: { result: CheckoutResult | null }) {
         signature: usesStripeScheme ? `t=${timestamp},v1=${digest}` : digest,
         timestamp,
       });
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["credits"] });
     },
     onError: (error: Error) => {
       toast.error(error.message || "Webhook rejected");
@@ -540,6 +552,9 @@ function WebhookSection({ result }: { result: CheckoutResult | null }) {
           <InfoRow label="event" value={simulate.data.eventType ?? "—"} />
           <InfoRow label="order" value={simulate.data.orderId ?? "—"} />
           <InfoRow label="session" value={simulate.data.sessionId ?? "—"} mono />
+          {simulate.data.creditsGranted && (
+            <InfoRow label="credits" value={`+${simulate.data.creditsGranted}`} highlight />
+          )}
         </div>
       )}
     </section>
@@ -577,11 +592,13 @@ function InfoRow({
   value,
   badge,
   mono,
+  highlight,
 }: {
   label: string;
   value?: string;
   badge?: string;
   mono?: boolean;
+  highlight?: boolean;
 }) {
   return (
     <div className="flex items-baseline justify-between gap-4">
@@ -593,7 +610,11 @@ function InfoRow({
           {badge}
         </span>
       ) : (
-        <span className={`text-right text-sm ${mono ? "break-all font-mono text-xs" : ""}`}>
+        <span
+          className={`text-right text-sm ${mono ? "break-all font-mono text-xs" : ""} ${
+            highlight ? "font-semibold text-emerald-600 dark:text-emerald-400" : ""
+          }`}
+        >
           {value}
         </span>
       )}

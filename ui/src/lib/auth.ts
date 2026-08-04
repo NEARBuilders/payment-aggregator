@@ -131,8 +131,7 @@ function getSiwnClientConfig(options: CreateAuthClientOptions): SiwnClientConfig
     throw new Error("Missing auth SIWN recipient");
   }
 
-  const networkId =
-    runtimeConfig?.networkId ?? (mainnetRecipient.endsWith(".testnet") ? "testnet" : "mainnet");
+  const networkId = runtimeConfig?.networkId ?? "testnet";
   const testnetRecipient = siwn.recipients?.testnet;
 
   if (testnetRecipient) {
@@ -205,6 +204,23 @@ export function sessionQueryOptions(authClient: AuthClient, initialSession?: Ses
   return initialSession === undefined
     ? baseOptions
     : { ...baseOptions, initialData: initialSession };
+}
+
+export function useAuthState() {
+  const auth = useAuthClient();
+  const { data: session } = useQuery(sessionQueryOptions(auth));
+  const nearAccountId = auth.near.getAccountId();
+
+  return {
+    session: session ?? null,
+    user: session?.user ?? null,
+    activeOrgId: session?.session?.activeOrganizationId ?? null,
+    isAuthenticated: !!session?.user,
+    isAnonymous: session?.user?.isAnonymous ?? false,
+    isEffectivelyAnonymous: (session?.user?.isAnonymous ?? false) && !nearAccountId,
+    nearAccountId,
+    hasNearWallet: !!nearAccountId,
+  };
 }
 
 export function useRelayHistory(session: SessionData | null | undefined, authClient: AuthClient) {

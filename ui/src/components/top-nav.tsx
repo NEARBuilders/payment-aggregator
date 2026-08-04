@@ -6,6 +6,7 @@ const NAV_LINKS = [
   { to: "/", label: "Home" },
   { to: "/payments", label: "Payments" },
   { to: "/subscriptions", label: "Subscriptions" },
+  { to: "/integrate", label: "Integrate" },
 ] as const;
 
 export function TopNav({ minimal = false }: { minimal?: boolean }) {

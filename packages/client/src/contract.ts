@@ -1,5 +1,5 @@
-import { oc } from "every-plugin/orpc";
-import { z } from "every-plugin/zod";
+import { oc } from "@orpc/contract";
+import { z } from "zod";
 
 const PaymentLineItemSchema = z.object({
   name: z.string(),
@@ -46,7 +46,6 @@ const WebhookOutputSchema = z.object({
   eventType: z.string().optional(),
   orderId: z.string().optional(),
   sessionId: z.string().optional(),
-  creditsGranted: z.string().optional(),
 });
 
 const GetSessionInputSchema = z.object({
@@ -136,11 +135,6 @@ const CreateSubscriptionInputSchema = z.object({
   successUrl: z.string().url().optional(),
   cancelUrl: z.string().url().optional(),
   metadata: z.record(z.string(), z.string()).optional(),
-});
-
-const CreditBalanceSchema = z.object({
-  creditType: z.string(),
-  balance: z.string(),
 });
 
 export const contract = oc.router({
@@ -244,7 +238,14 @@ export const contract = oc.router({
     )
     .output(SubscriptionActionSchema),
 
-  creditList: oc.route({ method: "GET", path: "/credits" }).output(z.array(CreditBalanceSchema)),
+  creditList: oc.route({ method: "GET", path: "/credits" }).output(
+    z.array(
+      z.object({
+        creditType: z.string(),
+        balance: z.string(),
+      }),
+    ),
+  ),
 
   subscriptionCreditSync: oc
     .route({ method: "POST", path: "/subscriptions/{provider}/credits/sync" })
@@ -259,7 +260,12 @@ export const contract = oc.router({
       z.object({
         granted: z.boolean(),
         reason: z.enum(["granted", "already_synced", "not_ready", "not_staked"]),
-        balances: z.array(CreditBalanceSchema),
+        balances: z.array(
+          z.object({
+            creditType: z.string(),
+            balance: z.string(),
+          }),
+        ),
       }),
     ),
 });

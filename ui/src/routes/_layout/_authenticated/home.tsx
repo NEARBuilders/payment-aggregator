@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo } from "react";
-import { type Passkey, type SessionData, sessionQueryOptions, useAuthClient } from "@/app";
+import { type Passkey, useAuthClient, useAuthState } from "@/app";
 
 export const Route = createFileRoute("/_layout/_authenticated/home")({
   head: () => ({
@@ -15,7 +15,7 @@ export const Route = createFileRoute("/_layout/_authenticated/home")({
 
 function Home() {
   const auth = useAuthClient();
-  const { data: session } = useQuery<SessionData | null>(sessionQueryOptions(auth, undefined));
+  const { user, nearAccountId, isEffectivelyAnonymous } = useAuthState();
   const { data: passkeys = [] } = useQuery({
     queryKey: ["passkeys"],
     queryFn: async () => {
@@ -24,20 +24,16 @@ function Home() {
     },
     staleTime: 60 * 1000,
   });
-  const user = session?.user;
-  const nearAccountId = auth.near.getAccountId();
 
   const profile = useMemo(() => {
     if (!user)
       return {
-        isAnonymous: false,
         hasEmail: false,
         hasNear: false,
         hasPasskeys: false,
         isAdmin: false,
       };
     return {
-      isAnonymous: user.isAnonymous || false,
       hasEmail: Boolean(user.email),
       hasNear: Boolean(nearAccountId),
       hasPasskeys: passkeys.length > 0,
@@ -67,7 +63,7 @@ function Home() {
               <div className="rounded-[12px] border border-border bg-card p-6">
                 <div className="flex flex-wrap items-center gap-2 mb-4">
                   <Chip>workspace</Chip>
-                  {profile.isAnonymous && <Chip>anonymous</Chip>}
+                  {isEffectivelyAnonymous && <Chip>anonymous</Chip>}
                   {profile.isAdmin && <Chip accent>admin</Chip>}
                 </div>
                 <h2 className="text-foreground text-2xl font-semibold mb-1">
@@ -98,11 +94,11 @@ function Home() {
                   />
                   <InfoRow
                     label="profile"
-                    value={profile.isAnonymous ? "anonymous session" : "persistent account"}
+                    value={isEffectivelyAnonymous ? "anonymous session" : "persistent account"}
                   />
                 </div>
 
-                {profile.isAnonymous && (
+                {isEffectivelyAnonymous && (
                   <div className="mt-4 rounded-[8px] bg-brand-accent-light border border-brand-accent-border text-foreground text-[13px] leading-relaxed px-4 py-3">
                     Link an email or NEAR wallet before signing out to keep your data.
                   </div>

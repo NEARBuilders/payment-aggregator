@@ -10,17 +10,6 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 
-export const upvotes = pgTable(
-  "upvotes",
-  {
-    id: text("id").primaryKey(),
-    thingId: text("thing_id").notNull(),
-    userId: text("user_id").notNull(),
-    createdAt: timestamp("created_at", { mode: "date", withTimezone: true }).defaultNow().notNull(),
-  },
-  (table) => [uniqueIndex("upvotes_thing_user_unique").on(table.thingId, table.userId)],
-);
-
 export const entitlements = pgTable(
   "entitlements",
   {

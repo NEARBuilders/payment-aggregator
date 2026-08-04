@@ -102,18 +102,41 @@ Secrets per provider:
   Stripe API    PingPay API
 ```
 
-## Adding a Provider
+## Use in Your Own App
 
-1. Scaffold from `plugins/_template/`
-2. Copy the `PaymentContract` into `src/contract.ts`
-3. Implement the four contract procedures in `src/service.ts` + `src/index.ts`
-4. Register in `bos.config.json`:
-   ```json
-   { "plugins": { "new-provider": { "development": "local:plugins/new-provider" } } }
-   ```
-5. Add aggregation routes in `api/src/contract.ts` and wire in `api/src/index.ts`
+```bash
+npm install @pay.everything/client
+```
 
-See `plugins/_template/` for the full scaffold.
+```ts
+import { createPayClient } from "@pay.everything/client";
+
+const pay = createPayClient("https://your-api.com");
+
+const checkout = await pay.paymentCheckout({
+  provider: "stripe",
+  orderId: "order_123",
+  amount: 1999,
+  currency: "USD",
+  successUrl: "https://myapp.com/success",
+  cancelUrl: "https://myapp.com/cancel",
+  items: [{ name: "Widget", unitAmount: 1999, quantity: 1 }],
+});
+```
+
+### Integration paths
+
+| Path | Best for |
+|------|----------|
+| **`@pay.everything/client`** | TypeScript apps — fully typed oRPC client |
+| **HTTP / REST** | Any stack — documented endpoints |
+| **everything-dev bos.config.json** | BOS ecosystem apps — drop in |
+
+### Deploy your own
+
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/everything-dev-template?referralCode=MuB_vg&utm_medium=integration&utm_source=template&utm_campaign=generic)
+
+See **[docs/integration.md](./docs/integration.md)** for the full guide — curl examples, React snippets, subscription flows, and type reference.
 
 ## Development
 
