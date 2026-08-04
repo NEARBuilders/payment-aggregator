@@ -66,27 +66,6 @@ export default createPlugin.withPlugins<PluginsClient>()({
       return context.userId;
     };
 
-    const requireOwnPayerRef = (
-      payerRef: string | undefined,
-      context: {
-        near?: {
-          primaryAccountId?: string | null;
-          linkedAccounts?: Array<{ accountId: string }>;
-        };
-      },
-    ) => {
-      const resolved = requirePayerRef(payerRef, context);
-      const owned =
-        resolved === context.near?.primaryAccountId ||
-        (context.near?.linkedAccounts ?? []).some((account) => account.accountId === resolved);
-      if (!owned) {
-        throw new ORPCError("FORBIDDEN", {
-          message: "payerRef must be a NEAR account linked to your session",
-        });
-      }
-      return resolved;
-    };
-
     const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
     const getSubscriptionWithRetry = async (
@@ -324,10 +303,7 @@ export default createPlugin.withPlugins<PluginsClient>()({
         const factory = getPlugin(provider);
         const client = (factory as (opts?: unknown) => any)();
 
-        const payerRef =
-          provider === "stake2pay"
-            ? requireOwnPayerRef(input.payerRef, context)
-            : requirePayerRef(input.payerRef, context);
+        const payerRef = requirePayerRef(input.payerRef, context);
 
         const subscription = await getSubscriptionWithRetry(client, planId, payerRef);
 

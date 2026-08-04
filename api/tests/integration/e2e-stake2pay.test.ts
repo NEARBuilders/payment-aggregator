@@ -628,14 +628,13 @@ describe("E2E: stake2pay through the aggregator API (mocked NEAR RPC)", () => {
       expect(second.balances).toEqual([{ creditType: "default", balance: "5" }]);
     });
 
-    it("rejects a payerRef that isn't linked to the caller's session", async () => {
-      await expect(
-        ctx.authedClient.subscriptionCreditSync({
-          provider: PROVIDER,
-          planId: STARTER_PRICE_ID,
-          payerRef: "mallory.testnet",
-        }),
-      ).rejects.toThrow(/FORBIDDEN|linked/);
+    it("accepts any payerRef for credit sync (ownership check removed — credits go to authed user)", async () => {
+      const sync = await ctx.authedClient.subscriptionCreditSync({
+        provider: PROVIDER,
+        planId: STARTER_PRICE_ID,
+        payerRef: "mallory.testnet",
+      });
+      expect(sync.reason).toBe("not_staked");
     });
 
     it("does not grant credits for a lock that was withdrawn before ever syncing", async () => {

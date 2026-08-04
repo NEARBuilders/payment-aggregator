@@ -209,15 +209,6 @@ function UnifiedStakeForm({
 
   const [inputNear, setInputNear] = useState(() => yoctoToNear(plans[0]?.minAmount ?? "0") ?? "");
 
-  const amountYocto = nearToYocto(inputNear);
-  const matchingPlan =
-    amountYocto !== null
-      ? (plans.find(
-          (p) => amountYocto >= BigInt(p.minAmount) && amountYocto <= BigInt(p.maxAmount),
-        ) ?? null)
-      : null;
-  const amountValid = matchingPlan !== null && amountYocto !== null;
-
   const statusQueries = useQueries({
     queries: plans.map((plan) => ({
       queryKey: ["subscription-status", PROVIDER, plan.id, nearAccountId],
@@ -243,6 +234,21 @@ function UnifiedStakeForm({
   const status = activeSubscription?.status ?? "none";
   const isStaked = status !== "none" && status !== "ended";
   const isLoading = statusQueries.some((q) => q.isLoading);
+
+  const amountYocto = nearToYocto(inputNear);
+  const totalYocto =
+    isStaked && activeSubscription?.amount
+      ? amountYocto !== null
+        ? BigInt(activeSubscription.amount) + amountYocto
+        : null
+      : amountYocto;
+  const matchingPlan =
+    totalYocto !== null
+      ? (plans.find(
+          (p) => totalYocto >= BigInt(p.minAmount) && totalYocto <= BigInt(p.maxAmount),
+        ) ?? null)
+      : null;
+  const amountValid = matchingPlan !== null && amountYocto !== null && amountYocto > 0n;
 
   const activeSubscriptionQueryKey = activePlan
     ? ["subscription-status", PROVIDER, activePlan.id, nearAccountId]
@@ -342,7 +348,62 @@ function UnifiedStakeForm({
     },
   });
 
-  const busy = stake.isPending || syncCredits.isPending;
+  const increaseStake = useMutation({
+    mutationFn: async () => {
+      if (!activePlan || !activeSubscription || !matchingPlan || !amountYocto) {
+        throw new Error("Enter a valid additional stake amount");
+      }
+
+      const action = (await apiClient.subscriptionChange({
+        provider: PROVIDER,
+        planId: activePlan.id,
+        newPlanId: matchingPlan.id,
+        amount: totalYocto!.toString(),
+        payerRef: nearAccountId,
+      })) as SubscriptionAction;
+
+      if (action.kind !== "wallet_intent") {
+        throw new Error("Unexpected subscription action from stake2pay");
+      }
+
+      await signWalletIntent(authClient, action);
+      toast.info("Increase sent — waiting for the chain to confirm");
+
+      await pollUntil(
+        () =>
+          apiClient.subscriptionGet({
+            provider: PROVIDER,
+            planId: matchingPlan.id,
+            payerRef: nearAccountId,
+          }) as Promise<SubscriptionInfo>,
+        (s) => s.status === "active",
+      );
+
+      const sync = await apiClient.subscriptionCreditSync({
+        provider: PROVIDER,
+        planId: matchingPlan.id,
+        payerRef: nearAccountId,
+      });
+      queryClient.setQueryData(["credits", activeOrgId], sync.balances);
+      return sync;
+    },
+    onSuccess: (sync) => {
+      if (sync.reason === "granted") {
+        toast.success("Stake increased — credits updated");
+      } else {
+        notifySyncResult(sync);
+      }
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Increase stake failed");
+    },
+    onSettled: () => {
+      onRefetchBalances();
+      void queryClient.invalidateQueries({ queryKey: ["subscription-status", PROVIDER] });
+    },
+  });
+
+  const busy = stake.isPending || syncCredits.isPending || increaseStake.isPending;
 
   return (
     <div className="rounded-2xl border border-border bg-card p-5 space-y-4">
@@ -400,43 +461,62 @@ function UnifiedStakeForm({
         </div>
       )}
 
-      {!isStaked && (
-        <div className="space-y-1.5">
-          <label htmlFor="stake-amount" className="text-muted-foreground text-[11px] font-medium">
-            Stake amount (NEAR)
-          </label>
-          <Input
-            id="stake-amount"
-            inputMode="decimal"
-            value={inputNear}
-            onChange={(e) => setInputNear(e.target.value)}
-            disabled={busy}
-          />
-          {inputNear && !amountValid && (
-            <p className="text-red-500 text-xs">
-              Enter between {yoctoToNear(overallMin.toString())} and{" "}
-              {yoctoToNear(overallMax.toString())} NEAR
-            </p>
-          )}
-          {matchingPlan && amountValid && (
-            <p className="text-muted-foreground text-[11px]">
-              Qualifies for the{" "}
-              <span className="font-medium text-foreground">{matchingPlan.name}</span> plan
-            </p>
-          )}
-        </div>
-      )}
+      <div className="space-y-1.5">
+        <label htmlFor="stake-amount" className="text-muted-foreground text-[11px] font-medium">
+          {isStaked ? "Additional stake (NEAR)" : "Stake amount (NEAR)"}
+        </label>
+        <Input
+          id="stake-amount"
+          inputMode="decimal"
+          value={inputNear}
+          onChange={(e) => setInputNear(e.target.value)}
+          disabled={busy}
+        />
+        {inputNear && !amountValid && (
+          <p className="text-red-500 text-xs">
+            Enter between {yoctoToNear(overallMin.toString())} and{" "}
+            {yoctoToNear(overallMax.toString())} NEAR
+            {isStaked && activeSubscription?.amount && (
+              <> (added to the {yoctoToNear(activeSubscription.amount)} NEAR already locked)</>
+            )}
+          </p>
+        )}
+        {matchingPlan && amountValid && (
+          <p className="text-muted-foreground text-[11px]">
+            Qualifies for the{" "}
+            <span className="font-medium text-foreground">{matchingPlan.name}</span> plan
+            {isStaked && totalYocto !== null && (
+              <> (total {yoctoToNear(totalYocto.toString())} NEAR)</>
+            )}
+          </p>
+        )}
+      </div>
 
-      {activeSubscriptionQueryKey && isStaked ? (
-        <Button
-          className="w-full text-white"
-          style={{ backgroundColor: "#00C08B" }}
-          disabled={syncCredits.isPending}
-          onClick={() => syncCredits.mutate()}
-        >
-          {syncCredits.isPending && <Loader2 size={15} className="animate-spin" />}
-          Sync credits
-        </Button>
+      {isStaked && activeSubscriptionQueryKey ? (
+        <div className="flex gap-2">
+          <Button
+            className="flex-1 text-white"
+            style={{ backgroundColor: "#00C08B" }}
+            disabled={!amountValid || increaseStake.isPending}
+            onClick={() => increaseStake.mutate()}
+          >
+            {increaseStake.isPending ? (
+              <Loader2 size={15} className="animate-spin" />
+            ) : (
+              <Wallet size={15} />
+            )}
+            Increase stake
+          </Button>
+          <Button
+            className="flex-1 text-white"
+            style={{ backgroundColor: "#00C08B" }}
+            disabled={syncCredits.isPending}
+            onClick={() => syncCredits.mutate()}
+          >
+            {syncCredits.isPending && <Loader2 size={15} className="animate-spin" />}
+            Sync credits
+          </Button>
+        </div>
       ) : (
         <Button
           className="w-full text-white"
