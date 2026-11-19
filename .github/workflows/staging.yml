@@ -20,6 +20,7 @@ permissions:
 
 jobs:
   deploy-staging:
+    timeout-minutes: 60
     name: Deploy Staging
     runs-on: ubuntu-latest
     env:

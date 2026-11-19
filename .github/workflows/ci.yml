@@ -19,6 +19,7 @@ permissions:
 
 jobs:
   lint-and-typecheck:
+    timeout-minutes: 60
     name: Lint and Type Check
     runs-on: ubuntu-latest
     steps:
@@ -72,6 +73,7 @@ jobs:
         run: bun run test
 
   notify:
+    timeout-minutes: 60
     name: Notify downstream workflows
     needs: [lint-and-typecheck]
     if: |
